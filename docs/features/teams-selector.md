@@ -1,5 +1,6 @@
 # Teams selector
 
+- **Migration order:** Domain tables use one second per migration: `155540` organizations, `155541` selection_drafts, `155542` approved_selections, `155543` members, `155544` organization_user, `155545` rules—so FK order is explicit without relying on alphabetical filename order.
 - Organizations are identified by `slug` in URLs (`/organizations/{slug}/...`).
 - Approved selections store an immutable `snapshot` including `branding` (logo URL and colors) for consistent print/export.
 - Team generation uses `TeamSolverService` with weighted penalties; blocking roster issues (e.g. member count vs team size) surface as `blocking_errors` on the draft state.

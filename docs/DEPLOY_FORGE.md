@@ -12,6 +12,8 @@
 - Copy `.env.example` to `.env` on the server and set `APP_KEY`, `APP_URL`, database credentials, and mail settings.
 - `php artisan migrate --force` on deploy.
 - `php artisan storage:link` once per server so organization logos in `storage/app/public` are web-accessible.
+- If migration **filenames** change after a deploy already ran, the `migrations` table still lists old names—either align those rows with the new filenames (same batch/order) or use `migrate:fresh` only when you can drop data.
+
 
 ## Deploy script order
 
