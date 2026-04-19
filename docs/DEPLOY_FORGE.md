@@ -35,6 +35,12 @@
 - Enable Forge automated database backups for PostgreSQL.
 - Include `storage/app` in backups if you store logos only on local disk (or use S3 and document `FILESYSTEM_DISK`).
 
+## Cloudflare (orange-cloud / proxied DNS)
+
+- **`ERR_TOO_MANY_REDIRECTS`:** Almost always **SSL/TLS encryption mode = Flexible**. Cloudflare then talks **HTTP** to Forge; Nginx/Laravel redirect to **HTTPS**; the client loops. Set Cloudflare **SSL/TLS → Overview** to **Full** or **Full (strict)** (strict once Forge has a valid Let’s Encrypt cert for your hostname).
+- The app calls **`trustProxies(at: '*')`** in `bootstrap/app.php` so Laravel respects **`X-Forwarded-Proto`** from Cloudflare and does not mis-detect HTTP vs HTTPS.
+- Set **`APP_URL=https://your-custom-domain`** to match the public URL.
+
 ## Security
 
 - Serve over HTTPS only; set `SESSION_SECURE_COOKIE=true` in production.

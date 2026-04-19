@@ -13,12 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Required when the site is behind Cloudflare (or another reverse proxy) so
+        // X-Forwarded-Proto is honored and URL/session logic does not fight HTTPS.
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
-
-        //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
