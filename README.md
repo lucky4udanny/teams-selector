@@ -1,3 +1,9 @@
+## Teams Selector
+
+Multi-tenant team/group assignment app (Laravel 13, Inertia, Vue 3). **Node.js ≥ 22.12** required for the frontend build (`npm ci`, `npm run build`); see `.nvmrc` and `package.json` `engines`.
+
+---
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

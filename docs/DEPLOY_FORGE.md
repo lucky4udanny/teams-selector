@@ -2,7 +2,8 @@
 
 ## Server
 
-- PHP 8.3+ (8.4 supported), Composer 2, Node 20.19+ or 22.12+ for asset builds on the server or in CI.
+- PHP 8.3+ (8.4 supported), Composer 2.
+- **Node.js ≥ 22.12** (recommended: **22 LTS** or current stable such as **23.x**) for `npm ci` / `npm run build`. The repo pins this via `package.json` `engines` and `.nvmrc` (22). Forge “Application” → Node version should match.
 - Database: PostgreSQL recommended; SQLite works for small installs.
 - Redis optional (queues if you offload heavy generation later).
 
