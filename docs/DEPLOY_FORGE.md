@@ -1,0 +1,33 @@
+# Deploying on Laravel Forge
+
+## Server
+
+- PHP 8.3+ (8.4 supported), Composer 2, Node 20.19+ or 22.12+ for asset builds on the server or in CI.
+- Database: PostgreSQL recommended; SQLite works for small installs.
+- Redis optional (queues if you offload heavy generation later).
+
+## Environment
+
+- Copy `.env.example` to `.env` on the server and set `APP_KEY`, `APP_URL`, database credentials, and mail settings.
+- `php artisan migrate --force` on deploy.
+- `php artisan storage:link` once per server so organization logos in `storage/app/public` are web-accessible.
+
+## Build
+
+- Install Composer dependencies: `composer install --no-dev --optimize-autoloader`.
+- Install Node dependencies and build frontend: `npm ci && npm run build` (or build assets in CI and deploy `public/build`).
+
+## Queues and scheduler (optional)
+
+- If you add queued jobs, configure a Forge daemon or `queue:work` with Supervisor.
+- For scheduled tasks, add the Laravel scheduler to Forge’s cron: `* * * * * cd /home/forge/site && php artisan schedule:run`.
+
+## Backups
+
+- Enable Forge automated database backups for PostgreSQL.
+- Include `storage/app` in backups if you store logos only on local disk (or use S3 and document `FILESYSTEM_DISK`).
+
+## Security
+
+- Serve over HTTPS only; set `SESSION_SECURE_COOKIE=true` in production.
+- Restrict `.env` and storage permissions per Forge defaults.

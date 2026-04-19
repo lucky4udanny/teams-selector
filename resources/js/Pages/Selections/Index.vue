@@ -1,0 +1,43 @@
+<script setup>
+import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
+import { Head, Link } from '@inertiajs/vue3';
+
+defineProps({
+    organization: Object,
+    selections: Array,
+});
+</script>
+
+<template>
+    <Head title="Selections" />
+
+    <OrganizationLayout :organization="organization">
+        <template #header>
+            <h1 class="text-2xl font-bold text-slate-900">Approved selections</h1>
+        </template>
+
+        <ul class="space-y-2">
+            <li v-for="s in selections" :key="s.id">
+                <Link
+                    :href="
+                        route('organizations.selections.show', [
+                            organization.slug,
+                            s.id,
+                        ])
+                    "
+                    class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-200"
+                >
+                    <span class="font-medium text-slate-900">{{
+                        s.title || 'Selection #' + s.id
+                    }}</span>
+                    <span class="text-xs text-slate-500">{{
+                        s.created_at
+                    }}</span>
+                    <span class="w-full text-xs text-amber-800 sm:w-auto"
+                        >Penalty {{ s.total_penalty }}</span
+                    >
+                </Link>
+            </li>
+        </ul>
+    </OrganizationLayout>
+</template>
