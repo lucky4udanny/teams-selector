@@ -13,6 +13,11 @@
 - `php artisan migrate --force` on deploy.
 - `php artisan storage:link` once per server so organization logos in `storage/app/public` are web-accessible.
 
+## Deploy script order
+
+- Ensure Laravel’s writable storage dirs exist **before** `php artisan optimize`, `view:clear`, or `config:cache` (Forge’s default deploy often runs these). Example: `mkdir -p storage/framework/{views,sessions,cache}` and `chmod -R ug+rwx storage bootstrap/cache` if needed.
+- If you ever set `VIEW_COMPILED_PATH` in `.env`, it must be a non-empty absolute path; an empty value breaks `php artisan view:clear` with `View path not found.` The app ships `config/view.php` so the compiled path falls back to `storage/framework/views` when the env var is unset.
+
 ## Build
 
 - Install Composer dependencies: `composer install --no-dev --optimize-autoloader`.
