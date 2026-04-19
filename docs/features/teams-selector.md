@@ -5,3 +5,4 @@
 - Team generation uses `TeamSolverService` with weighted penalties; blocking roster issues (e.g. member count vs team size) surface as `blocking_errors` on the draft state.
 - Frontend toolchain: **Vite 8**, **Tailwind CSS v4** (`@tailwindcss/vite`), **Vue 3.5+**; Node **≥ 22.12** per `package.json` / `.nvmrc`.
 - **Forge:** If `view:clear` fails with `View path not found.`, ensure `storage/framework/views` exists before optimize/clear commands, avoid empty `VIEW_COMPILED_PATH`, and use published `config/view.php` (fallback path without `realpath()`).
+- Policies use `$this->authorize()` from **`Illuminate\Foundation\Auth\Access\AuthorizesRequests`** on the base `Controller`; ensure that trait is present (default Laravel skeleton includes it; minimal scaffolds may not).
