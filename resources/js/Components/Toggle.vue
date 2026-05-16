@@ -1,5 +1,5 @@
 <script setup>
-import { Switch } from '@headlessui/vue';
+import { Switch, SwitchGroup, SwitchLabel } from '@headlessui/vue';
 
 const model = defineModel({
     type: Boolean,
@@ -19,7 +19,7 @@ defineProps({
 </script>
 
 <template>
-    <Switch.Group as="div" class="flex items-center gap-3">
+    <SwitchGroup as="div" class="flex items-center gap-3">
         <Switch
             :id="id"
             v-model="model"
@@ -36,8 +36,8 @@ defineProps({
                 ]"
             />
         </Switch>
-        <Switch.Label v-if="label" class="text-sm text-brand-navy">
+        <SwitchLabel v-if="label" class="text-sm text-brand-navy">
             {{ label }}
-        </Switch.Label>
-    </Switch.Group>
+        </SwitchLabel>
+    </SwitchGroup>
 </template>

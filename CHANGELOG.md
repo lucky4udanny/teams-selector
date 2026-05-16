@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Fix (members import):** Guard null/missing upload before `getClientOriginalExtension()`; validate readable temp path only after file exists.
+- **Fix (pair history):** Skip out-of-bounds `team_indices` when rebuilding group pairs from prior finalized drafts (`PairHistoryService`).
+- **Test (pair history):** `PairHistoryServiceTest` covers invalid team index and team-scope pairs.
+- **Fix (Modal):** Backdrop used `fixed` without a lower z-index than the panel; panel now `relative z-10`, backdrop `z-0`, flex-centered layout.
+- **Fix (Toggle):** Import `SwitchGroup` and `SwitchLabel` from Headless UI v1 (`Switch.Group` / `Switch.Label` are undefined).
 - **Fix (members import):** Skip leading blank spreadsheet rows and scan the first rows for the real header (fixes Excel files with an empty comma row above column names).
 - **Feat (members import):** `MemberCsvImportParser` scores UTF-8/UTF-16/Windows-1252 × comma/semicolon/tab encodings and picks the best parse; accepts `.xlsx`/`.xls` via PhpSpreadsheet; simpler UI copy and import success message (skipped empty rows).
 - **Fix (members CSV):** Convert UTF-16 Excel CSV (BOM or heuristic) to UTF-8 before parsing; clearer error when headers are unreadable.

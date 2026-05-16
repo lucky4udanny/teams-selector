@@ -60,7 +60,7 @@ class PairHistoryService
         foreach ($groups as $group) {
             $ids = [];
             foreach ($group['team_indices'] ?? [] as $ti) {
-                foreach ($teams[(int) $ti]['member_ids'] ?? [] as $mid) {
+                foreach (($teams[(int) $ti] ?? [])['member_ids'] ?? [] as $mid) {
                     $ids[] = (int) $mid;
                 }
             }

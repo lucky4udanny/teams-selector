@@ -133,8 +133,12 @@ class MemberController extends Controller
         ]);
 
         $uploaded = $request->file('file');
-        $path = $uploaded?->getRealPath();
-        if ($path === false || $path === null) {
+        if ($uploaded === null) {
+            return redirect()->back()->withErrors(['file' => 'Could not read file.']);
+        }
+
+        $path = $uploaded->getRealPath();
+        if ($path === false) {
             return redirect()->back()->withErrors(['file' => 'Could not read file.']);
         }
 
