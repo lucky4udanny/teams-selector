@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fix (TextInput):** `defineModel` type widened to `[String, Number]` so `v-model.number` on numeric fields (iterations, rule size, teams-per-group) no longer triggers a Vue prop type warning.
 - **Fix (roster):** Event show `?tab=roster` assigns `roster` as the member rows array (not nested `roster.roster`); RSVP counts stay on `event.rsvp_counts` only.
 - **Fix (roster):** RSVP badges now correctly scope pending/accepted/declined/invited to **included** members only; waiting list members counted separately; `Event::rsvpCounts()` returns `included`, `waiting`, `invited`, `pending`, `accepted`, `declined`.
 - **Fix (roster):** Status dropdown clipped at bottom of table — `ListboxInput` gains a `portal` prop that teleports the options list to `<body>` with `position:fixed` and auto-detects whether to open upward or downward; `StatusBadge` opts in via `portal`.
