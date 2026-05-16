@@ -20,6 +20,10 @@ defineProps({
         type: Boolean,
         default: false,
     },
+    hint: {
+        type: String,
+        default: '',
+    },
 });
 </script>
 
@@ -36,6 +40,9 @@ defineProps({
                 aria-hidden="true"
             />
         </div>
+        <p v-if="hint && !error" class="mt-1 text-xs text-brand-blue/60">
+            {{ hint }}
+        </p>
         <InputError class="mt-1" :message="error" />
     </div>
 </template>

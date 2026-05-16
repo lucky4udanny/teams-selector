@@ -13,3 +13,4 @@
 - **Pair history:** `PairHistoryService::pairsForPriorEvent` tolerates corrupt `team_indices` in stored draft JSON when building group-scope repeat pairs.
 - **Rule ordering:** `Event::recalculateRuleSortOrders()` runs after duplicate and rule mutations so UI/solver order matches weight.
 - **DateInput:** With `model-type="yyyy-MM-dd"`, bind string dates only—see [teams-selector](features/teams-selector.md).
+- **Form feedback:** Catalog pages flash success/errors; shared client validation in `resources/js/utils/formValidation.js`.

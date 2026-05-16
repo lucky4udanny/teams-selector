@@ -44,10 +44,16 @@ class SectorController extends Controller
                 'max:255',
                 Rule::unique('sectors', 'name')->where('organization_id', $organization->id),
             ],
+        ], [
+            'name.required' => 'Sector name is required.',
+            'name.unique' => 'A sector with this name already exists.',
         ]);
 
-        $organization->sectors()->create(['name' => $validated['name']]);
+        $name = trim($validated['name']);
+        $organization->sectors()->create(['name' => $name]);
 
-        return redirect()->back();
+        return redirect()
+            ->back()
+            ->with('status', 'Sector "'.$name.'" was added.');
     }
 }

@@ -7,6 +7,8 @@
 - **Fix (members import):** Guard null/missing upload before `getClientOriginalExtension()`; validate readable temp path only after file exists.
 - **Fix (pair history):** Skip out-of-bounds `team_indices` when rebuilding group pairs from prior finalized drafts (`PairHistoryService`).
 - **Test (pair history):** `PairHistoryServiceTest` covers invalid team index and team-scope pairs.
+- **Feat (forms):** Event types and sectors: client-side validation (`formValidation.js`), field hints, inline/server errors, success/error flash toasts, unique name checks, block delete of event types in use; `FormField` optional `hint` prop.
+- **Test (event types):** `EventTypeManagementTest` covers create flash, duplicate name, delete guard, invalid sort order.
 - **Fix (EventTypes):** Optional sort order uses empty string in `TextInput` (not `null`) to avoid Vue prop type warnings; coerces to `null` on submit for auto-order.
 - **UI (nav):** Org home **Setup** links and Events page **Manage event types** link to `organizations.event-types.index` (was URL-only).
 - **Fix (DateInput):** Keep `VueDatePicker` model as `yyyy-MM-dd` strings (not `Date` objects) so `model-type` parsing does not throw `dateString.match is not a function`.
