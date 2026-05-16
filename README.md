@@ -2,6 +2,22 @@
 
 Multi-tenant team/group assignment app (Laravel 13, Inertia, Vue 3). **Node.js ≥ 22.12** required for the frontend build (`npm ci`, `npm run build`); see `.nvmrc` and `package.json` `engines`.
 
+### Local development (Docker, Forge-like)
+
+Use [Laravel Sail](https://laravel.com/docs/sail) for a stack that mirrors [Forge](docs/DEPLOY_FORGE.md): **PHP 8.4**, **PostgreSQL**, **Redis**, **Mailpit**, **Node 22**. Full steps: **[docs/LOCAL_DOCKER.md](docs/LOCAL_DOCKER.md)**.
+
+```bash
+composer install
+cp .env.example .env   # if needed
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan storage:link
+./vendor/bin/sail npm ci && ./vendor/bin/sail npm run build
+```
+
+Open http://localhost
+
 ---
 
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
