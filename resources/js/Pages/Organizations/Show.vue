@@ -83,6 +83,23 @@ const saveSettings = () => {
             </Link>
         </div>
 
+        <p class="mt-4 text-sm text-brand-blue/80">
+            <span class="text-brand-blue/60">Setup:</span>
+            <Link
+                :href="route('organizations.event-types.index', organization.slug)"
+                class="ms-2 font-medium text-brand-blue hover:text-brand-navy"
+            >
+                Event types
+            </Link>
+            <span class="mx-2 text-brand-mist">·</span>
+            <Link
+                :href="route('organizations.sectors.index', organization.slug)"
+                class="font-medium text-brand-blue hover:text-brand-navy"
+            >
+                Sectors
+            </Link>
+        </p>
+
         <section
             v-if="events.length"
             class="ts-card-padded mt-8"

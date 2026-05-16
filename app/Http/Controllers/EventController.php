@@ -261,6 +261,8 @@ class EventController extends Controller
                 ]);
             }
 
+            $copy->recalculateRuleSortOrders();
+
             return $copy;
         });
 

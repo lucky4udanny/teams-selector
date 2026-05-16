@@ -41,7 +41,7 @@ class EventRuleController extends Controller
             'sort_order' => 0,
         ]);
 
-        $this->recalculateSortOrders($event);
+        $event->recalculateRuleSortOrders();
         $rule->refresh();
 
         return redirect()->back();
@@ -73,7 +73,7 @@ class EventRuleController extends Controller
             'config' => $validated['config'],
         ]);
 
-        $this->recalculateSortOrders($event);
+        $event->recalculateRuleSortOrders();
 
         return redirect()->back();
     }
@@ -83,7 +83,7 @@ class EventRuleController extends Controller
         $this->authorize('update', $event);
 
         $rule->delete();
-        $this->recalculateSortOrders($event);
+        $event->recalculateRuleSortOrders();
 
         return redirect()->back();
     }
@@ -141,19 +141,6 @@ class EventRuleController extends Controller
             throw ValidationException::withMessages([
                 'config' => 'A repeat_pair rule for this prior event already exists.',
             ]);
-        }
-    }
-
-    private function recalculateSortOrders(Event $event): void
-    {
-        $rules = Rule::query()
-            ->where('event_id', $event->id)
-            ->orderByDesc('weight')
-            ->orderBy('id')
-            ->get();
-
-        foreach ($rules as $i => $rule) {
-            $rule->update(['sort_order' => $i]);
         }
     }
 

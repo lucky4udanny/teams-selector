@@ -452,9 +452,9 @@ class TeamSolverService
         $out = [];
         foreach ($groups as $gidx => $group) {
             $ids = [];
-            foreach ($group['team_indices'] as $ti) {
+            foreach ($group['team_indices'] ?? [] as $ti) {
                 $ti = (int) $ti;
-                foreach ($teams[$ti]['member_ids'] ?? [] as $mid) {
+                foreach (($teams[$ti] ?? [])['member_ids'] ?? [] as $mid) {
                     $ids[] = (int) $mid;
                 }
             }

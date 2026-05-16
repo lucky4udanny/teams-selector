@@ -9,7 +9,8 @@
 - **Members import:** `MemberCsvImportParser` tries multiple encodings and delimiters and picks the parse that finds name columns; also reads `.xlsx`/`.xls`. `MemberController@import` — header row with `first_name` / `last_name` (or spaced labels); extra columns ignored. Inertia `useForm` + `forceFormData: true`; submit via `PrimaryButton type="submit"`.
 - Approved selections store an immutable `snapshot` including `branding` (logo URL and colors) for consistent print/export.
 - Team generation uses `TeamSolverService` with weighted penalties; blocking roster issues (e.g. member count vs team size) surface as `blocking_errors` on the draft state.
-- **Repeat-pair history:** `PairHistoryService` reads finalized prior-event draft `state`; group scope merges members via `team_indices` and ignores missing team slots (`($teams[$ti] ?? [])['member_ids']`).
+- **Repeat-pair history:** `PairHistoryService` and `TeamSolverService::membersByGroup` merge group members via `team_indices` and ignore missing team slots (`($teams[$ti] ?? [])['member_ids']`).
+- **Event rules sort_order:** `Event::recalculateRuleSortOrders()` sets `0..n` by descending `weight` (then `id`); called after rule CRUD and event duplicate.
 - Frontend toolchain: **Vite 8**, **Tailwind CSS v4** (`@tailwindcss/vite`), **Vue 3.5+**; Node **≥ 22.12** per `package.json` / `.nvmrc`.
 - **Forge:** If `view:clear` fails with `View path not found.`, ensure `storage/framework/views` exists before optimize/clear commands, avoid empty `VIEW_COMPILED_PATH`, and use published `config/view.php` (fallback path without `realpath()`).
 - **Vue SFC + Tailwind v4:** Avoid `@apply` inside `<style>` blocks in `.vue` files unless you add a Tailwind `@reference` to the main stylesheet—otherwise utilities like `rounded-lg` are “unknown” to the per-file CSS pipeline. Prefer `@reference` or plain CSS for third-party slots (e.g. date picker input classes).

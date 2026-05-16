@@ -137,4 +137,18 @@ class Event extends Model
             'invited' => $invited,
         ];
     }
+
+    /** Re-number rule sort_order by descending weight (then id). */
+    public function recalculateRuleSortOrders(): void
+    {
+        $rules = Rule::query()
+            ->where('event_id', $this->id)
+            ->orderByDesc('weight')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($rules as $i => $rule) {
+            $rule->update(['sort_order' => $i]);
+        }
+    }
 }

@@ -197,6 +197,47 @@ class EventCentricFlowTest extends TestCase
         $this->assertEquals(1, Rule::query()->where('event_id', $copy->id)->count());
     }
 
+    public function test_duplicate_event_recalculates_rule_sort_order_by_weight(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+
+        Rule::query()->create([
+            'event_id' => $event->id,
+            'type' => RuleType::PreferredPair,
+            'scope' => RuleScope::Team,
+            'weight' => 50,
+            'config' => ['member_a_id' => 1, 'member_b_id' => 2],
+            'sort_order' => 0,
+        ]);
+        Rule::query()->create([
+            'event_id' => $event->id,
+            'type' => RuleType::TeamSize,
+            'scope' => RuleScope::Team,
+            'weight' => 100,
+            'config' => ['size' => 2],
+            'sort_order' => 5,
+        ]);
+
+        $this->post(route('organizations.events.duplicate', [$org, $event]), [
+            'name' => 'Copy With Rules',
+        ])->assertRedirect();
+
+        $copy = Event::query()->where('name', 'Copy With Rules')->first();
+        $this->assertNotNull($copy);
+
+        $sorted = Rule::query()
+            ->where('event_id', $copy->id)
+            ->orderBy('sort_order')
+            ->get();
+
+        $this->assertCount(2, $sorted);
+        $this->assertEquals(RuleType::TeamSize, $sorted[0]->type);
+        $this->assertEquals(0, $sorted[0]->sort_order);
+        $this->assertEquals(RuleType::PreferredPair, $sorted[1]->type);
+        $this->assertEquals(1, $sorted[1]->sort_order);
+    }
+
     public function test_solver_penalizes_preferred_pair_not_together(): void
     {
         [, $org] = $this->actingAsOrganizer();

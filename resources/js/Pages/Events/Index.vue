@@ -83,9 +83,17 @@ const submitCreate = () => {
                         Plan rosters, rules, and team drafts per event.
                     </p>
                 </div>
-                <PrimaryButton v-if="canManage" type="button" @click="openCreate">
-                    New event
-                </PrimaryButton>
+                <div class="flex flex-wrap items-center gap-3">
+                    <Link
+                        :href="route('organizations.event-types.index', organization.slug)"
+                        class="text-sm font-medium text-brand-blue hover:text-brand-navy"
+                    >
+                        Manage event types
+                    </Link>
+                    <PrimaryButton v-if="canManage" type="button" @click="openCreate">
+                        New event
+                    </PrimaryButton>
+                </div>
             </div>
         </template>
 
