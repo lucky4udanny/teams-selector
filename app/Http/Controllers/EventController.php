@@ -71,7 +71,9 @@ class EventController extends Controller
             return $event;
         });
 
-        return redirect()->route('organizations.events.show', [$organization, $event]);
+        return redirect()
+            ->route('organizations.events.show', [$organization, $event])
+            ->with('status', 'Event "'.$validated['name'].'" was created.');
     }
 
     public function show(Request $request, Organization $organization, Event $event): Response
@@ -208,16 +210,21 @@ class EventController extends Controller
             $event->previousEvents()->sync($previousIds);
         });
 
-        return redirect()->back();
+        return redirect()
+            ->back()
+            ->with('status', 'Event details saved.');
     }
 
     public function destroy(Request $request, Organization $organization, Event $event): RedirectResponse
     {
         $this->authorize('delete', $event);
 
+        $name = $event->name;
         $event->delete();
 
-        return redirect()->route('organizations.events.index', $organization);
+        return redirect()
+            ->route('organizations.events.index', $organization)
+            ->with('status', 'Event "'.$name.'" was deleted.');
     }
 
     public function duplicate(Request $request, Organization $organization, Event $event): RedirectResponse
@@ -266,7 +273,9 @@ class EventController extends Controller
             return $copy;
         });
 
-        return redirect()->route('organizations.events.show', [$organization, $duplicated]);
+        return redirect()
+            ->route('organizations.events.show', [$organization, $duplicated])
+            ->with('status', 'Event duplicated as "'.$duplicated->name.'".');
     }
 
     /**
@@ -282,7 +291,14 @@ class EventController extends Controller
             'uses_groups' => ['sometimes', 'boolean'],
             'previous_event_ids' => ['nullable', 'array'],
             'previous_event_ids.*' => ['integer', 'distinct'],
+        ], [
+            'name.required' => 'Event name is required.',
+            'event_date.required' => 'Event date is required.',
+            'event_date.date' => 'Choose a valid event date.',
+            'event_type_id.required' => 'Event type is required.',
         ]);
+
+        $validated['name'] = trim($validated['name']);
 
         if (! EventType::query()->whereKey($validated['event_type_id'])->where('organization_id', $organization->id)->exists()) {
             throw ValidationException::withMessages(['event_type_id' => 'Invalid event type for this organization.']);

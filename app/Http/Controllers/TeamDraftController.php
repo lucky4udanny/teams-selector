@@ -92,7 +92,11 @@ class TeamDraftController extends Controller
             ]);
         }
 
-        return redirect()->route('organizations.events.team-drafts.show', [$organization, $event, $draft]);
+        $label = $draft->name ? '"'.$draft->name.'"' : 'Draft #'.$draft->id;
+
+        return redirect()
+            ->route('organizations.events.team-drafts.show', [$organization, $event, $draft])
+            ->with('status', "Team draft {$label} generated.");
     }
 
     public function show(Request $request, Organization $organization, Event $event, TeamDraft $teamDraft): Response
@@ -138,7 +142,9 @@ class TeamDraftController extends Controller
 
         $teamDraft->delete();
 
-        return redirect()->route('organizations.events.show', [$organization, $event]);
+        return redirect()
+            ->route('organizations.events.show', [$organization, $event, 'tab' => 'drafts'])
+            ->with('status', 'Draft deleted.');
     }
 
     public function finalize(Request $request, Organization $organization, Event $event, TeamDraft $teamDraft): RedirectResponse
@@ -146,7 +152,15 @@ class TeamDraftController extends Controller
         $this->authorize('finalize', $event);
 
         if ($event->finalized_at) {
-            abort(422, 'Event is already finalized.');
+            return redirect()->back()->with('error', 'This event is already finalized.');
+        }
+
+        $state = is_array($teamDraft->state) ? $teamDraft->state : [];
+        $blocking = $state['blocking_errors'] ?? [];
+        if (is_array($blocking) && $blocking !== []) {
+            return redirect()
+                ->back()
+                ->with('error', 'Cannot finalize: '.implode(' ', $blocking));
         }
 
         DB::transaction(function () use ($request, $event, $teamDraft): void {
@@ -164,7 +178,9 @@ class TeamDraftController extends Controller
             ]);
         });
 
-        return redirect()->back();
+        return redirect()
+            ->back()
+            ->with('status', 'Teams finalized for this event.');
     }
 
     public function revertFinal(Request $request, Organization $organization, Event $event): RedirectResponse
@@ -185,7 +201,7 @@ class TeamDraftController extends Controller
             }
         });
 
-        return redirect()->back();
+        return redirect()->back()->with('status', 'Final teams reverted. You can generate new drafts.');
     }
 
     public function updateNames(Request $request, Organization $organization, Event $event, TeamDraft $teamDraft): RedirectResponse|JsonResponse
@@ -209,6 +225,6 @@ class TeamDraftController extends Controller
             return response()->json(['teamDraft' => $teamDraft->fresh()]);
         }
 
-        return redirect()->back();
+        return redirect()->back()->with('status', 'Team and group names saved.');
     }
 }

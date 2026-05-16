@@ -10,9 +10,11 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import Toggle from '@/Components/Toggle.vue';
+import Alert from '@/Components/Alert.vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
+import { applyFormErrors, validateEventDetails } from '@/utils/formValidation';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 
 const props = defineProps({
     organization: Object,
@@ -63,10 +65,42 @@ const closeCreate = () => {
     createForm.clearErrors();
 };
 
+const focusCreateField = async (errors) => {
+    const idByKey = {
+        name: 'event_name',
+        event_date: 'event_date',
+        event_type_id: 'event_type_id',
+        description: 'event_desc',
+    };
+    const key = Object.keys(errors)[0];
+    if (!key) {
+        return;
+    }
+    await nextTick();
+    document.getElementById(idByKey[key] ?? 'event_name')?.focus();
+};
+
+const createFormHasErrors = computed(
+    () => Object.keys(createForm.errors).length > 0 && !createForm.processing,
+);
+
 const submitCreate = () => {
+    const result = validateEventDetails(createForm.data());
+    if (!result.valid) {
+        applyFormErrors(createForm, result.errors);
+        focusCreateField(result.errors);
+
+        return;
+    }
+
+    createForm.name = result.values.name;
+    createForm.event_date = result.values.event_date;
+    createForm.event_type_id = result.values.event_type_id;
+
     createForm.post(route('organizations.events.store', props.organization.slug), {
         preserveScroll: true,
         onSuccess: () => closeCreate(),
+        onError: () => focusCreateField(createForm.errors),
     });
 };
 </script>
@@ -147,11 +181,29 @@ const submitCreate = () => {
                     Prior events are optional; pick finalized events to link history (e.g. repeat pairs).
                 </p>
 
+                <Alert v-if="createFormHasErrors" variant="error" class="mt-4" role="alert">
+                    Please fix the errors below before creating the event.
+                </Alert>
+
+                <div v-if="!eventTypes?.length" class="mt-4">
+                    <Alert variant="warning" role="alert">
+                        Add an
+                        <Link
+                            :href="route('organizations.event-types.index', organization.slug)"
+                            class="font-medium underline"
+                        >
+                            event type
+                        </Link>
+                        before creating events.
+                    </Alert>
+                </div>
+
                 <div class="mt-6 space-y-5">
                     <FormField
                         label="Name"
                         name="event_name"
                         :error="createForm.errors.name"
+                        hint="Required."
                         required
                     >
                         <TextInput
@@ -175,6 +227,7 @@ const submitCreate = () => {
                         label="Date"
                         name="event_date"
                         :error="createForm.errors.event_date"
+                        hint="Required."
                         required
                     >
                         <DateInput id="event_date" v-model="createForm.event_date" :error="!!createForm.errors.event_date" />
@@ -184,6 +237,7 @@ const submitCreate = () => {
                         label="Event type"
                         name="event_type_id"
                         :error="createForm.errors.event_type_id"
+                        hint="Required."
                         required
                     >
                         <ListboxInput
@@ -222,7 +276,12 @@ const submitCreate = () => {
 
                 <div class="mt-8 flex justify-end gap-3">
                     <SecondaryButton type="button" @click="closeCreate">Cancel</SecondaryButton>
-                    <PrimaryButton type="submit" :disabled="createForm.processing">Create</PrimaryButton>
+                    <PrimaryButton
+                        type="submit"
+                        :disabled="createForm.processing || !eventTypes?.length"
+                    >
+                        {{ createForm.processing ? 'Creating…' : 'Create event' }}
+                    </PrimaryButton>
                 </div>
             </form>
         </Modal>

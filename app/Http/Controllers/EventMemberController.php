@@ -37,7 +37,9 @@ class EventMemberController extends Controller
             ->all();
 
         if (count($ids) !== count($validated['member_ids'])) {
-            abort(422, 'One or more members are not in this organization.');
+            return redirect()
+                ->back()
+                ->with('error', 'One or more members are not in this organization.');
         }
 
         foreach ($ids as $memberId) {
@@ -58,7 +60,11 @@ class EventMemberController extends Controller
             return response()->json($this->rosterPayload($event));
         }
 
-        return redirect()->back();
+        $count = count($ids);
+
+        return redirect()
+            ->back()
+            ->with('status', $count === 1 ? '1 member added to the roster.' : "{$count} members added to the roster.");
     }
 
     public function copyFromEvent(Request $request, Organization $organization, Event $event): RedirectResponse|JsonResponse
@@ -93,7 +99,13 @@ class EventMemberController extends Controller
             return response()->json($this->rosterPayload($event));
         }
 
-        return redirect()->back();
+        $copied = $rows->count();
+
+        return redirect()
+            ->back()
+            ->with('status', $copied === 0
+                ? 'No members to copy from that event.'
+                : ($copied === 1 ? '1 member copied to the roster.' : "{$copied} members copied to the roster."));
     }
 
     public function update(Request $request, Organization $organization, Event $event, EventMember $eventMember): RedirectResponse|JsonResponse
@@ -113,7 +125,7 @@ class EventMemberController extends Controller
             return response()->json($this->rosterPayload($event));
         }
 
-        return redirect()->back();
+        return redirect()->back()->with('status', 'Roster updated.');
     }
 
     public function bulkUpdate(Request $request, Organization $organization, Event $event): RedirectResponse|JsonResponse
@@ -144,7 +156,11 @@ class EventMemberController extends Controller
             return response()->json($this->rosterPayload($event));
         }
 
-        return redirect()->back();
+        $count = count($validated['items']);
+
+        return redirect()
+            ->back()
+            ->with('status', $count === 1 ? '1 roster row updated.' : "{$count} roster rows updated.");
     }
 
     public function destroy(Request $request, Organization $organization, Event $event, EventMember $eventMember): RedirectResponse|JsonResponse
@@ -157,7 +173,7 @@ class EventMemberController extends Controller
             return response()->json($this->rosterPayload($event));
         }
 
-        return redirect()->back();
+        return redirect()->back()->with('status', 'Member removed from roster.');
     }
 
     /**

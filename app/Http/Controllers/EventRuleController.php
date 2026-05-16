@@ -44,7 +44,7 @@ class EventRuleController extends Controller
         $event->recalculateRuleSortOrders();
         $rule->refresh();
 
-        return redirect()->back();
+        return redirect()->back()->with('status', 'Rule added.');
     }
 
     public function update(Request $request, Organization $organization, Event $event, Rule $rule): RedirectResponse
@@ -75,7 +75,7 @@ class EventRuleController extends Controller
 
         $event->recalculateRuleSortOrders();
 
-        return redirect()->back();
+        return redirect()->back()->with('status', 'Rule updated.');
     }
 
     public function destroy(Request $request, Organization $organization, Event $event, Rule $rule): RedirectResponse
@@ -85,7 +85,7 @@ class EventRuleController extends Controller
         $rule->delete();
         $event->recalculateRuleSortOrders();
 
-        return redirect()->back();
+        return redirect()->back()->with('status', 'Rule deleted.');
     }
 
     private function assertGroupScopeAllowed(Event $event, RuleScope $scope): void

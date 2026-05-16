@@ -6,6 +6,7 @@ import ProgressRing from '@/Components/ProgressRing.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
+import { applyFormErrors, validateDraftNames } from '@/utils/formValidation';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
@@ -60,14 +61,32 @@ watch(
     { immediate: true, deep: true },
 );
 
+const namesFormHasErrors = computed(
+    () => Object.keys(teamNamesForm.errors).length > 0 && !teamNamesForm.processing,
+);
+
 const saveNames = () => {
+    const teamResult = validateDraftNames(teamNamesForm.team_names, 'team_names', 'Team name');
+    if (!teamResult.valid) {
+        applyFormErrors(teamNamesForm, teamResult.errors);
+
+        return;
+    }
+
+    const groupResult = validateDraftNames(teamNamesForm.group_names, 'group_names', 'Group name');
+    if (!groupResult.valid) {
+        applyFormErrors(teamNamesForm, groupResult.errors);
+
+        return;
+    }
+
     teamNamesForm.patch(
         route('organizations.events.team-drafts.update-names', [
             props.organization.slug,
             props.event.id,
             props.teamDraft.id,
         ]),
-        { preserveScroll: true },
+        { preserveScroll: true, onSuccess: () => teamNamesForm.clearErrors() },
     );
 };
 
@@ -75,6 +94,10 @@ const finalizeProcessing = ref(false);
 const showFinalize = ref(false);
 
 const runFinalize = () => {
+    if (blockingErrors.value.length > 0) {
+        return;
+    }
+
     finalizeProcessing.value = true;
     router.post(
         route('organizations.events.team-drafts.finalize', [
@@ -213,6 +236,15 @@ const penaltyHue = computed(() => {
             @submit.prevent="saveNames"
         >
             <h2 class="ts-heading-section mb-4">Names</h2>
+            <Alert v-if="namesFormHasErrors" variant="error" class="mb-4" role="alert">
+                Please fix name errors before saving.
+            </Alert>
+            <p v-if="teamNamesForm.errors.team_names" class="mb-2 text-sm text-red-600">
+                {{ teamNamesForm.errors.team_names }}
+            </p>
+            <p v-if="teamNamesForm.errors.group_names" class="mb-2 text-sm text-red-600">
+                {{ teamNamesForm.errors.group_names }}
+            </p>
             <div class="grid gap-6 lg:grid-cols-2">
                 <div>
                     <h3 class="mb-3 text-sm font-semibold text-brand-navy">Teams</h3>
@@ -250,7 +282,9 @@ const penaltyHue = computed(() => {
                 </div>
             </div>
             <div class="mt-6">
-                <PrimaryButton type="submit" :disabled="teamNamesForm.processing">Save names</PrimaryButton>
+                <PrimaryButton type="submit" :disabled="teamNamesForm.processing">
+                    {{ teamNamesForm.processing ? 'Saving…' : 'Save names' }}
+                </PrimaryButton>
             </div>
         </form>
 

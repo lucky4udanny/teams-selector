@@ -18,8 +18,14 @@ import Toggle from '@/Components/Toggle.vue';
 import WeightSlider from '@/Components/WeightSlider.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
+import {
+    applyFormErrors,
+    validateEventDetails,
+    validateGenerateDraft,
+    validateRuleForm,
+} from '@/utils/formValidation';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 
 const props = defineProps({
     organization: Object,
@@ -133,20 +139,61 @@ const priorEventCombobox = computed(() =>
     })),
 );
 
+const focusDetailsField = async (errors) => {
+    const idByKey = {
+        name: 'ev_name',
+        event_date: 'ev_date',
+        description: 'ev_desc',
+    };
+    const key = Object.keys(errors)[0];
+    if (!key) {
+        return;
+    }
+    await nextTick();
+    document.getElementById(idByKey[key] ?? 'ev_name')?.focus();
+};
+
+const detailsFormHasErrors = computed(
+    () => Object.keys(detailsForm.errors).length > 0 && !detailsForm.processing,
+);
+
 const saveDetails = () => {
-    detailsForm.patch(
-        route('organizations.events.update', [slug.value, eventId.value]),
-        { preserveScroll: true },
-    );
+    const result = validateEventDetails(detailsForm.data());
+    if (!result.valid) {
+        applyFormErrors(detailsForm, result.errors);
+        focusDetailsField(result.errors);
+
+        return;
+    }
+
+    detailsForm.name = result.values.name;
+    detailsForm.event_date = result.values.event_date;
+    detailsForm.event_type_id = result.values.event_type_id;
+
+    detailsForm.patch(route('organizations.events.update', [slug.value, eventId.value]), {
+        preserveScroll: true,
+        onError: () => focusDetailsField(detailsForm.errors),
+    });
 };
 
 const dupForm = useForm({ name: '' });
 const showDup = ref(false);
 const submitDup = () => {
-    dupForm.post(
-        route('organizations.events.duplicate', [slug.value, eventId.value]),
-        { preserveScroll: true, onSuccess: () => (showDup.value = false) },
-    );
+    dupForm.clearErrors();
+    const name = String(dupForm.name ?? '').trim();
+    if (name.length > 255) {
+        dupForm.setError('name', 'Name must be 255 characters or fewer.');
+
+        return;
+    }
+    dupForm.name = name;
+    dupForm.post(route('organizations.events.duplicate', [slug.value, eventId.value]), {
+        preserveScroll: true,
+        onSuccess: () => {
+            showDup.value = false;
+            dupForm.reset();
+        },
+    });
 };
 
 const showDeleteEvent = ref(false);
@@ -189,9 +236,17 @@ const copyEventOptions = computed(() =>
 
 const selectedToAdd = ref([]);
 const copyFromId = ref(null);
+const rosterNotice = ref(null);
+const draftsNotice = ref(null);
 
 const postAddMembers = () => {
+    rosterNotice.value = null;
     if (!selectedToAdd.value?.length) {
+        rosterNotice.value = {
+            variant: 'warning',
+            message: 'Select at least one member to add to the roster.',
+        };
+
         return;
     }
     router.post(
@@ -202,7 +257,13 @@ const postAddMembers = () => {
 };
 
 const postCopy = () => {
+    rosterNotice.value = null;
     if (!copyFromId.value) {
+        rosterNotice.value = {
+            variant: 'warning',
+            message: 'Choose an event to copy members from.',
+        };
+
         return;
     }
     router.post(
@@ -232,8 +293,14 @@ const toggleSelect = (id, checked) => {
 };
 
 const bulkPatch = (payload) => {
+    rosterNotice.value = null;
     const ids = [...selectedEmIds.value];
     if (!ids.length) {
+        rosterNotice.value = {
+            variant: 'warning',
+            message: 'Select roster rows using the checkboxes first.',
+        };
+
         return;
     }
     const items = ids.map((id) => ({ id, ...payload }));
@@ -355,7 +422,23 @@ watch(
     },
 );
 
+const ruleFormHasErrors = computed(
+    () => Object.keys(ruleForm.errors).length > 0 && !ruleForm.processing,
+);
+
 const submitRule = () => {
+    const result = validateRuleForm({
+        type: ruleForm.type,
+        scope: ruleForm.scope,
+        weight: ruleForm.weight,
+        config: ruleForm.config,
+    });
+    if (!result.valid) {
+        applyFormErrors(ruleForm, result.errors);
+
+        return;
+    }
+
     if (editingRuleId.value) {
         ruleForm.patch(
             route('organizations.events.rules.update', [
@@ -363,12 +446,21 @@ const submitRule = () => {
                 eventId.value,
                 editingRuleId.value,
             ]),
-            { preserveScroll: true, onSuccess: () => (ruleModalOpen.value = false) },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    ruleModalOpen.value = false;
+                    ruleForm.clearErrors();
+                },
+            },
         );
     } else {
         ruleForm.post(route('organizations.events.rules.store', [slug.value, eventId.value]), {
             preserveScroll: true,
-            onSuccess: () => (ruleModalOpen.value = false),
+            onSuccess: () => {
+                ruleModalOpen.value = false;
+                ruleForm.clearErrors();
+            },
         });
     }
 };
@@ -387,11 +479,48 @@ const genForm = useForm({
     iterations: 4000,
 });
 
+const genFormHasErrors = computed(
+    () => Object.keys(genForm.errors).length > 0 && !genForm.processing,
+);
+
 const submitGenerate = () => {
-    genForm.post(
-        route('organizations.events.team-drafts.generate', [slug.value, eventId.value]),
-        { preserveScroll: true, onSuccess: () => genForm.reset('name') },
-    );
+    draftsNotice.value = null;
+    const result = validateGenerateDraft(genForm.data());
+    if (!result.valid) {
+        applyFormErrors(genForm, result.errors);
+
+        return;
+    }
+
+    genForm.post(route('organizations.events.team-drafts.generate', [slug.value, eventId.value]), {
+        preserveScroll: true,
+        onSuccess: () => genForm.reset('name'),
+    });
+};
+
+const draftToFinalize = ref(null);
+
+const requestFinalizeDraft = (draft) => {
+    draftsNotice.value = null;
+    const blocking = draft.blocking_errors ?? [];
+    if (Array.isArray(blocking) && blocking.length > 0) {
+        draftsNotice.value = {
+            variant: 'error',
+            message: `Cannot finalize: ${blocking.join('; ')}`,
+        };
+
+        return;
+    }
+    draftToFinalize.value = draft.id;
+};
+
+const confirmFinalizeDraft = () => {
+    const id = draftToFinalize.value;
+    if (!id) {
+        return;
+    }
+    finalizeDraft(id);
+    draftToFinalize.value = null;
 };
 
 const conflictsPreview = ref(null);
@@ -510,7 +639,10 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
         <section v-if="tab === 'details'" class="space-y-8">
             <form v-if="canManage" class="ts-card-padded space-y-5" @submit.prevent="saveDetails">
                 <h2 class="ts-heading-section">Event details</h2>
-                <FormField label="Name" name="ev_name" :error="detailsForm.errors.name" required>
+                <Alert v-if="detailsFormHasErrors" variant="error" role="alert">
+                    Please fix the errors below before saving.
+                </Alert>
+                <FormField label="Name" name="ev_name" :error="detailsForm.errors.name" hint="Required." required>
                     <TextInput id="ev_name" v-model="detailsForm.name" :error="!!detailsForm.errors.name" />
                 </FormField>
                 <FormField label="Description" name="ev_desc" :error="detailsForm.errors.description">
@@ -522,13 +654,14 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                         :class="detailsForm.errors.description ? 'ts-input-error' : ''"
                     />
                 </FormField>
-                <FormField label="Date" name="ev_date" :error="detailsForm.errors.event_date" required>
+                <FormField label="Date" name="ev_date" :error="detailsForm.errors.event_date" hint="Required." required>
                     <DateInput id="ev_date" v-model="detailsForm.event_date" :error="!!detailsForm.errors.event_date" />
                 </FormField>
                 <FormField
                     label="Event type"
                     name="ev_type"
                     :error="detailsForm.errors.event_type_id"
+                    hint="Required."
                     required
                 >
                     <ListboxInput
@@ -557,7 +690,9 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                         :error="!!detailsForm.errors.previous_event_ids"
                     />
                 </div>
-                <PrimaryButton type="submit" :disabled="detailsForm.processing">Save</PrimaryButton>
+                <PrimaryButton type="submit" :disabled="detailsForm.processing">
+                    {{ detailsForm.processing ? 'Saving…' : 'Save details' }}
+                </PrimaryButton>
             </form>
             <Alert v-else variant="info">You can view this event but not edit it.</Alert>
 
@@ -575,6 +710,14 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                 <Badge variant="danger">{{ rsvp.declined ?? 0 }} declined</Badge>
             </div>
 
+            <Alert
+                v-if="rosterNotice"
+                :variant="rosterNotice.variant"
+                role="alert"
+            >
+                {{ rosterNotice.message }}
+            </Alert>
+
             <div v-if="canManage" class="ts-card-padded grid gap-6 lg:grid-cols-2">
                 <div>
                     <h3 class="mb-2 text-sm font-semibold text-brand-navy">Add members</h3>
@@ -584,14 +727,14 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                         multiple
                         placeholder="Search members…"
                     />
-                    <PrimaryButton class="mt-3" type="button" :disabled="!selectedToAdd.length" @click="postAddMembers">
+                    <PrimaryButton class="mt-3" type="button" @click="postAddMembers">
                         Add to roster
                     </PrimaryButton>
                 </div>
                 <div>
                     <h3 class="mb-2 text-sm font-semibold text-brand-navy">Copy from event</h3>
                     <ComboboxInput v-model="copyFromId" :options="copyEventOptions" placeholder="Pick event…" />
-                    <SecondaryButton class="mt-3" type="button" :disabled="!copyFromId" @click="postCopy">
+                    <SecondaryButton class="mt-3" type="button" @click="postCopy">
                         Copy roster
                     </SecondaryButton>
                 </div>
@@ -765,6 +908,14 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
 
         <!-- Drafts -->
         <section v-else-if="tab === 'drafts' && team_drafts" class="space-y-8">
+            <Alert
+                v-if="draftsNotice"
+                :variant="draftsNotice.variant"
+                role="alert"
+            >
+                {{ draftsNotice.message }}
+            </Alert>
+
             <div class="ts-card-padded">
                 <h2 class="ts-heading-section mb-4">Generate draft</h2>
                 <div class="mb-4 flex flex-wrap gap-3">
@@ -778,14 +929,32 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                     </ul>
                 </Alert>
                 <form class="grid gap-4 md:grid-cols-2" @submit.prevent="submitGenerate">
+                    <Alert v-if="genFormHasErrors" variant="error" class="md:col-span-2" role="alert">
+                        Fix the errors below before generating.
+                    </Alert>
                     <FormField label="Draft name (optional)" name="draft_name" :error="genForm.errors.name">
                         <TextInput id="draft_name" v-model="genForm.name" :error="!!genForm.errors.name" />
                     </FormField>
-                    <div class="flex items-end">
+                    <FormField
+                        label="Iterations"
+                        name="draft_iterations"
+                        :error="genForm.errors.iterations"
+                        hint="100–20,000 solver passes."
+                    >
+                        <TextInput
+                            id="draft_iterations"
+                            v-model.number="genForm.iterations"
+                            inputmode="numeric"
+                            :error="!!genForm.errors.iterations"
+                        />
+                    </FormField>
+                    <div class="flex items-end md:col-span-2">
                         <Toggle v-model="genForm.include_pending" label="Include pending RSVPs" />
                     </div>
                     <div class="md:col-span-2">
-                        <PrimaryButton type="submit" :disabled="genForm.processing">Generate</PrimaryButton>
+                        <PrimaryButton type="submit" :disabled="genForm.processing">
+                            {{ genForm.processing ? 'Generating…' : 'Generate draft' }}
+                        </PrimaryButton>
                     </div>
                 </form>
             </div>
@@ -851,7 +1020,7 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                             v-if="canFinalize && !event.is_finalized"
                             type="button"
                             class="text-sm"
-                            @click="finalizeDraft(d.id)"
+                            @click="requestFinalizeDraft(d)"
                         >
                             Set as final
                         </SecondaryButton>
@@ -965,15 +1134,24 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                 <h3 class="text-lg font-semibold text-brand-navy">
                     {{ editingRuleId ? 'Edit rule' : 'Add rule' }}
                 </h3>
+                <Alert v-if="ruleFormHasErrors" variant="error" class="mt-4" role="alert">
+                    Please fix the errors below before saving the rule.
+                </Alert>
                 <div class="mt-6 grid gap-4 md:grid-cols-2">
-                    <div>
-                        <span class="block text-sm font-medium text-brand-navy">Type</span>
-                        <ListboxInput v-model="ruleForm.type" :options="typeOptions" />
-                    </div>
-                    <div>
-                        <span class="block text-sm font-medium text-brand-navy">Scope</span>
-                        <ListboxInput v-model="ruleForm.scope" :options="scopeOptionsFiltered" />
-                    </div>
+                    <FormField label="Type" name="rule_type" :error="ruleForm.errors.type" required>
+                        <ListboxInput
+                            v-model="ruleForm.type"
+                            :options="typeOptions"
+                            :error="!!ruleForm.errors.type"
+                        />
+                    </FormField>
+                    <FormField label="Scope" name="rule_scope" :error="ruleForm.errors.scope" required>
+                        <ListboxInput
+                            v-model="ruleForm.scope"
+                            :options="scopeOptionsFiltered"
+                            :error="!!ruleForm.errors.scope"
+                        />
+                    </FormField>
                     <div class="md:col-span-2">
                         <span class="block text-sm font-medium text-brand-navy">Weight</span>
                         <WeightSlider v-model="ruleForm.weight" />
@@ -1062,6 +1240,15 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
             :processing="revertProcessing"
             @close="showRevert = false"
             @confirm="runRevert"
+        />
+
+        <ConfirmDialog
+            :show="draftToFinalize !== null"
+            title="Finalize with this draft?"
+            message="This locks the final team assignment for the event. You can revert later (admin)."
+            confirm-label="Finalize"
+            @close="draftToFinalize = null"
+            @confirm="confirmFinalizeDraft"
         />
     </OrganizationLayout>
 </template>

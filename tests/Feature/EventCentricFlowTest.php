@@ -159,6 +159,29 @@ class EventCentricFlowTest extends TestCase
         $this->assertTrue($draft->fresh()->is_final);
     }
 
+    public function test_finalize_rejected_when_draft_has_blocking_errors(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+        $draft = TeamDraft::factory()->create([
+            'event_id' => $event->id,
+            'state' => [
+                'teams' => [],
+                'groups' => [],
+                'blocking_errors' => ['Member count must divide evenly by team size (2). Current: 3.'],
+            ],
+        ]);
+
+        $this->post(route('organizations.events.team-drafts.finalize', [$org, $event, $draft]))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $event->refresh();
+        $this->assertNull($event->final_team_draft_id);
+        $this->assertNull($event->finalized_at);
+        $this->assertFalse($draft->fresh()->is_final);
+    }
+
     public function test_duplicate_event_resets_invitation_and_status(): void
     {
         [, $org] = $this->actingAsOrganizer();

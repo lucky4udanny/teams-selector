@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Feat (events UX):** Client-side validation and inline feedback on Events index (create), Show (details, roster, rules modal, generate draft, finalize confirm), and Team draft show (names); shared `formValidation.js` helpers; server flash toasts on event/roster/rule/draft mutations; finalize blocked when draft has `blocking_errors`.
+- **Test (events):** `EventCentricFlowTest` rejects finalize when draft state includes blocking errors.
 - **Fix (solver):** `TeamSolverService::membersByGroup` skips missing `team_indices` / out-of-bounds team slots (matches `PairHistoryService`).
 - **Fix (events):** Duplicating an event recalculates rule `sort_order` by weight via `Event::recalculateRuleSortOrders()` (shared with rule CRUD).
 - **Fix (members import):** Guard null/missing upload before `getClientOriginalExtension()`; validate readable temp path only after file exists.
