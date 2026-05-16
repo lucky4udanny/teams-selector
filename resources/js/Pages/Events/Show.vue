@@ -363,6 +363,34 @@ const toggleSelect = (id, checked) => {
     selectedEmIds.value = next;
 };
 
+const allIncludedSelected = computed(
+    () =>
+        rosterIncluded.value.length > 0 &&
+        rosterIncluded.value.every((r) => selectedEmIds.value.has(r.id)),
+);
+const someIncludedSelected = computed(
+    () =>
+        !allIncludedSelected.value &&
+        rosterIncluded.value.some((r) => selectedEmIds.value.has(r.id)),
+);
+
+const allWaitingSelected = computed(
+    () =>
+        rosterWaiting.value.length > 0 &&
+        rosterWaiting.value.every((r) => selectedEmIds.value.has(r.id)),
+);
+const someWaitingSelected = computed(
+    () =>
+        !allWaitingSelected.value &&
+        rosterWaiting.value.some((r) => selectedEmIds.value.has(r.id)),
+);
+
+const toggleSelectAll = (rows, selectAll) => {
+    const next = new Set(selectedEmIds.value);
+    rows.forEach((r) => (selectAll ? next.add(r.id) : next.delete(r.id)));
+    selectedEmIds.value = next;
+};
+
 const bulkPatch = (payload) => {
     rosterNotice.value = null;
     const ids = [...selectedEmIds.value];
@@ -831,17 +859,28 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
 
             <div v-if="canManage && selectedEmIds.size" class="ts-card-padded flex flex-wrap items-center gap-2">
                 <span class="text-sm text-brand-navy">{{ selectedEmIds.size }} selected</span>
-                <SecondaryButton type="button" @click="bulkPatch({ status: 'accepted' })">Set accepted</SecondaryButton>
-                <SecondaryButton type="button" @click="bulkPatch({ status: 'declined' })">Set declined</SecondaryButton>
                 <SecondaryButton type="button" @click="bulkPatch({ included: true })">Include</SecondaryButton>
                 <SecondaryButton type="button" @click="bulkPatch({ included: false })">Move to waiting list</SecondaryButton>
+                <SecondaryButton type="button" @click="bulkPatch({ invited: true })">Set invited</SecondaryButton>
+                <SecondaryButton type="button" @click="bulkPatch({ invited: false })">Set not invited</SecondaryButton>
+                <SecondaryButton type="button" @click="bulkPatch({ status: 'accepted' })">Set accepted</SecondaryButton>
+                <SecondaryButton type="button" @click="bulkPatch({ status: 'declined' })">Set declined</SecondaryButton>
             </div>
 
             <div class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm">
                 <table class="min-w-full divide-y divide-brand-mist text-sm">
                     <thead class="bg-brand-cream">
                         <tr>
-                            <th v-if="canManage" class="w-10 px-2 py-2" />
+                            <th v-if="canManage" class="w-10 px-2 py-2">
+                                <input
+                                    type="checkbox"
+                                    :checked="allIncludedSelected"
+                                    :indeterminate="someIncludedSelected"
+                                    class="rounded border-brand-mist"
+                                    :aria-label="allIncludedSelected ? 'Deselect all' : 'Select all'"
+                                    @change="toggleSelectAll(rosterIncluded, $event.target.checked)"
+                                />
+                            </th>
                             <th class="px-3 py-2 text-left">
                                 <button
                                     type="button"
@@ -968,7 +1007,16 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                     <table class="min-w-full divide-y divide-brand-mist text-sm">
                         <thead class="bg-brand-cream">
                             <tr>
-                                <th v-if="canManage" class="w-10 px-2 py-2" />
+                                <th v-if="canManage" class="w-10 px-2 py-2">
+                                    <input
+                                        type="checkbox"
+                                        :checked="allWaitingSelected"
+                                        :indeterminate="someWaitingSelected"
+                                        class="rounded border-brand-mist"
+                                        :aria-label="allWaitingSelected ? 'Deselect all' : 'Select all'"
+                                        @change="toggleSelectAll(rosterWaiting, $event.target.checked)"
+                                    />
+                                </th>
                                 <th class="px-3 py-2 text-left">Member</th>
                                 <th class="px-3 py-2 text-left">Include</th>
                                 <th class="px-3 py-2 text-left">Status</th>
