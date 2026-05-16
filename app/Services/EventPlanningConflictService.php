@@ -110,8 +110,8 @@ class EventPlanningConflictService
 
         $messages = [];
         foreach ($rules as $rule) {
-            $minAvg = (int) ($rule->config['min_avg'] ?? 0);
-            $maxAvg = (int) ($rule->config['max_avg'] ?? 100);
+            $minAvg = (float) ($rule->config['min_avg'] ?? 0);
+            $maxAvg = (float) ($rule->config['max_avg'] ?? 100);
 
             if ($minAvg > $maxAvg) {
                 $messages[] = 'Skill leveling rule #'.$rule->id.' has min_avg greater than max_avg.';

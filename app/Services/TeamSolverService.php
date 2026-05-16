@@ -319,8 +319,8 @@ class TeamSolverService
             }
 
             if ($rule->type === RuleType::SkillLeveling) {
-                $minAvg = (int) ($rule->config['min_avg'] ?? 0);
-                $maxAvg = (int) ($rule->config['max_avg'] ?? 100);
+                $minAvg = (float) ($rule->config['min_avg'] ?? 0);
+                $maxAvg = (float) ($rule->config['max_avg'] ?? 100);
 
                 if ($rule->scope === RuleScope::Team) {
                     foreach ($teams as $idx => $team) {
@@ -429,7 +429,7 @@ class TeamSolverService
         return $sum / count($memberIds);
     }
 
-    private function skillRangeDeviation(float $avg, int $minAvg, int $maxAvg): float
+    private function skillRangeDeviation(float $avg, float $minAvg, float $maxAvg): float
     {
         if ($avg < $minAvg) {
             return ($minAvg - $avg) / 100;
