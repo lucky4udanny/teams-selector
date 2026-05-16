@@ -1,0 +1,1080 @@
+<script setup>
+import Alert from '@/Components/Alert.vue';
+import Badge from '@/Components/Badge.vue';
+import ComboboxInput from '@/Components/ComboboxInput.vue';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import DateInput from '@/Components/DateInput.vue';
+import EmptyState from '@/Components/EmptyState.vue';
+import FormField from '@/Components/FormField.vue';
+import ListboxInput from '@/Components/ListboxInput.vue';
+import Modal from '@/Components/Modal.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import ProgressRing from '@/Components/ProgressRing.vue';
+import RangeSlider from '@/Components/RangeSlider.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import StatusBadge from '@/Components/StatusBadge.vue';
+import TextInput from '@/Components/TextInput.vue';
+import Toggle from '@/Components/Toggle.vue';
+import WeightSlider from '@/Components/WeightSlider.vue';
+import DangerButton from '@/Components/DangerButton.vue';
+import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { computed, reactive, ref, watch } from 'vue';
+
+const props = defineProps({
+    organization: Object,
+    tab: String,
+    canManage: Boolean,
+    canFinalize: Boolean,
+    canRevertFinal: Boolean,
+    event: Object,
+    orgMembers: Array,
+    ruleTypes: Array,
+    ruleScopes: Array,
+    eventTypes: Array,
+    finalizedEvents: Array,
+    copySourceEvents: Array,
+    roster: Object,
+    rules: Array,
+    team_drafts: Array,
+    final_draft: Object,
+});
+
+const slug = computed(() => props.organization.slug);
+const eventId = computed(() => props.event.id);
+
+const eventHref = (t) =>
+    `${route('organizations.events.show', { organization: slug.value, event: eventId.value })}?tab=${t}`;
+
+const ruleTypeLabels = {
+    team_size: 'Team size',
+    group_size: 'Group size',
+    banned_pair: 'Banned pair',
+    preferred_pair: 'Preferred pair',
+    repeat_pair: 'Repeat pair (prior event)',
+    skill_leveling: 'Skill leveling',
+};
+
+const scopeLabels = {
+    team: 'Team',
+    group: 'Group',
+};
+
+const exportColumnOptions = [
+    { value: 'team_index', label: 'Team #' },
+    { value: 'team_name', label: 'Team name' },
+    { value: 'group_index', label: 'Group #' },
+    { value: 'group_name', label: 'Group name' },
+    { value: 'member_id', label: 'Member ID' },
+    { value: 'first_name', label: 'First name' },
+    { value: 'last_name', label: 'Last name' },
+    { value: 'email', label: 'Email' },
+    { value: 'phone', label: 'Phone' },
+    { value: 'company', label: 'Company' },
+    { value: 'sector', label: 'Sector' },
+    { value: 'notes', label: 'Notes' },
+];
+
+const selectedExportColumns = ref(exportColumnOptions.map((c) => c.value));
+
+const exportQuery = computed(() => {
+    const cols = selectedExportColumns.value;
+    if (!cols.length || cols.length === exportColumnOptions.length) {
+        return '';
+    }
+
+    return `?columns=${encodeURIComponent(cols.join(','))}`;
+});
+
+const printExportUrl = computed(
+    () =>
+        `${route('organizations.events.export.print', [slug.value, eventId.value])}${exportQuery.value}`,
+);
+const csvExportUrl = computed(
+    () =>
+        `${route('organizations.events.export.csv', [slug.value, eventId.value])}${exportQuery.value}`,
+);
+const xlsxExportUrl = computed(
+    () =>
+        `${route('organizations.events.export.xlsx', [slug.value, eventId.value])}${exportQuery.value}`,
+);
+
+/* ——— Details ——— */
+const detailsForm = useForm({
+    name: props.event.name,
+    description: props.event.description || '',
+    event_date: props.event.event_date,
+    event_type_id: props.event.event_type?.id ?? null,
+    uses_groups: props.event.uses_groups,
+    previous_event_ids: [...(props.event.previous_event_ids || [])],
+});
+
+watch(
+    () => props.event,
+    (e) => {
+        detailsForm.name = e.name;
+        detailsForm.description = e.description || '';
+        detailsForm.event_date = e.event_date;
+        detailsForm.event_type_id = e.event_type?.id ?? null;
+        detailsForm.uses_groups = e.uses_groups;
+        detailsForm.previous_event_ids = [...(e.previous_event_ids || [])];
+    },
+    { deep: true },
+);
+
+const eventTypeOptions = computed(() =>
+    (props.eventTypes || []).map((t) => ({ value: t.id, label: t.name })),
+);
+
+const priorEventCombobox = computed(() =>
+    (props.finalizedEvents || []).map((e) => ({
+        id: e.id,
+        label: e.label,
+    })),
+);
+
+const saveDetails = () => {
+    detailsForm.patch(
+        route('organizations.events.update', [slug.value, eventId.value]),
+        { preserveScroll: true },
+    );
+};
+
+const dupForm = useForm({ name: '' });
+const showDup = ref(false);
+const submitDup = () => {
+    dupForm.post(
+        route('organizations.events.duplicate', [slug.value, eventId.value]),
+        { preserveScroll: true, onSuccess: () => (showDup.value = false) },
+    );
+};
+
+const showDeleteEvent = ref(false);
+const deleteProcessing = ref(false);
+const runDeleteEvent = () => {
+    deleteProcessing.value = true;
+    router.delete(route('organizations.events.destroy', [slug.value, eventId.value]), {
+        preserveScroll: true,
+        onFinish: () => {
+            deleteProcessing.value = false;
+            showDeleteEvent.value = false;
+        },
+    });
+};
+
+/* ——— Roster ——— */
+const rosterRows = computed(() => props.roster?.roster || []);
+const rsvp = computed(() => props.roster?.rsvp_counts || props.event.rsvp_counts || {});
+
+const rosterIncluded = computed(() => rosterRows.value.filter((r) => r.included));
+const rosterWaiting = computed(() => rosterRows.value.filter((r) => !r.included));
+
+const rosterMemberIds = computed(() => new Set(rosterRows.value.map((r) => r.member_id)));
+
+const addMemberOptions = computed(() =>
+    (props.orgMembers || [])
+        .filter((m) => !rosterMemberIds.value.has(m.id))
+        .map((m) => ({
+            value: m.id,
+            label: m.display_name,
+        })),
+);
+
+const copyEventOptions = computed(() =>
+    (props.copySourceEvents || []).map((e) => ({
+        value: e.id,
+        label: e.label,
+    })),
+);
+
+const selectedToAdd = ref([]);
+const copyFromId = ref(null);
+
+const postAddMembers = () => {
+    if (!selectedToAdd.value?.length) {
+        return;
+    }
+    router.post(
+        route('organizations.events.members.store', [slug.value, eventId.value]),
+        { member_ids: selectedToAdd.value },
+        { preserveScroll: true, onSuccess: () => (selectedToAdd.value = []) },
+    );
+};
+
+const postCopy = () => {
+    if (!copyFromId.value) {
+        return;
+    }
+    router.post(
+        route('organizations.events.members.copy-from-event', [slug.value, eventId.value]),
+        { source_event_id: copyFromId.value },
+        { preserveScroll: true, onSuccess: () => (copyFromId.value = null) },
+    );
+};
+
+const patchMember = (em, data) => {
+    router.patch(
+        route('organizations.events.members.update', [slug.value, eventId.value, em.id]),
+        data,
+        { preserveScroll: true },
+    );
+};
+
+const selectedEmIds = ref(new Set());
+const toggleSelect = (id, checked) => {
+    const next = new Set(selectedEmIds.value);
+    if (checked) {
+        next.add(id);
+    } else {
+        next.delete(id);
+    }
+    selectedEmIds.value = next;
+};
+
+const bulkPatch = (payload) => {
+    const ids = [...selectedEmIds.value];
+    if (!ids.length) {
+        return;
+    }
+    const items = ids.map((id) => ({ id, ...payload }));
+    router.patch(
+        route('organizations.events.members.bulk-update', [slug.value, eventId.value]),
+        { items },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                selectedEmIds.value = new Set();
+            },
+        },
+    );
+};
+
+const localNotes = reactive({});
+
+watch(
+    () => props.roster?.roster,
+    (rows) => {
+        (rows || []).forEach((r) => {
+            localNotes[r.id] = r.notes ?? '';
+        });
+    },
+    { immediate: true, deep: true },
+);
+
+/* ——— Rules ——— */
+const scopeOptionsFiltered = computed(() => {
+    const scopes = props.ruleScopes || [];
+    if (!props.event.uses_groups) {
+        return scopes
+            .filter((s) => s === 'team')
+            .map((s) => ({ value: s, label: scopeLabels[s] || s }));
+    }
+
+    return scopes.map((s) => ({ value: s, label: scopeLabels[s] || s }));
+});
+
+const typeOptions = computed(() =>
+    (props.ruleTypes || []).map((t) => ({
+        value: t,
+        label: ruleTypeLabels[t] || t,
+    })),
+);
+
+const hasRuleType = (type) => (props.rules || []).some((r) => r.type === type);
+const singletonTypes = ['team_size', 'group_size'];
+
+const ruleModalOpen = ref(false);
+const editingRuleId = ref(null);
+
+const defaultConfigForType = (type) => {
+    switch (type) {
+        case 'team_size':
+            return { size: 4 };
+        case 'group_size':
+            return { teams_per_group: 2 };
+        case 'banned_pair':
+        case 'preferred_pair':
+            return { member_a_id: null, member_b_id: null };
+        case 'repeat_pair':
+            return { event_id: (props.finalizedEvents || [])[0]?.id ?? null };
+        case 'skill_leveling':
+            return { min_avg: 35, max_avg: 65 };
+        default:
+            return {};
+    }
+};
+
+const ruleForm = useForm({
+    type: 'team_size',
+    scope: 'team',
+    weight: 50,
+    config: defaultConfigForType('team_size'),
+});
+
+const memberPairOptions = computed(() =>
+    (props.orgMembers || []).map((m) => ({
+        value: m.id,
+        label: m.display_name,
+    })),
+);
+
+const repeatPriorOptions = computed(() =>
+    (props.finalizedEvents || []).map((e) => ({
+        value: e.id,
+        label: e.label,
+    })),
+);
+
+const openAddRule = () => {
+    editingRuleId.value = null;
+    ruleForm.clearErrors();
+    ruleForm.type = 'team_size';
+    ruleForm.scope = 'team';
+    ruleForm.weight = 50;
+    ruleForm.config = defaultConfigForType('team_size');
+    ruleModalOpen.value = true;
+};
+
+const openEditRule = (r) => {
+    editingRuleId.value = r.id;
+    ruleForm.clearErrors();
+    ruleForm.type = r.type;
+    ruleForm.scope = r.scope;
+    ruleForm.weight = r.weight;
+    ruleForm.config = { ...r.config };
+    ruleModalOpen.value = true;
+};
+
+watch(
+    () => ruleForm.type,
+    (t) => {
+        if (editingRuleId.value) {
+            return;
+        }
+        ruleForm.config = defaultConfigForType(t);
+    },
+);
+
+const submitRule = () => {
+    if (editingRuleId.value) {
+        ruleForm.patch(
+            route('organizations.events.rules.update', [
+                slug.value,
+                eventId.value,
+                editingRuleId.value,
+            ]),
+            { preserveScroll: true, onSuccess: () => (ruleModalOpen.value = false) },
+        );
+    } else {
+        ruleForm.post(route('organizations.events.rules.store', [slug.value, eventId.value]), {
+            preserveScroll: true,
+            onSuccess: () => (ruleModalOpen.value = false),
+        });
+    }
+};
+
+const deleteRule = (id) => {
+    router.delete(
+        route('organizations.events.rules.destroy', [slug.value, eventId.value, id]),
+        { preserveScroll: true },
+    );
+};
+
+/* ——— Drafts ——— */
+const genForm = useForm({
+    name: '',
+    include_pending: false,
+    iterations: 4000,
+});
+
+const submitGenerate = () => {
+    genForm.post(
+        route('organizations.events.team-drafts.generate', [slug.value, eventId.value]),
+        { preserveScroll: true, onSuccess: () => genForm.reset('name') },
+    );
+};
+
+const conflictsPreview = ref(null);
+const conflictsLoading = ref(false);
+
+const loadConflicts = async () => {
+    conflictsLoading.value = true;
+    conflictsPreview.value = null;
+    try {
+        const { data } = await window.axios.get(
+            route('organizations.events.team-drafts.conflicts', [slug.value, eventId.value]),
+        );
+        conflictsPreview.value = data.conflicts || [];
+    } catch {
+        conflictsPreview.value = [];
+    } finally {
+        conflictsLoading.value = false;
+    }
+};
+
+const showDeleteDraft = ref(null);
+const draftDeleteProcessing = ref(false);
+
+const runDeleteDraft = () => {
+    const id = showDeleteDraft.value;
+    if (!id) {
+        return;
+    }
+    draftDeleteProcessing.value = true;
+    router.delete(
+        route('organizations.events.team-drafts.destroy', [slug.value, eventId.value, id]),
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                draftDeleteProcessing.value = false;
+                showDeleteDraft.value = null;
+            },
+        },
+    );
+};
+
+const finalizeDraft = (id) => {
+    router.post(
+        route('organizations.events.team-drafts.finalize', [slug.value, eventId.value, id]),
+        {},
+        { preserveScroll: true },
+    );
+};
+
+const showRevert = ref(false);
+const revertProcessing = ref(false);
+const runRevert = () => {
+    revertProcessing.value = true;
+    router.post(
+        route('organizations.events.revert-final', [slug.value, eventId.value]),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                revertProcessing.value = false;
+                showRevert.value = false;
+            },
+        },
+    );
+};
+
+/* ——— Final grid helpers ——— */
+const finalState = computed(() =>
+    props.final_draft?.state && typeof props.final_draft.state === 'object' ? props.final_draft.state : null,
+);
+
+const memberById = computed(() => {
+    const m = new Map();
+    (props.orgMembers || []).forEach((mem) => m.set(mem.id, mem.display_name));
+
+    return m;
+});
+
+const displayMember = (id) => memberById.value.get(id) ?? `#${id}`;
+
+const finalTeams = computed(() => (Array.isArray(finalState.value?.teams) ? finalState.value.teams : []));
+const finalTeamNames = computed(() => finalState.value?.team_names || []);
+</script>
+
+<template>
+    <Head :title="event.name" />
+
+    <OrganizationLayout :organization="organization">
+        <template #header>
+            <div>
+                <h1 class="ts-heading-page">{{ event.name }}</h1>
+                <p class="text-sm text-brand-blue/70">
+                    {{ event.event_type?.name }} · {{ event.event_date }}
+                    <Badge v-if="event.is_finalized" class="ml-2" variant="success">Finalized</Badge>
+                </p>
+            </div>
+        </template>
+
+        <nav class="mb-8 flex flex-wrap gap-2 border-b border-brand-mist pb-2">
+            <Link
+                v-for="t in ['details', 'roster', 'rules', 'drafts', 'final']"
+                :key="t"
+                :href="eventHref(t)"
+                class="rounded-lg px-3 py-2 text-sm font-medium capitalize"
+                :class="
+                    tab === t
+                        ? 'bg-brand-navy text-white'
+                        : 'bg-brand-mist/80 text-brand-navy hover:bg-brand-mist'
+                "
+            >
+                {{ t === 'final' ? 'Final' : t }}
+            </Link>
+        </nav>
+
+        <!-- Details -->
+        <section v-if="tab === 'details'" class="space-y-8">
+            <form v-if="canManage" class="ts-card-padded space-y-5" @submit.prevent="saveDetails">
+                <h2 class="ts-heading-section">Event details</h2>
+                <FormField label="Name" name="ev_name" :error="detailsForm.errors.name" required>
+                    <TextInput id="ev_name" v-model="detailsForm.name" :error="!!detailsForm.errors.name" />
+                </FormField>
+                <FormField label="Description" name="ev_desc" :error="detailsForm.errors.description">
+                    <textarea
+                        id="ev_desc"
+                        v-model="detailsForm.description"
+                        rows="4"
+                        class="ts-input w-full resize-y rounded-lg py-2 text-sm"
+                        :class="detailsForm.errors.description ? 'ts-input-error' : ''"
+                    />
+                </FormField>
+                <FormField label="Date" name="ev_date" :error="detailsForm.errors.event_date" required>
+                    <DateInput id="ev_date" v-model="detailsForm.event_date" :error="!!detailsForm.errors.event_date" />
+                </FormField>
+                <FormField
+                    label="Event type"
+                    name="ev_type"
+                    :error="detailsForm.errors.event_type_id"
+                    required
+                >
+                    <ListboxInput
+                        v-model="detailsForm.event_type_id"
+                        :options="eventTypeOptions"
+                        placeholder="Type…"
+                        :error="!!detailsForm.errors.event_type_id"
+                    />
+                </FormField>
+                <div>
+                    <Toggle v-model="detailsForm.uses_groups" label="Uses groups" />
+                    <p v-if="detailsForm.errors.uses_groups" class="mt-1 text-sm text-red-600">
+                        {{ detailsForm.errors.uses_groups }}
+                    </p>
+                </div>
+                <div>
+                    <span class="block text-sm font-medium text-brand-navy">Previous events</span>
+                    <p class="mb-2 text-xs text-brand-blue/60">Link finalized events for repeat-pair rules.</p>
+                    <ComboboxInput
+                        v-model="detailsForm.previous_event_ids"
+                        :options="priorEventCombobox"
+                        label-key="label"
+                        value-key="id"
+                        multiple
+                        placeholder="Prior events…"
+                        :error="!!detailsForm.errors.previous_event_ids"
+                    />
+                </div>
+                <PrimaryButton type="submit" :disabled="detailsForm.processing">Save</PrimaryButton>
+            </form>
+            <Alert v-else variant="info">You can view this event but not edit it.</Alert>
+
+            <div v-if="canManage" class="flex flex-wrap gap-3">
+                <SecondaryButton type="button" @click="showDup = true">Duplicate event</SecondaryButton>
+                <DangerButton type="button" @click="showDeleteEvent = true">Delete event</DangerButton>
+            </div>
+        </section>
+
+        <!-- Roster -->
+        <section v-else-if="tab === 'roster' && roster" class="space-y-8">
+            <div class="flex flex-wrap gap-2">
+                <Badge variant="success">{{ rsvp.accepted ?? 0 }} accepted</Badge>
+                <Badge variant="warning">{{ rsvp.pending ?? 0 }} pending</Badge>
+                <Badge variant="danger">{{ rsvp.declined ?? 0 }} declined</Badge>
+            </div>
+
+            <div v-if="canManage" class="ts-card-padded grid gap-6 lg:grid-cols-2">
+                <div>
+                    <h3 class="mb-2 text-sm font-semibold text-brand-navy">Add members</h3>
+                    <ComboboxInput
+                        v-model="selectedToAdd"
+                        :options="addMemberOptions"
+                        multiple
+                        placeholder="Search members…"
+                    />
+                    <PrimaryButton class="mt-3" type="button" :disabled="!selectedToAdd.length" @click="postAddMembers">
+                        Add to roster
+                    </PrimaryButton>
+                </div>
+                <div>
+                    <h3 class="mb-2 text-sm font-semibold text-brand-navy">Copy from event</h3>
+                    <ComboboxInput v-model="copyFromId" :options="copyEventOptions" placeholder="Pick event…" />
+                    <SecondaryButton class="mt-3" type="button" :disabled="!copyFromId" @click="postCopy">
+                        Copy roster
+                    </SecondaryButton>
+                </div>
+            </div>
+
+            <div v-if="canManage && selectedEmIds.size" class="ts-card-padded flex flex-wrap items-center gap-2">
+                <span class="text-sm text-brand-navy">{{ selectedEmIds.size }} selected</span>
+                <SecondaryButton type="button" @click="bulkPatch({ status: 'accepted' })">Set accepted</SecondaryButton>
+                <SecondaryButton type="button" @click="bulkPatch({ status: 'declined' })">Set declined</SecondaryButton>
+                <SecondaryButton type="button" @click="bulkPatch({ included: true })">Include</SecondaryButton>
+                <SecondaryButton type="button" @click="bulkPatch({ included: false })">Move to waiting list</SecondaryButton>
+            </div>
+
+            <div class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm">
+                <table class="min-w-full divide-y divide-brand-mist text-sm">
+                    <thead class="bg-brand-cream">
+                        <tr>
+                            <th v-if="canManage" class="w-10 px-2 py-2" />
+                            <th class="px-3 py-2 text-left">Member</th>
+                            <th class="px-3 py-2 text-left">Included</th>
+                            <th class="px-3 py-2 text-left">Invited</th>
+                            <th class="px-3 py-2 text-left">Status</th>
+                            <th class="px-3 py-2 text-left">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-brand-mist">
+                        <tr v-for="row in rosterIncluded" :key="row.id" class="align-top">
+                            <td v-if="canManage" class="px-2 py-2">
+                                <input
+                                    type="checkbox"
+                                    :checked="selectedEmIds.has(row.id)"
+                                    class="rounded border-brand-mist"
+                                    @change="toggleSelect(row.id, $event.target.checked)"
+                                />
+                            </td>
+                            <td class="px-3 py-2">
+                                <div class="font-medium text-brand-navy">{{ row.display_name }}</div>
+                                <div class="text-xs text-brand-blue/60">{{ row.email || '—' }}</div>
+                            </td>
+                            <td class="px-3 py-2">
+                                <Toggle
+                                    :model-value="row.included"
+                                    :disabled="!canManage"
+                                    @update:model-value="(v) => patchMember(row, { included: v })"
+                                />
+                            </td>
+                            <td class="px-3 py-2">
+                                <Toggle
+                                    :model-value="row.invited"
+                                    :disabled="!canManage"
+                                    @update:model-value="(v) => patchMember(row, { invited: v })"
+                                />
+                            </td>
+                            <td class="px-3 py-2">
+                                <StatusBadge
+                                    :model-value="row.status"
+                                    :included="row.included"
+                                    :disabled="!canManage"
+                                    @update:model-value="(v) => patchMember(row, { status: v })"
+                                />
+                            </td>
+                            <td class="px-3 py-2">
+                                <TextInput
+                                    v-if="canManage"
+                                    v-model="localNotes[row.id]"
+                                    class="min-w-[10rem] text-xs"
+                                    @blur="
+                                        () => {
+                                            const v = localNotes[row.id];
+                                            if ((v || '') !== (row.notes || '')) {
+                                                patchMember(row, { notes: v || null });
+                                            }
+                                        }
+                                    "
+                                />
+                                <span v-else class="text-brand-blue/80">{{ row.notes || '—' }}</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div v-if="rosterWaiting.length">
+                <h3 class="ts-heading-section mb-3">Waiting list</h3>
+                <div class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm">
+                    <table class="min-w-full divide-y divide-brand-mist text-sm">
+                        <thead class="bg-brand-cream">
+                            <tr>
+                                <th v-if="canManage" class="w-10 px-2 py-2" />
+                                <th class="px-3 py-2 text-left">Member</th>
+                                <th class="px-3 py-2 text-left">Include</th>
+                                <th class="px-3 py-2 text-left">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="row in rosterWaiting" :key="row.id" class="align-top">
+                                <td v-if="canManage" class="px-2 py-2">
+                                    <input
+                                        type="checkbox"
+                                        :checked="selectedEmIds.has(row.id)"
+                                        class="rounded border-brand-mist"
+                                        @change="toggleSelect(row.id, $event.target.checked)"
+                                    />
+                                </td>
+                                <td class="px-3 py-2">{{ row.display_name }}</td>
+                                <td class="px-3 py-2">
+                                    <Toggle
+                                        :model-value="row.included"
+                                        :disabled="!canManage"
+                                        @update:model-value="(v) => patchMember(row, { included: v })"
+                                    />
+                                </td>
+                                <td class="px-3 py-2">
+                                    <StatusBadge
+                                        :model-value="row.status"
+                                        :included="row.included"
+                                        :disabled="true"
+                                    />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Rules -->
+        <section v-else-if="tab === 'rules' && rules" class="space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="ts-heading-section m-0">Rules</h2>
+                <PrimaryButton v-if="canManage" type="button" @click="openAddRule">Add rule</PrimaryButton>
+            </div>
+
+            <Alert v-if="hasRuleType('team_size')" variant="warning">
+                A <strong>team size</strong> rule already exists — only one is allowed.
+            </Alert>
+            <Alert v-if="hasRuleType('group_size')" variant="warning">
+                A <strong>group size</strong> rule already exists — only one is allowed.
+            </Alert>
+
+            <TransitionGroup
+                v-if="rules.length"
+                name="ts-rule"
+                tag="ul"
+                class="space-y-3"
+            >
+                <li
+                    v-for="r in rules"
+                    :key="r.id"
+                    class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
+                >
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <p class="font-semibold text-brand-navy">
+                                {{ ruleTypeLabels[r.type] || r.type }}
+                                <span class="text-xs font-normal text-brand-blue/60">
+                                    · {{ scopeLabels[r.scope] || r.scope }} · weight {{ r.weight }}
+                                </span>
+                            </p>
+                            <pre class="mt-2 max-w-full overflow-x-auto text-xs text-brand-blue/80">{{ JSON.stringify(r.config, null, 2) }}</pre>
+                        </div>
+                        <div v-if="canManage" class="flex gap-2">
+                            <SecondaryButton type="button" @click="openEditRule(r)">Edit</SecondaryButton>
+                            <DangerButton type="button" @click="deleteRule(r.id)">Delete</DangerButton>
+                        </div>
+                    </div>
+                </li>
+            </TransitionGroup>
+            <EmptyState v-else title="No rules yet" description="Add constraints for the team solver." />
+        </section>
+
+        <!-- Drafts -->
+        <section v-else-if="tab === 'drafts' && team_drafts" class="space-y-8">
+            <div class="ts-card-padded">
+                <h2 class="ts-heading-section mb-4">Generate draft</h2>
+                <div class="mb-4 flex flex-wrap gap-3">
+                    <SecondaryButton type="button" :disabled="conflictsLoading" @click="loadConflicts">
+                        {{ conflictsLoading ? 'Loading…' : 'Preview planning conflicts' }}
+                    </SecondaryButton>
+                </div>
+                <Alert v-if="conflictsPreview?.length" variant="warning" class="mb-4">
+                    <ul class="list-inside list-disc space-y-1 text-xs">
+                        <li v-for="(c, i) in conflictsPreview" :key="`cp${i}`">{{ typeof c === 'string' ? c : JSON.stringify(c) }}</li>
+                    </ul>
+                </Alert>
+                <form class="grid gap-4 md:grid-cols-2" @submit.prevent="submitGenerate">
+                    <FormField label="Draft name (optional)" name="draft_name" :error="genForm.errors.name">
+                        <TextInput id="draft_name" v-model="genForm.name" :error="!!genForm.errors.name" />
+                    </FormField>
+                    <div class="flex items-end">
+                        <Toggle v-model="genForm.include_pending" label="Include pending RSVPs" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <PrimaryButton type="submit" :disabled="genForm.processing">Generate</PrimaryButton>
+                    </div>
+                </form>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <div
+                    v-for="d in team_drafts"
+                    :key="d.id"
+                    class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
+                    :class="
+                        d.total_penalty != null && d.total_penalty > 40
+                            ? 'border-red-200 bg-red-50/40'
+                            : d.total_penalty != null && d.total_penalty > 15
+                              ? 'border-amber-200 bg-amber-50/40'
+                              : ''
+                    "
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <Link
+                                class="font-semibold text-brand-navy hover:underline"
+                                :href="
+                                    route('organizations.events.team-drafts.show', [
+                                        organization.slug,
+                                        event.id,
+                                        d.id,
+                                    ])
+                                "
+                            >
+                                {{ d.name || `Draft #${d.id}` }}
+                            </Link>
+                            <p class="text-xs text-brand-blue/60">
+                                {{ d.creator_name || 'Unknown' }} ·
+                                {{ d.created_at ? new Date(d.created_at).toLocaleString() : '' }}
+                            </p>
+                        </div>
+                        <ProgressRing
+                            :value="Math.min(d.violation_count ?? 0, 20)"
+                            :max="20"
+                            :size="44"
+                        />
+                    </div>
+                    <p class="mt-3 text-sm text-brand-blue/80">
+                        Penalty: {{ d.total_penalty ?? '—' }} · Violations: {{ d.violation_count ?? 0 }}
+                    </p>
+                    <Alert v-if="d.blocking_errors?.length" variant="error" class="mt-3 text-xs">
+                        {{ d.blocking_errors.join('; ') }}
+                    </Alert>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <Link
+                            class="text-sm font-medium text-brand-blue hover:underline"
+                            :href="
+                                route('organizations.events.team-drafts.show', [
+                                    organization.slug,
+                                    event.id,
+                                    d.id,
+                                ])
+                            "
+                        >
+                            Open
+                        </Link>
+                        <SecondaryButton
+                            v-if="canFinalize && !event.is_finalized"
+                            type="button"
+                            class="text-sm"
+                            @click="finalizeDraft(d.id)"
+                        >
+                            Set as final
+                        </SecondaryButton>
+                        <DangerButton
+                            v-if="canManage && !d.is_final"
+                            type="button"
+                            class="text-sm"
+                            @click="showDeleteDraft = d.id"
+                        >
+                            Delete
+                        </DangerButton>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final -->
+        <section v-else-if="tab === 'final'" class="space-y-6">
+            <template v-if="final_draft && finalState">
+                <div class="ts-card-padded">
+                    <h2 class="ts-heading-section mb-4">Export</h2>
+                    <div class="mb-4 max-w-xl">
+                        <span class="mb-2 block text-sm font-medium text-brand-navy">Columns</span>
+                        <ComboboxInput
+                            v-model="selectedExportColumns"
+                            :options="exportColumnOptions"
+                            label-key="label"
+                            value-key="value"
+                            multiple
+                            placeholder="Columns…"
+                        />
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <a
+                            :href="printExportUrl"
+                            target="_blank"
+                            rel="noreferrer"
+                            class="font-medium text-brand-blue hover:underline"
+                        >Print view</a>
+                        <a
+                            :href="csvExportUrl"
+                            class="font-medium text-brand-blue hover:underline"
+                        >Download CSV</a>
+                        <a
+                            :href="xlsxExportUrl"
+                            class="font-medium text-brand-blue hover:underline"
+                        >Download Excel</a>
+                    </div>
+                </div>
+
+                <div v-if="canRevertFinal" class="flex flex-wrap gap-3">
+                    <DangerButton type="button" @click="showRevert = true">Revert final (admin)</DangerButton>
+                </div>
+
+                <div class="grid gap-6 lg:grid-cols-2">
+                    <section
+                        v-for="(t, ti) in finalTeams"
+                        :key="`ft${ti}`"
+                        class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
+                    >
+                        <h3 class="mb-2 font-semibold text-brand-navy">
+                            {{ finalTeamNames[ti] || `Team ${ti + 1}` }}
+                        </h3>
+                        <ul class="space-y-1 text-sm">
+                            <li v-for="mid in t.member_ids || []" :key="mid">
+                                {{ displayMember(mid) }}
+                            </li>
+                        </ul>
+                    </section>
+                </div>
+            </template>
+            <EmptyState
+                v-else
+                title="No finalized assignment"
+                description="Finalize a team draft to see groups and export links here."
+            />
+        </section>
+
+        <!-- Fallback -->
+        <section v-else>
+            <EmptyState title="Nothing to show" description="Pick another tab." />
+        </section>
+
+        <!-- Modals -->
+        <Modal :show="showDup" @close="showDup = false">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-brand-navy">Duplicate event</h3>
+                <p class="mt-2 text-sm text-brand-blue/70">Optionally override the name; roster and rules are copied.</p>
+                <FormField class="mt-4" label="Name" name="dup_name" :error="dupForm.errors.name">
+                    <TextInput id="dup_name" v-model="dupForm.name" placeholder="Leave blank for “(Copy)”" />
+                </FormField>
+                <div class="mt-6 flex justify-end gap-2">
+                    <SecondaryButton type="button" @click="showDup = false">Cancel</SecondaryButton>
+                    <PrimaryButton type="button" :disabled="dupForm.processing" @click="submitDup">Duplicate</PrimaryButton>
+                </div>
+            </div>
+        </Modal>
+
+        <ConfirmDialog
+            :show="showDeleteEvent"
+            title="Delete this event?"
+            message="This removes the event and related data."
+            confirm-label="Delete"
+            :processing="deleteProcessing"
+            @close="showDeleteEvent = false"
+            @confirm="runDeleteEvent"
+        />
+
+        <Modal :show="ruleModalOpen && canManage" max-width="2xl" @close="ruleModalOpen = false">
+            <form class="max-h-[85vh] overflow-y-auto p-6" @submit.prevent="submitRule">
+                <h3 class="text-lg font-semibold text-brand-navy">
+                    {{ editingRuleId ? 'Edit rule' : 'Add rule' }}
+                </h3>
+                <div class="mt-6 grid gap-4 md:grid-cols-2">
+                    <div>
+                        <span class="block text-sm font-medium text-brand-navy">Type</span>
+                        <ListboxInput v-model="ruleForm.type" :options="typeOptions" />
+                    </div>
+                    <div>
+                        <span class="block text-sm font-medium text-brand-navy">Scope</span>
+                        <ListboxInput v-model="ruleForm.scope" :options="scopeOptionsFiltered" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <span class="block text-sm font-medium text-brand-navy">Weight</span>
+                        <WeightSlider v-model="ruleForm.weight" />
+                        <p v-if="ruleForm.errors.weight" class="mt-1 text-sm text-red-600">{{ ruleForm.errors.weight }}</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 space-y-4 border-t border-brand-mist pt-4">
+                    <template v-if="ruleForm.type === 'team_size'">
+                        <FormField label="Players per team" name="cfg_size" :error="ruleForm.errors['config.size']">
+                            <TextInput
+                                id="cfg_size"
+                                v-model.number="ruleForm.config.size"
+                                inputmode="numeric"
+                            />
+                        </FormField>
+                    </template>
+                    <template v-else-if="ruleForm.type === 'group_size'">
+                        <FormField
+                            label="Teams per group"
+                            name="cfg_tpg"
+                            :error="ruleForm.errors['config.teams_per_group']"
+                        >
+                            <TextInput
+                                id="cfg_tpg"
+                                v-model.number="ruleForm.config.teams_per_group"
+                                inputmode="numeric"
+                            />
+                        </FormField>
+                    </template>
+                    <template v-else-if="ruleForm.type === 'banned_pair' || ruleForm.type === 'preferred_pair'">
+                        <div>
+                            <span class="block text-sm font-medium text-brand-navy">Member A</span>
+                            <ComboboxInput v-model="ruleForm.config.member_a_id" :options="memberPairOptions" />
+                        </div>
+                        <div>
+                            <span class="block text-sm font-medium text-brand-navy">Member B</span>
+                            <ComboboxInput v-model="ruleForm.config.member_b_id" :options="memberPairOptions" />
+                        </div>
+                    </template>
+                    <template v-else-if="ruleForm.type === 'repeat_pair'">
+                        <div>
+                            <span class="block text-sm font-medium text-brand-navy">Prior event</span>
+                            <ListboxInput
+                                v-model="ruleForm.config.event_id"
+                                :options="repeatPriorOptions"
+                                placeholder="Choose linked prior…"
+                            />
+                        </div>
+                    </template>
+                    <template v-else-if="ruleForm.type === 'skill_leveling'">
+                        <div>
+                            <span class="mb-2 block text-sm text-brand-navy">Min average skill</span>
+                            <RangeSlider v-model="ruleForm.config.min_avg" :min="0" :max="100" />
+                        </div>
+                        <div>
+                            <span class="mb-2 block text-sm text-brand-navy">Max average skill</span>
+                            <RangeSlider v-model="ruleForm.config.max_avg" :min="0" :max="100" />
+                        </div>
+                    </template>
+                </div>
+
+                <p v-if="ruleForm.errors.config" class="mt-4 text-sm text-red-600">{{ ruleForm.errors.config }}</p>
+
+                <div class="mt-8 flex justify-end gap-3">
+                    <SecondaryButton type="button" @click="ruleModalOpen = false">Cancel</SecondaryButton>
+                    <PrimaryButton type="submit" :disabled="ruleForm.processing">Save rule</PrimaryButton>
+                </div>
+            </form>
+        </Modal>
+
+        <ConfirmDialog
+            :show="showDeleteDraft !== null"
+            title="Delete this draft?"
+            confirm-label="Delete"
+            :processing="draftDeleteProcessing"
+            @close="showDeleteDraft = null"
+            @confirm="runDeleteDraft"
+        />
+
+        <ConfirmDialog
+            :show="showRevert"
+            title="Revert finalized teams?"
+            message="Admin only: clears finalization so you can draft again."
+            confirm-label="Revert"
+            :processing="revertProcessing"
+            @close="showRevert = false"
+            @confirm="runRevert"
+        />
+    </OrganizationLayout>
+</template>
+
+<style scoped>
+.ts-rule-move,
+.ts-rule-enter-active,
+.ts-rule-leave-active {
+    transition: all 0.2s ease;
+}
+.ts-rule-enter-from,
+.ts-rule-leave-to {
+    opacity: 0;
+    transform: translateY(6px);
+}
+</style>

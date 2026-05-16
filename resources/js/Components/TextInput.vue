@@ -1,6 +1,13 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 
+defineProps({
+    error: {
+        type: Boolean,
+        default: false,
+    },
+});
+
 const model = defineModel({
     type: String,
     required: true,
@@ -19,8 +26,8 @@ defineExpose({ focus: () => input.value.focus() });
 
 <template>
     <input
-        class="ts-input"
-        v-model="model"
         ref="input"
+        v-model="model"
+        :class="['ts-input w-full', error ? 'ts-input-error' : '']"
     />
 </template>

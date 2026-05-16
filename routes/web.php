@@ -1,13 +1,17 @@
 <?php
 
-use App\Http\Controllers\ApprovedSelectionController;
+use App\Http\Controllers\EventController;
+use App\Http\Controllers\EventExportController;
+use App\Http\Controllers\EventMemberController;
+use App\Http\Controllers\EventRuleController;
+use App\Http\Controllers\EventTypeController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\OrganizationController;
-use App\Http\Controllers\OrganizationRuleController;
 use App\Http\Controllers\OrganizationSettingsController;
 use App\Http\Controllers\OrganizationUserController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SelectionDraftController;
+use App\Http\Controllers\SectorController;
+use App\Http\Controllers\TeamDraftController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -43,23 +47,45 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/organizations/{organization}/members/{member}', [MemberController::class, 'destroy'])->name('organizations.members.destroy');
     Route::post('/organizations/{organization}/members/{member}/restore', [MemberController::class, 'restore'])->name('organizations.members.restore');
 
-    Route::get('/organizations/{organization}/rules', [OrganizationRuleController::class, 'index'])->name('organizations.rules.index');
-    Route::post('/organizations/{organization}/rules', [OrganizationRuleController::class, 'store'])->name('organizations.rules.store');
-    Route::patch('/organizations/{organization}/rules/{rule}', [OrganizationRuleController::class, 'update'])->name('organizations.rules.update');
-    Route::delete('/organizations/{organization}/rules/{rule}', [OrganizationRuleController::class, 'destroy'])->name('organizations.rules.destroy');
+    Route::scopeBindings()->group(function () {
+        Route::get('/organizations/{organization}/event-types', [EventTypeController::class, 'index'])->name('organizations.event-types.index');
+        Route::post('/organizations/{organization}/event-types', [EventTypeController::class, 'store'])->name('organizations.event-types.store');
+        Route::patch('/organizations/{organization}/event-types/{eventType}', [EventTypeController::class, 'update'])->name('organizations.event-types.update');
+        Route::delete('/organizations/{organization}/event-types/{eventType}', [EventTypeController::class, 'destroy'])->name('organizations.event-types.destroy');
 
-    Route::get('/organizations/{organization}/drafts', [SelectionDraftController::class, 'index'])->name('organizations.drafts.index');
-    Route::post('/organizations/{organization}/drafts', [SelectionDraftController::class, 'store'])->name('organizations.drafts.store');
-    Route::get('/organizations/{organization}/drafts/{draft}', [SelectionDraftController::class, 'show'])->name('organizations.drafts.show');
-    Route::post('/organizations/{organization}/drafts/{draft}/generate', [SelectionDraftController::class, 'generate'])->name('organizations.drafts.generate');
-    Route::post('/organizations/{organization}/drafts/{draft}/approve', [SelectionDraftController::class, 'approve'])->name('organizations.drafts.approve');
-    Route::delete('/organizations/{organization}/drafts/{draft}', [SelectionDraftController::class, 'destroy'])->name('organizations.drafts.destroy');
+        Route::get('/organizations/{organization}/sectors', [SectorController::class, 'index'])->name('organizations.sectors.index');
+        Route::post('/organizations/{organization}/sectors', [SectorController::class, 'store'])->name('organizations.sectors.store');
 
-    Route::get('/organizations/{organization}/selections', [ApprovedSelectionController::class, 'index'])->name('organizations.selections.index');
-    Route::get('/organizations/{organization}/selections/{selection}', [ApprovedSelectionController::class, 'show'])->name('organizations.selections.show');
-    Route::get('/organizations/{organization}/selections/{selection}/print', [ApprovedSelectionController::class, 'print'])->name('organizations.selections.print');
-    Route::get('/organizations/{organization}/selections/{selection}/export/csv', [ApprovedSelectionController::class, 'exportCsv'])->name('organizations.selections.export.csv');
-    Route::get('/organizations/{organization}/selections/{selection}/export/xlsx', [ApprovedSelectionController::class, 'exportXlsx'])->name('organizations.selections.export.xlsx');
+        Route::get('/organizations/{organization}/events', [EventController::class, 'index'])->name('organizations.events.index');
+        Route::post('/organizations/{organization}/events', [EventController::class, 'store'])->name('organizations.events.store');
+        Route::get('/organizations/{organization}/events/{event}', [EventController::class, 'show'])->name('organizations.events.show');
+        Route::patch('/organizations/{organization}/events/{event}', [EventController::class, 'update'])->name('organizations.events.update');
+        Route::delete('/organizations/{organization}/events/{event}', [EventController::class, 'destroy'])->name('organizations.events.destroy');
+        Route::post('/organizations/{organization}/events/{event}/duplicate', [EventController::class, 'duplicate'])->name('organizations.events.duplicate');
+        Route::post('/organizations/{organization}/events/{event}/revert-final', [TeamDraftController::class, 'revertFinal'])->name('organizations.events.revert-final');
+
+        Route::get('/organizations/{organization}/events/{event}/export/print', [EventExportController::class, 'print'])->name('organizations.events.export.print');
+        Route::get('/organizations/{organization}/events/{event}/export.csv', [EventExportController::class, 'exportCsv'])->name('organizations.events.export.csv');
+        Route::get('/organizations/{organization}/events/{event}/export.xlsx', [EventExportController::class, 'exportXlsx'])->name('organizations.events.export.xlsx');
+
+        Route::get('/organizations/{organization}/events/{event}/members', [EventMemberController::class, 'index'])->name('organizations.events.members.index');
+        Route::post('/organizations/{organization}/events/{event}/members', [EventMemberController::class, 'store'])->name('organizations.events.members.store');
+        Route::post('/organizations/{organization}/events/{event}/members/copy-from-event', [EventMemberController::class, 'copyFromEvent'])->name('organizations.events.members.copy-from-event');
+        Route::patch('/organizations/{organization}/events/{event}/members/bulk', [EventMemberController::class, 'bulkUpdate'])->name('organizations.events.members.bulk-update');
+        Route::patch('/organizations/{organization}/events/{event}/members/{eventMember}', [EventMemberController::class, 'update'])->name('organizations.events.members.update');
+        Route::delete('/organizations/{organization}/events/{event}/members/{eventMember}', [EventMemberController::class, 'destroy'])->name('organizations.events.members.destroy');
+
+        Route::post('/organizations/{organization}/events/{event}/rules', [EventRuleController::class, 'store'])->name('organizations.events.rules.store');
+        Route::patch('/organizations/{organization}/events/{event}/rules/{rule}', [EventRuleController::class, 'update'])->name('organizations.events.rules.update');
+        Route::delete('/organizations/{organization}/events/{event}/rules/{rule}', [EventRuleController::class, 'destroy'])->name('organizations.events.rules.destroy');
+
+        Route::get('/organizations/{organization}/events/{event}/team-drafts/conflicts', [TeamDraftController::class, 'conflicts'])->name('organizations.events.team-drafts.conflicts');
+        Route::post('/organizations/{organization}/events/{event}/team-drafts/generate', [TeamDraftController::class, 'generate'])->name('organizations.events.team-drafts.generate');
+        Route::get('/organizations/{organization}/events/{event}/team-drafts/{teamDraft}', [TeamDraftController::class, 'show'])->name('organizations.events.team-drafts.show');
+        Route::delete('/organizations/{organization}/events/{event}/team-drafts/{teamDraft}', [TeamDraftController::class, 'destroy'])->name('organizations.events.team-drafts.destroy');
+        Route::post('/organizations/{organization}/events/{event}/team-drafts/{teamDraft}/finalize', [TeamDraftController::class, 'finalize'])->name('organizations.events.team-drafts.finalize');
+        Route::patch('/organizations/{organization}/events/{event}/team-drafts/{teamDraft}/names', [TeamDraftController::class, 'updateNames'])->name('organizations.events.team-drafts.update-names');
+    });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Rule extends Model
 {
     protected $fillable = [
-        'organization_id',
+        'event_id',
         'type',
         'scope',
         'weight',
@@ -27,8 +27,20 @@ class Rule extends Model
         ];
     }
 
-    public function organization(): BelongsTo
+    public function event(): BelongsTo
     {
-        return $this->belongsTo(Organization::class);
+        return $this->belongsTo(Event::class);
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $event = request()->route('event');
+        if (! $event instanceof Event) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        return $this->whereKey($value)
+            ->where('event_id', $event->id)
+            ->firstOrFail();
     }
 }

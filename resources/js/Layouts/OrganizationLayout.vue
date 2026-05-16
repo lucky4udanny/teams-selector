@@ -7,12 +7,10 @@ import FlashToasts from '@/Components/FlashToasts.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import {
-    ClipboardDocumentListIcon,
+    CalendarDaysIcon,
     Cog6ToothIcon,
     HomeIcon,
-    UserGroupIcon,
     UsersIcon,
-    WrenchScrewdriverIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -80,37 +78,15 @@ const isAdmin = computed(() => props.organization.role === 'admin');
                                 Members
                             </NavLink>
                             <NavLink
-                                :href="route('organizations.rules.index', slug)"
+                                :href="route('organizations.events.index', slug)"
                                 :active="
-                                    route().current('organizations.rules.*')
+                                    route().current('organizations.events.*')
                                 "
                             >
-                                <WrenchScrewdriverIcon
+                                <CalendarDaysIcon
                                     class="mr-1 inline h-4 w-4"
                                 />
-                                Rules
-                            </NavLink>
-                            <NavLink
-                                :href="route('organizations.drafts.index', slug)"
-                                :active="
-                                    route().current('organizations.drafts.*')
-                                "
-                            >
-                                <ClipboardDocumentListIcon
-                                    class="mr-1 inline h-4 w-4"
-                                />
-                                Drafts
-                            </NavLink>
-                            <NavLink
-                                :href="
-                                    route('organizations.selections.index', slug)
-                                "
-                                :active="
-                                    route().current('organizations.selections.*')
-                                "
-                            >
-                                <UserGroupIcon class="mr-1 inline h-4 w-4" />
-                                Selections
+                                Events
                             </NavLink>
                             <NavLink
                                 v-if="isAdmin"
@@ -226,21 +202,9 @@ const isAdmin = computed(() => props.organization.role === 'admin');
                         >Members</ResponsiveNavLink
                     >
                     <ResponsiveNavLink
-                        :href="route('organizations.rules.index', slug)"
-                        :active="route().current('organizations.rules.*')"
-                        >Rules</ResponsiveNavLink
-                    >
-                    <ResponsiveNavLink
-                        :href="route('organizations.drafts.index', slug)"
-                        :active="route().current('organizations.drafts.*')"
-                        >Drafts</ResponsiveNavLink
-                    >
-                    <ResponsiveNavLink
-                        :href="route('organizations.selections.index', slug)"
-                        :active="
-                            route().current('organizations.selections.*')
-                        "
-                        >Selections</ResponsiveNavLink
+                        :href="route('organizations.events.index', slug)"
+                        :active="route().current('organizations.events.*')"
+                        >Events</ResponsiveNavLink
                     >
                     <ResponsiveNavLink
                         v-if="isAdmin"

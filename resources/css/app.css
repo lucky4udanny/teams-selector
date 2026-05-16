@@ -104,6 +104,46 @@
         @apply rounded-lg border-brand-mist shadow-sm focus:border-brand-blue focus:ring-brand-blue/30;
     }
 
+    .ts-input-error {
+        @apply border-red-300 ring-2 ring-red-200 focus:border-red-500 focus:ring-red-200;
+    }
+
+    .ts-btn-danger {
+        @apply inline-flex items-center justify-center rounded-lg border border-transparent bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition duration-150 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 disabled:opacity-50;
+    }
+
+    .ts-badge {
+        @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+    }
+
+    .ts-badge-info {
+        @apply bg-brand-blue/10 text-brand-blue;
+    }
+
+    .ts-badge-success {
+        @apply bg-emerald-100 text-emerald-800;
+    }
+
+    .ts-badge-warning {
+        @apply bg-amber-100 text-amber-800;
+    }
+
+    .ts-badge-danger {
+        @apply bg-red-100 text-red-800;
+    }
+
+    .ts-badge-neutral {
+        @apply bg-brand-mist text-brand-navy;
+    }
+
+    .ts-range-track {
+        @apply h-2 w-full cursor-pointer appearance-none rounded-full bg-brand-mist;
+    }
+
+    .ts-range-thumb {
+        @apply h-4 w-4 cursor-pointer appearance-none rounded-full border-2 border-white bg-brand-blue shadow-md;
+    }
+
     .ts-nav-active {
         @apply border-b-2 border-brand-orange text-brand-navy;
     }

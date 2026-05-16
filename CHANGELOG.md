@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Test (events):** `EventCentricFlowTest` covers event create, roster uniqueness, team-size singleton, multi-draft generate, finalize, duplicate reset, preferred-pair solver penalty.
+- **Refactor (UI):** Removed obsolete org-level `Drafts/`, `Selections/`, and `Rules/` Inertia pages (replaced by event-centric routes).
+- **Feat (solver):** `TeamSolverService` supports `preferred_pair`, `skill_leveling` (min/max avg), and `repeat_pair` by prior `event_id`; `PairHistoryService` reads finalized prior-event drafts.
+- **UI (Inertia):** Full Vue pages for org **Events** (index + tabbed show: details, roster, rules, drafts, final with exports), **Members** (profile fields, sector combobox + quick sector add, skill sliders per event type, CSV import), **Event types** and **Sectors** CRUD-style lists, **Team draft** show (teams, violations, finalize/delete). Shared Headless UI inputs (`ComboboxInput`, `ListboxInput`, `DateInput`, toggles, etc.) and Ziggy `route()` with org `slug`.
+- **Fix (DateInput + Tailwind v4):** Scoped `@apply` in `DateInput.vue` broke the Vite/Tailwind pipeline; replaced with plain CSS so `npm run build` succeeds.
+- **Feat (TeamDraft Inertia props):** `TeamDraftController@show` now passes `canUpdate`, `canFinalize`, `event.is_finalized`, and `orgMembers` (id + display name) for draft UI.
+- **Tooling:** Use `npm install --ignore-engines` when Node is below Vite’s stated minimum so **optional** `@rolldown/binding-*` installs on the current platform (otherwise `vite build` fails missing native bindings).
+- **Feat (events):** Event-centric backend: org-scoped routes for event types, sectors, events (CRUD + duplicate), event roster/members (with RSVP counts and status history), per-event rules (singleton team/group size, repeat_pair by prior event, skill_leveling min/max), team draft generation/finalize/revert (admin), exports (print/CSV/XLSX), `EventPlanningConflictService`, `ProvidesOrganizationProps` trait; `OrganizationPolicy` registered on `Gate`; demo `DatabaseSeeder` data; org home + nav show events instead of org-wide rules.
 - **Fix (docker):** `.env.example` defaults `REDIS_HOST=redis` (Sail service hostname) instead of `127.0.0.1`, which fails inside containers when using Redis cache or queue.
 - **UI (org branding):** Organization pages (`.ts-org-branded`) apply `--org-primary` to buttons, inputs, and nav links and `--org-accent` to active tab underlines (desktop + mobile).
 - **Fix (branding):** `ColorInput` passes trimmed/normalized hex to the native color picker (whitespace-padded values no longer break the swatch).

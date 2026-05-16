@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OrganizationRole;
+use App\Models\Event;
 use App\Models\Organization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,7 +59,21 @@ class OrganizationController extends Controller
     {
         $this->authorize('view', $organization);
 
-        $organization->loadCount(['members', 'rules', 'selectionDrafts', 'approvedSelections']);
+        $organization->loadCount(['members']);
+
+        $events = $organization->events()
+            ->with('eventType')
+            ->orderByDesc('event_date')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (Event $e) => [
+                'id' => $e->id,
+                'name' => $e->name,
+                'event_date' => $e->event_date->format('Y-m-d'),
+                'event_type_name' => $e->eventType->name,
+                'finalized' => $e->finalized_at !== null,
+                'rsvp_counts' => $e->rsvpCounts(),
+            ]);
 
         return Inertia::render('Organizations/Show', [
             'organization' => [
@@ -71,11 +86,9 @@ class OrganizationController extends Controller
                 'brand_accent' => $organization->brand_accent,
                 'counts' => [
                     'members' => $organization->members_count,
-                    'rules' => $organization->rules_count,
-                    'drafts' => $organization->selection_drafts_count,
-                    'approved' => $organization->approved_selections_count,
                 ],
             ],
+            'events' => $events,
         ]);
     }
 }

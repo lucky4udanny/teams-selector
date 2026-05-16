@@ -4,7 +4,8 @@ namespace App\Services;
 
 use App\Enums\RuleScope;
 use App\Enums\RuleType;
-use App\Models\Organization;
+use App\Models\Event;
+use App\Models\MemberEventTypeSkill;
 use App\Models\Rule;
 use Illuminate\Support\Collection;
 
@@ -18,13 +19,15 @@ class TeamSolverService
      * @param  list<int>  $memberIds
      * @return array{teams: list<array{member_ids: list<int>}>, groups: list<array{team_indices: list<int>}>|array{}, violations: list<array<string, mixed>>, total_penalty: int, blocking_errors: list<string>}
      */
-    public function solve(Organization $organization, array $memberIds, int $iterations = 4000): array
+    public function solve(Event $event, array $memberIds, int $iterations = 4000): array
     {
         $memberIds = array_values(array_unique(array_map(fn (int|string $id): int => (int) $id, $memberIds)));
         sort($memberIds);
 
+        $organization = $event->organization;
+
         $rules = Rule::query()
-            ->where('organization_id', $organization->id)
+            ->where('event_id', $event->id)
             ->orderByDesc('weight')
             ->get();
 
@@ -89,14 +92,16 @@ class TeamSolverService
         }
 
         $historyCache = [];
+        $skillByMember = $this->skillLevelsForEvent($event, $memberIds);
 
-        $scoreState = function (array $teams, array $groups) use ($rules, $organization, &$historyCache): array {
+        $scoreState = function (array $teams, array $groups) use ($rules, $event, &$historyCache, $skillByMember): array {
             return $this->score(
                 $teams,
                 $groups,
                 $rules,
-                $organization,
-                $historyCache
+                $event,
+                $historyCache,
+                $skillByMember
             );
         };
 
@@ -184,7 +189,33 @@ class TeamSolverService
      * @param  array<string, array<string, true>>  $historyCache
      * @return array{0: int, 1: list<array<string, mixed>>}
      */
-    private function score(array $teams, array $groups, Collection $rules, Organization $organization, array &$historyCache): array
+    /**
+     * @param  list<int>  $memberIds
+     * @return array<int, int>
+     */
+    private function skillLevelsForEvent(Event $event, array $memberIds): array
+    {
+        if ($memberIds === []) {
+            return [];
+        }
+
+        return MemberEventTypeSkill::query()
+            ->where('event_type_id', $event->event_type_id)
+            ->whereIn('member_id', $memberIds)
+            ->pluck('skill_level', 'member_id')
+            ->map(fn ($v) => (int) $v)
+            ->all();
+    }
+
+    /**
+     * @param  list<array{member_ids: list<int>}>  $teams
+     * @param  list<array{team_indices: list<int>}>  $groups
+     * @param  Collection<int, Rule>  $rules
+     * @param  array<string, array<string, true>>  $historyCache
+     * @param  array<int, int>  $skillByMember
+     * @return array{0: int, 1: list<array<string, mixed>>}
+     */
+    private function score(array $teams, array $groups, Collection $rules, Event $event, array &$historyCache, array $skillByMember): array
     {
         $violations = [];
         $penalty = 0;
@@ -236,13 +267,107 @@ class TeamSolverService
                 }
             }
 
+            if ($rule->type === RuleType::PreferredPair) {
+                $a = (int) ($rule->config['member_a_id'] ?? 0);
+                $b = (int) ($rule->config['member_b_id'] ?? 0);
+                if ($a === 0 || $b === 0 || $a === $b) {
+                    continue;
+                }
+
+                if ($rule->scope === RuleScope::Team) {
+                    $together = false;
+                    foreach ($teams as $team) {
+                        $set = array_flip($team['member_ids']);
+                        if (isset($set[$a], $set[$b])) {
+                            $together = true;
+                            break;
+                        }
+                    }
+                    if (! $together) {
+                        $violations[] = [
+                            'rule_id' => $rule->id,
+                            'type' => 'preferred_pair',
+                            'scope' => 'team',
+                            'weight' => $rule->weight,
+                            'detail' => 'Preferred pair not on the same team',
+                            'penalty' => $rule->weight,
+                        ];
+                        $penalty += $rule->weight;
+                    }
+                } else {
+                    $groupMembers = $this->membersByGroup($teams, $groups);
+                    $together = false;
+                    foreach ($groupMembers as $ids) {
+                        $set = array_flip($ids);
+                        if (isset($set[$a], $set[$b])) {
+                            $together = true;
+                            break;
+                        }
+                    }
+                    if (! $together) {
+                        $violations[] = [
+                            'rule_id' => $rule->id,
+                            'type' => 'preferred_pair',
+                            'scope' => 'group',
+                            'weight' => $rule->weight,
+                            'detail' => 'Preferred pair not in the same group',
+                            'penalty' => $rule->weight,
+                        ];
+                        $penalty += $rule->weight;
+                    }
+                }
+            }
+
+            if ($rule->type === RuleType::SkillLeveling) {
+                $minAvg = (int) ($rule->config['min_avg'] ?? 0);
+                $maxAvg = (int) ($rule->config['max_avg'] ?? 100);
+
+                if ($rule->scope === RuleScope::Team) {
+                    foreach ($teams as $idx => $team) {
+                        $avg = $this->averageSkill($team['member_ids'], $skillByMember);
+                        $deviation = $this->skillRangeDeviation($avg, $minAvg, $maxAvg);
+                        if ($deviation > 0) {
+                            $add = (int) round($rule->weight * $deviation);
+                            $violations[] = [
+                                'rule_id' => $rule->id,
+                                'type' => 'skill_leveling',
+                                'scope' => 'team',
+                                'weight' => $rule->weight,
+                                'detail' => 'Team #'.($idx + 1).' avg skill '.$avg.' outside '.$minAvg.'–'.$maxAvg,
+                                'penalty' => $add,
+                            ];
+                            $penalty += $add;
+                        }
+                    }
+                } else {
+                    $groupMembers = $this->membersByGroup($teams, $groups);
+                    foreach ($groupMembers as $gidx => $ids) {
+                        $avg = $this->averageSkill($ids, $skillByMember);
+                        $deviation = $this->skillRangeDeviation($avg, $minAvg, $maxAvg);
+                        if ($deviation > 0) {
+                            $add = (int) round($rule->weight * $deviation);
+                            $violations[] = [
+                                'rule_id' => $rule->id,
+                                'type' => 'skill_leveling',
+                                'scope' => 'group',
+                                'weight' => $rule->weight,
+                                'detail' => 'Group #'.($gidx + 1).' avg skill '.$avg.' outside '.$minAvg.'–'.$maxAvg,
+                                'penalty' => $add,
+                            ];
+                            $penalty += $add;
+                        }
+                    }
+                }
+            }
+
             if ($rule->type === RuleType::RepeatPair) {
-                $window = (int) ($rule->config['window'] ?? 1);
-                $cacheKey = $organization->id.'-'.$rule->scope->value.'-'.$window;
+                $priorEventId = (int) ($rule->config['event_id'] ?? 0);
+                if ($priorEventId < 1) {
+                    continue;
+                }
+                $cacheKey = $priorEventId.'-'.$rule->scope->value;
                 if (! isset($historyCache[$cacheKey])) {
-                    $historyCache[$cacheKey] = $rule->scope === RuleScope::Team
-                        ? $this->history->teamPairsInWindow($organization, $window)
-                        : $this->history->groupPairsInWindow($organization, $window);
+                    $historyCache[$cacheKey] = $this->history->pairsForPriorEvent($priorEventId, $rule->scope);
                 }
                 $hist = $historyCache[$cacheKey];
 
@@ -255,7 +380,7 @@ class TeamSolverService
                                     'type' => 'repeat_pair',
                                     'scope' => 'team',
                                     'weight' => $rule->weight,
-                                    'detail' => 'Repeat pair on team #'.($idx + 1).' (last '.$window.' approvals)',
+                                    'detail' => 'Repeat pair on team #'.($idx + 1),
                                     'penalty' => $rule->weight,
                                 ];
                                 $penalty += $rule->weight;
@@ -272,7 +397,7 @@ class TeamSolverService
                                     'type' => 'repeat_pair',
                                     'scope' => 'group',
                                     'weight' => $rule->weight,
-                                    'detail' => 'Repeat pair in group #'.($gidx + 1).' (last '.$window.' approvals)',
+                                    'detail' => 'Repeat pair in group #'.($gidx + 1),
                                     'penalty' => $rule->weight,
                                 ];
                                 $penalty += $rule->weight;
@@ -284,6 +409,37 @@ class TeamSolverService
         }
 
         return [$penalty, $violations];
+    }
+
+    /**
+     * @param  list<int>  $memberIds
+     * @param  array<int, int>  $skillByMember
+     */
+    private function averageSkill(array $memberIds, array $skillByMember): float
+    {
+        if ($memberIds === []) {
+            return 0.0;
+        }
+
+        $sum = 0;
+        foreach ($memberIds as $id) {
+            $sum += $skillByMember[(int) $id] ?? 0;
+        }
+
+        return $sum / count($memberIds);
+    }
+
+    private function skillRangeDeviation(float $avg, int $minAvg, int $maxAvg): float
+    {
+        if ($avg < $minAvg) {
+            return ($minAvg - $avg) / 100;
+        }
+
+        if ($avg > $maxAvg) {
+            return ($avg - $maxAvg) / 100;
+        }
+
+        return 0.0;
     }
 
     /**

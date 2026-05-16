@@ -3,14 +3,20 @@
 namespace App\Models;
 
 use App\Enums\OrganizationRole;
+use Database\Factories\OrganizationFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Organization extends Model
 {
+    /** @use HasFactory<OrganizationFactory> */
+    use HasFactory;
+
     public function getRouteKeyName(): string
     {
         return 'slug';
@@ -45,19 +51,29 @@ class Organization extends Model
         return $this->hasMany(Member::class);
     }
 
-    public function rules(): HasMany
+    public function eventTypes(): HasMany
     {
-        return $this->hasMany(Rule::class)->orderBy('sort_order');
+        return $this->hasMany(EventType::class);
     }
 
-    public function selectionDrafts(): HasMany
+    public function sectors(): HasMany
     {
-        return $this->hasMany(SelectionDraft::class);
+        return $this->hasMany(Sector::class);
     }
 
-    public function approvedSelections(): HasMany
+    public function events(): HasMany
     {
-        return $this->hasMany(ApprovedSelection::class)->orderByDesc('created_at');
+        return $this->hasMany(Event::class);
+    }
+
+    /**
+     * Rules belong to events; this exposes all rules across the org's events.
+     *
+     * @return HasManyThrough<Rule, Event>
+     */
+    public function rules(): HasManyThrough
+    {
+        return $this->hasManyThrough(Rule::class, Event::class);
     }
 
     public function roleFor(User $user): ?OrganizationRole

@@ -2,68 +2,47 @@
 
 namespace App\Services;
 
-use App\Models\ApprovedSelection;
-use App\Models\Organization;
+use App\Enums\RuleScope;
+use App\Models\Event;
+use App\Models\TeamDraft;
 
 class PairHistoryService
 {
     /**
      * @return array<string, true> canonical pair keys "min-max"
      */
-    public function teamPairsInWindow(Organization $organization, int $window): array
+    public function pairsForPriorEvent(int $priorEventId, RuleScope $scope): array
     {
-        $selections = ApprovedSelection::query()
-            ->where('organization_id', $organization->id)
-            ->orderByDesc('id')
-            ->limit($window)
-            ->get(['snapshot']);
-
-        $pairs = [];
-
-        foreach ($selections as $sel) {
-            $teams = $sel->snapshot['teams'] ?? [];
-            foreach ($teams as $team) {
-                $ids = $team['member_ids'] ?? [];
-                foreach ($this->pairsFromList($ids) as $key) {
-                    $pairs[$key] = true;
-                }
-            }
+        $event = Event::query()->find($priorEventId);
+        if (! $event || ! $event->final_team_draft_id) {
+            return [];
         }
 
-        return $pairs;
+        $draft = TeamDraft::query()->find($event->final_team_draft_id);
+        if (! $draft || ! is_array($draft->state)) {
+            return [];
+        }
+
+        $teams = $draft->state['teams'] ?? [];
+        $groups = $draft->state['groups'] ?? [];
+
+        if ($scope === RuleScope::Team) {
+            return $this->pairsFromTeams($teams);
+        }
+
+        return $this->pairsFromGroups($teams, $groups);
     }
 
     /**
+     * @param  list<array{member_ids: list<int>}>  $teams
      * @return array<string, true>
      */
-    public function groupPairsInWindow(Organization $organization, int $window): array
+    private function pairsFromTeams(array $teams): array
     {
-        $selections = ApprovedSelection::query()
-            ->where('organization_id', $organization->id)
-            ->orderByDesc('id')
-            ->limit($window)
-            ->get(['snapshot']);
-
         $pairs = [];
-
-        foreach ($selections as $sel) {
-            $teams = $sel->snapshot['teams'] ?? [];
-            $groups = $sel->snapshot['groups'] ?? [];
-            foreach ($groups as $group) {
-                $indices = $group['team_indices'] ?? [];
-                $memberIds = [];
-                foreach ($indices as $ti) {
-                    $ti = (int) $ti;
-                    $ids = $teams[$ti]['member_ids'] ?? [];
-                    foreach ($ids as $id) {
-                        $memberIds[(int) $id] = true;
-                    }
-                }
-                $list = array_keys($memberIds);
-                sort($list);
-                foreach ($this->pairsFromList($list) as $key) {
-                    $pairs[$key] = true;
-                }
+        foreach ($teams as $team) {
+            foreach ($this->pairsFromMemberList($team['member_ids'] ?? []) as $key) {
+                $pairs[$key] = true;
             }
         }
 
@@ -71,26 +50,50 @@ class PairHistoryService
     }
 
     /**
-     * @param  list<int>  $ids
-     * @return list<string>
+     * @param  list<array{member_ids: list<int>}>  $teams
+     * @param  list<array{team_indices: list<int>}>  $groups
+     * @return array<string, true>
      */
-    private function pairsFromList(array $ids): array
+    private function pairsFromGroups(array $teams, array $groups): array
     {
-        $n = count($ids);
-        $out = [];
-        for ($i = 0; $i < $n; $i++) {
-            for ($j = $i + 1; $j < $n; $j++) {
-                $a = (int) $ids[$i];
-                $b = (int) $ids[$j];
-                if ($a === $b) {
-                    continue;
+        $pairs = [];
+        foreach ($groups as $group) {
+            $ids = [];
+            foreach ($group['team_indices'] ?? [] as $ti) {
+                foreach ($teams[(int) $ti]['member_ids'] ?? [] as $mid) {
+                    $ids[] = (int) $mid;
                 }
-                $min = min($a, $b);
-                $max = max($a, $b);
-                $out[] = $min.'-'.$max;
+            }
+            foreach ($this->pairsFromMemberList($ids) as $key) {
+                $pairs[$key] = true;
             }
         }
 
-        return $out;
+        return $pairs;
+    }
+
+    /**
+     * @param  list<int>  $memberIds
+     * @return list<string>
+     */
+    private function pairsFromMemberList(array $memberIds): array
+    {
+        $n = count($memberIds);
+        $keys = [];
+        for ($i = 0; $i < $n; $i++) {
+            for ($j = $i + 1; $j < $n; $j++) {
+                $keys[] = $this->pairKey((int) $memberIds[$i], (int) $memberIds[$j]);
+            }
+        }
+
+        return $keys;
+    }
+
+    private function pairKey(int $a, int $b): string
+    {
+        $min = min($a, $b);
+        $max = max($a, $b);
+
+        return $min.'-'.$max;
     }
 }

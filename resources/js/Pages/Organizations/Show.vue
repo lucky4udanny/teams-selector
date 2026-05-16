@@ -7,15 +7,17 @@ import InputLabel from '@/Components/InputLabel.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
-    ClipboardDocumentListIcon,
-    UserGroupIcon,
+    CalendarDaysIcon,
     UsersIcon,
-    WrenchScrewdriverIcon,
 } from '@heroicons/vue/24/outline';
 import { computed } from 'vue';
 
 const props = defineProps({
     organization: Object,
+    events: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const isAdmin = computed(() => props.organization.role === 'admin');
@@ -66,48 +68,59 @@ const saveSettings = () => {
                 </div>
             </Link>
             <Link
-                :href="route('organizations.rules.index', organization.slug)"
+                :href="route('organizations.events.index', organization.slug)"
                 class="ts-card-interactive"
             >
                 <div class="ts-icon-tile-orange">
-                    <WrenchScrewdriverIcon class="h-7 w-7" />
+                    <CalendarDaysIcon class="h-7 w-7" />
                 </div>
                 <div>
-                    <p class="font-semibold text-brand-navy">Rules</p>
+                    <p class="font-semibold text-brand-navy">Events</p>
                     <p class="text-sm text-brand-blue/70">
-                        {{ organization.counts.rules }} defined
-                    </p>
-                </div>
-            </Link>
-            <Link
-                :href="route('organizations.drafts.index', organization.slug)"
-                class="ts-card-interactive"
-            >
-                <div class="ts-icon-tile-sky">
-                    <ClipboardDocumentListIcon class="h-7 w-7" />
-                </div>
-                <div>
-                    <p class="font-semibold text-brand-navy">Drafts</p>
-                    <p class="text-sm text-brand-blue/70">
-                        {{ organization.counts.drafts }} open
-                    </p>
-                </div>
-            </Link>
-            <Link
-                :href="route('organizations.selections.index', organization.slug)"
-                class="ts-card-interactive"
-            >
-                <div class="ts-icon-tile-navy">
-                    <UserGroupIcon class="h-7 w-7" />
-                </div>
-                <div>
-                    <p class="font-semibold text-brand-navy">Selections</p>
-                    <p class="text-sm text-brand-blue/70">
-                        {{ organization.counts.approved }} approved
+                        {{ events.length }} scheduled
                     </p>
                 </div>
             </Link>
         </div>
+
+        <section
+            v-if="events.length"
+            class="ts-card-padded mt-8"
+        >
+            <h2 class="ts-heading-section mb-4">Upcoming &amp; recent</h2>
+            <ul class="divide-y divide-brand-mist">
+                <li
+                    v-for="ev in events"
+                    :key="ev.id"
+                    class="py-3 first:pt-0"
+                >
+                    <Link
+                        class="flex flex-wrap items-baseline justify-between gap-2 hover:text-brand-navy"
+                        :href="
+                            route('organizations.events.show', {
+                                organization: organization.slug,
+                                event: ev.id,
+                            })
+                        "
+                    >
+                        <span class="font-medium text-brand-navy">{{
+                            ev.name
+                        }}</span>
+                        <span class="text-sm text-brand-blue/70">
+                            {{ ev.event_type_name }} · {{ ev.event_date }}
+                            <span v-if="ev.finalized" class="ml-2 text-emerald-700"
+                                >Finalized</span
+                            >
+                        </span>
+                    </Link>
+                    <p class="mt-1 text-xs text-brand-blue/60">
+                        RSVP: {{ ev.rsvp_counts.accepted }} accepted,
+                        {{ ev.rsvp_counts.pending }} pending,
+                        {{ ev.rsvp_counts.declined }} declined
+                    </p>
+                </li>
+            </ul>
+        </section>
 
         <section
             v-if="isAdmin"
