@@ -196,7 +196,15 @@ export function validateRuleForm(rule) {
         case 'skill_leveling': {
             const min = Number(cfg.min_avg);
             const max = Number(cfg.max_avg);
-            if (Number.isNaN(min) || Number.isNaN(max) || min < 0 || max > 100 || min > max) {
+            if (
+                Number.isNaN(min) ||
+                Number.isNaN(max) ||
+                min < 0 ||
+                max < 0 ||
+                min > 100 ||
+                max > 100 ||
+                min > max
+            ) {
                 errors.config = 'Skill range must be 0–100 with min ≤ max.';
             }
             break;

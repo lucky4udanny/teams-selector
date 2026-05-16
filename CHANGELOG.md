@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Fix (migration):** `final_team_draft_id` on `events` now carries a proper FK constraint (`references team_drafts.id nullOnDelete`) added in migration `100011`, resolving the circular dependency with `100002`.
+- **Fix (migration):** Members profile migration coalesces NULL `name` to empty string before applying NOT NULL on `first_name`, preventing migration failure on pre-existing rows with a NULL name.
+- **Fix (rules):** Skill leveling validation rejects negative `max_avg` (and `min_avg` > 100) using numeric bounds before cast; blocks fractional negatives like `max_avg=-0.1` that `(int)` truncated to 0.
 - **Fix (TextInput):** `defineModel` type widened to `[String, Number]` so `v-model.number` on numeric fields (iterations, rule size, teams-per-group) no longer triggers a Vue prop type warning.
 - **Fix (roster):** Event show `?tab=roster` assigns `roster` as the member rows array (not nested `roster.roster`); RSVP counts stay on `event.rsvp_counts` only.
 - **Fix (roster):** RSVP badges now correctly scope pending/accepted/declined/invited to **included** members only; waiting list members counted separately; `Event::rsvpCounts()` returns `included`, `waiting`, `invited`, `pending`, `accepted`, `declined`.

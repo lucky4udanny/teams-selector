@@ -185,9 +185,14 @@ class EventRuleController extends Controller
                 }
                 break;
             case RuleType::SkillLeveling:
-                $min = (int) ($config['min_avg'] ?? -1);
-                $max = (int) ($config['max_avg'] ?? -1);
-                if ($min < 0 || $max > 100 || $min > $max) {
+                if (! isset($config['min_avg'], $config['max_avg'])
+                    || ! is_numeric($config['min_avg'])
+                    || ! is_numeric($config['max_avg'])) {
+                    throw $e('Skill leveling requires min_avg and max_avg between 0 and 100 with min_avg <= max_avg.');
+                }
+                $min = (float) $config['min_avg'];
+                $max = (float) $config['max_avg'];
+                if ($min < 0 || $max < 0 || $min > 100 || $max > 100 || $min > $max) {
                     throw $e('Skill leveling requires min_avg and max_avg between 0 and 100 with min_avg <= max_avg.');
                 }
                 break;

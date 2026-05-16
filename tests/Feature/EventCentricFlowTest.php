@@ -156,6 +156,36 @@ class EventCentricFlowTest extends TestCase
         ]);
     }
 
+    public function test_skill_leveling_rule_rejects_negative_max_avg(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+
+        $this->post(route('organizations.events.rules.store', [$org, $event]), [
+            'type' => RuleType::SkillLeveling->value,
+            'scope' => RuleScope::Team->value,
+            'weight' => 50,
+            'config' => ['min_avg' => 0, 'max_avg' => -1],
+        ])->assertSessionHasErrors('config');
+
+        $this->assertEquals(0, Rule::query()->where('event_id', $event->id)->count());
+    }
+
+    public function test_skill_leveling_rule_rejects_fractional_negative_max_avg(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+
+        $this->post(route('organizations.events.rules.store', [$org, $event]), [
+            'type' => RuleType::SkillLeveling->value,
+            'scope' => RuleScope::Team->value,
+            'weight' => 50,
+            'config' => ['min_avg' => '0.9', 'max_avg' => '-0.1'],
+        ])->assertSessionHasErrors('config');
+
+        $this->assertEquals(0, Rule::query()->where('event_id', $event->id)->count());
+    }
+
     public function test_only_one_team_size_rule_per_event(): void
     {
         [, $org] = $this->actingAsOrganizer();

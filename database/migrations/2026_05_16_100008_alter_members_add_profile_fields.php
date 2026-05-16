@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('sector_id')->nullable()->after('company')->constrained()->nullOnDelete();
         });
 
-        DB::statement('UPDATE members SET first_name = name');
+        DB::statement("UPDATE members SET first_name = COALESCE(name, '')");
 
         Schema::table('members', function (Blueprint $table) {
             $table->dropColumn('name');
