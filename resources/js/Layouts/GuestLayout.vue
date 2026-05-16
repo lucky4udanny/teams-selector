@@ -1,6 +1,8 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
 </script>
 
 <template>
@@ -8,8 +10,11 @@ import { Link } from '@inertiajs/vue3';
         class="flex min-h-screen flex-col items-center bg-gray-100 pt-6 sm:justify-center sm:pt-0"
     >
         <div>
-            <Link href="/">
+            <Link :href="route('login')" class="flex flex-col items-center">
                 <ApplicationLogo class="h-20 w-20 fill-current text-gray-500" />
+                <span class="mt-2 text-lg font-semibold text-gray-800">
+                    {{ page.props.app.name }}
+                </span>
             </Link>
         </div>
 

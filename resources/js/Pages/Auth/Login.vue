@@ -33,6 +33,10 @@ const submit = () => {
     <GuestLayout>
         <Head title="Log in" />
 
+        <h1 class="mb-6 text-center text-xl font-semibold text-gray-900">
+            Sign in
+        </h1>
+
         <div v-if="status" class="mb-4 text-sm font-medium text-green-600">
             {{ status }}
         </div>
