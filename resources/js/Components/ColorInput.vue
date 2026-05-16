@@ -3,6 +3,12 @@ import { computed } from 'vue';
 
 const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
 
+/** Valid #RRGGBB (trimmed, lowercased) or fallback for picker/swatch. */
+const resolveHex = (value, fallback) => {
+    const trimmed = value?.trim() ?? '';
+    return HEX_RE.test(trimmed) ? trimmed.toLowerCase() : fallback;
+};
+
 const model = defineModel({
     type: String,
     required: true,
@@ -20,7 +26,7 @@ const props = defineProps({
 });
 
 const pickerValue = computed(() =>
-    HEX_RE.test(model.value?.trim() ?? '') ? model.value : props.placeholder,
+    resolveHex(model.value, props.placeholder),
 );
 
 const swatchStyle = computed(() => ({
@@ -40,9 +46,9 @@ const onTextInput = (event) => {
 };
 
 const onTextBlur = () => {
-    const value = model.value?.trim() ?? '';
-    if (HEX_RE.test(value)) {
-        model.value = value.toLowerCase();
+    const normalized = resolveHex(model.value, '');
+    if (normalized) {
+        model.value = normalized;
     }
 };
 </script>

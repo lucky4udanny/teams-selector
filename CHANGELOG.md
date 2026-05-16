@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fix (branding):** `ColorInput` passes trimmed/normalized hex to the native color picker (whitespace-padded values no longer break the swatch).
 - **UI (branding):** Primary/accent colors use a swatch + native color picker + hex field (`ColorInput.vue`) on the org settings page; live preview chips below the pickers.
 - **UI (org nav):** Organization header shows org logo **or** org name, not both; logo preferred when `logo_url` is set (`OrganizationLayout.vue`).
 - **Fix (tests):** Restore `DB_CONNECTION=sqlite` and `DB_DATABASE=:memory:` in `phpunit.xml` so `composer test` / `php artisan test` do not require Docker PostgreSQL when `.env` defaults to `pgsql`.
