@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **UI (org branding):** Organization pages (`.ts-org-branded`) apply `--org-primary` to buttons, inputs, and nav links and `--org-accent` to active tab underlines (desktop + mobile).
 - **Fix (branding):** `ColorInput` passes trimmed/normalized hex to the native color picker (whitespace-padded values no longer break the swatch).
 - **UI (branding):** Primary/accent colors use a swatch + native color picker + hex field (`ColorInput.vue`) on the org settings page; live preview chips below the pickers.
 - **UI (org nav):** Organization header shows org logo **or** org name, not both; logo preferred when `logo_url` is set (`OrganizationLayout.vue`).

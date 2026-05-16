@@ -27,8 +27,6 @@
         --ts-warning: 180 83 9;
         --ts-danger: 220 38 38;
         --ts-info: 26 104 147;
-        --brand-primary: 26 104 147;
-        --brand-accent: 247 148 28;
     }
 
     body {
@@ -112,6 +110,108 @@
 
     .ts-nav-inactive {
         @apply border-b-2 border-transparent text-brand-blue/80 transition hover:border-brand-blue/30 hover:text-brand-navy;
+    }
+
+    .ts-responsive-nav-active {
+        @apply border-brand-orange bg-brand-blue/5;
+    }
+
+    .ts-responsive-nav-inactive {
+        @apply text-brand-blue/80 hover:border-brand-blue/30;
+    }
+
+    .ts-org-nav-control {
+        @apply text-brand-blue hover:text-brand-navy;
+    }
+
+    .ts-color-input:focus-within {
+        --tw-ring-color: color-mix(in srgb, var(--color-brand-blue) 30%, transparent);
+    }
+
+    /* Per-organization branding (vars set on .ts-org-branded in OrganizationLayout) */
+    .ts-org-branded {
+        --org-primary: var(--color-brand-blue);
+        --org-accent: var(--color-brand-orange);
+    }
+
+    .ts-org-branded .ts-nav-active {
+        border-bottom-color: var(--org-accent);
+    }
+
+    .ts-org-branded .ts-nav-inactive {
+        color: color-mix(in srgb, var(--org-primary) 75%, var(--color-brand-navy));
+    }
+
+    .ts-org-branded .ts-nav-inactive:hover {
+        border-bottom-color: color-mix(in srgb, var(--org-primary) 30%, transparent);
+        color: var(--color-brand-navy);
+    }
+
+    .ts-org-branded .ts-responsive-nav-active {
+        border-left-color: var(--org-accent);
+        background-color: color-mix(in srgb, var(--org-primary) 8%, white);
+    }
+
+    .ts-org-branded .ts-responsive-nav-inactive {
+        color: color-mix(in srgb, var(--org-primary) 75%, var(--color-brand-navy));
+    }
+
+    .ts-org-branded .ts-responsive-nav-inactive:hover {
+        border-left-color: color-mix(in srgb, var(--org-primary) 30%, transparent);
+    }
+
+    .ts-org-branded .ts-org-nav-control {
+        color: var(--org-primary);
+    }
+
+    .ts-org-branded .ts-org-nav-control:hover {
+        color: var(--color-brand-navy);
+        opacity: 1;
+    }
+
+    .ts-org-branded .ts-btn-primary {
+        background-color: var(--org-primary);
+        box-shadow: 0 1px 2px color-mix(in srgb, var(--org-primary) 25%, transparent);
+    }
+
+    .ts-org-branded .ts-btn-primary:hover {
+        background-color: color-mix(in srgb, var(--org-primary) 88%, white);
+    }
+
+    .ts-org-branded .ts-btn-primary:active {
+        background-color: color-mix(in srgb, var(--org-primary) 88%, black);
+    }
+
+    .ts-org-branded .ts-btn-primary:focus {
+        --tw-ring-color: color-mix(in srgb, var(--org-accent) 50%, transparent);
+    }
+
+    .ts-org-branded .ts-btn-secondary:hover {
+        border-color: color-mix(in srgb, var(--org-primary) 30%, transparent);
+    }
+
+    .ts-org-branded .ts-btn-secondary:focus {
+        --tw-ring-color: color-mix(in srgb, var(--org-primary) 30%, transparent);
+    }
+
+    .ts-org-branded .ts-input:focus {
+        border-color: var(--org-primary);
+        --tw-ring-color: color-mix(in srgb, var(--org-primary) 30%, transparent);
+    }
+
+    .ts-org-branded .ts-color-input:focus-within {
+        --tw-ring-color: color-mix(in srgb, var(--org-primary) 30%, transparent);
+    }
+
+    .ts-org-branded .ts-card-interactive:hover {
+        border-color: color-mix(in srgb, var(--org-primary) 35%, transparent);
+        box-shadow:
+            0 4px 6px -1px color-mix(in srgb, var(--org-primary) 10%, transparent),
+            0 2px 4px -2px color-mix(in srgb, var(--org-primary) 10%, transparent);
+    }
+
+    .ts-org-branded .ts-text-muted {
+        color: color-mix(in srgb, var(--org-primary) 70%, var(--color-brand-navy));
     }
 
     .ts-auth-card {

@@ -55,7 +55,7 @@ const onTextBlur = () => {
 
 <template>
     <div
-        class="mt-1 flex rounded-lg shadow-sm ring-1 ring-inset ring-brand-mist focus-within:ring-2 focus-within:ring-brand-blue/30"
+        class="ts-color-input mt-1 flex rounded-lg shadow-sm ring-1 ring-inset ring-brand-mist focus-within:ring-2"
     >
         <div class="relative shrink-0">
             <input

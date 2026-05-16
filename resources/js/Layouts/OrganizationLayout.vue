@@ -27,15 +27,15 @@ const showingNavigationDropdown = ref(false);
 
 const slug = computed(() => props.organization.slug);
 const brandStyle = computed(() => ({
-    '--brand-primary': props.organization.brand_primary || '#1a6893',
-    '--brand-accent': props.organization.brand_accent || '#f7941c',
+    '--org-primary': props.organization.brand_primary || '#1a6893',
+    '--org-accent': props.organization.brand_accent || '#f7941c',
 }));
 
 const isAdmin = computed(() => props.organization.role === 'admin');
 </script>
 
 <template>
-    <div :style="brandStyle" class="ts-page">
+    <div :style="brandStyle" class="ts-page ts-org-branded">
         <nav
             class="border-b border-brand-mist bg-white/90 shadow-sm shadow-brand-navy/5 backdrop-blur-md"
         >
@@ -130,7 +130,7 @@ const isAdmin = computed(() => props.organization.role === 'admin');
                                 <span class="inline-flex rounded-md">
                                     <button
                                         type="button"
-                                        class="inline-flex items-center rounded-lg border border-transparent bg-white px-3 py-2 text-sm font-medium text-brand-blue transition hover:text-brand-navy"
+                                        class="ts-org-nav-control inline-flex items-center rounded-lg border border-transparent bg-white px-3 py-2 text-sm font-medium transition"
                                     >
                                         {{ page.props.auth.user.name }}
                                         <svg
@@ -168,7 +168,7 @@ const isAdmin = computed(() => props.organization.role === 'admin');
                     <div class="-me-2 flex items-center md:hidden">
                         <button
                             type="button"
-                            class="inline-flex items-center justify-center rounded-lg p-2 text-brand-blue/70 hover:bg-brand-mist hover:text-brand-navy"
+                            class="ts-org-nav-control inline-flex items-center justify-center rounded-lg p-2 opacity-70 hover:bg-brand-mist"
                             @click="
                                 showingNavigationDropdown =
                                     !showingNavigationDropdown
