@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fix (roster):** Roster rows stay sorted by member name (not DB insertion order); invited/included toggles use optimistic local state and partial Inertia reload; `Toggle` off state no longer looks disabled (white + ring).
 - **Feat (roster):** Bulk add members from organization via searchable checklist (`RosterMemberPicker`) with select all/clear on the event roster tab.
 - **Feat (events UX):** Client-side validation and inline feedback on Events index (create), Show (details, roster, rules modal, generate draft, finalize confirm), and Team draft show (names); shared `formValidation.js` helpers; server flash toasts on event/roster/rule/draft mutations; finalize blocked when draft has `blocking_errors`.
 - **Test (events):** `EventCentricFlowTest` rejects finalize when draft state includes blocking errors.

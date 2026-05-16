@@ -55,6 +55,42 @@ class EventCentricFlowTest extends TestCase
         ]);
     }
 
+    public function test_roster_payload_is_sorted_by_member_name(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+
+        $zeke = Member::factory()->create([
+            'organization_id' => $org->id,
+            'first_name' => 'Zeke',
+            'last_name' => 'Zulu',
+        ]);
+        $amy = Member::factory()->create([
+            'organization_id' => $org->id,
+            'first_name' => 'Amy',
+            'last_name' => 'Adams',
+        ]);
+
+        foreach ([$zeke, $amy] as $member) {
+            EventMember::query()->create([
+                'event_id' => $event->id,
+                'member_id' => $member->id,
+                'included' => true,
+                'invited' => false,
+                'status' => EventMemberStatus::Pending,
+                'status_changed_at' => now(),
+            ]);
+        }
+
+        $payload = app(\App\Http\Controllers\EventMemberController::class)->rosterPayloadPublic($event);
+        $names = array_column($payload['roster'], 'display_name');
+
+        $this->assertSame(
+            [trim($amy->first_name.' '.$amy->last_name), trim($zeke->first_name.' '.$zeke->last_name)],
+            $names,
+        );
+    }
+
     public function test_roster_bulk_add_members_from_organization(): void
     {
         [, $org] = $this->actingAsOrganizer();

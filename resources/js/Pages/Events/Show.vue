@@ -211,8 +211,29 @@ const runDeleteEvent = () => {
 };
 
 /* ——— Roster ——— */
-const rosterRows = computed(() => props.roster?.roster || []);
-const rsvp = computed(() => props.roster?.rsvp_counts || props.event.rsvp_counts || {});
+const cloneRosterPayload = (roster) => {
+    if (!roster) {
+        return null;
+    }
+
+    return {
+        ...roster,
+        roster: (roster.roster || []).map((row) => ({ ...row })),
+    };
+};
+
+const rosterState = ref(cloneRosterPayload(props.roster));
+
+watch(
+    () => props.roster,
+    (roster) => {
+        rosterState.value = cloneRosterPayload(roster);
+    },
+    { deep: true },
+);
+
+const rosterRows = computed(() => rosterState.value?.roster || []);
+const rsvp = computed(() => rosterState.value?.rsvp_counts || props.event.rsvp_counts || {});
 
 const rosterIncluded = computed(() => rosterRows.value.filter((r) => r.included));
 const rosterWaiting = computed(() => rosterRows.value.filter((r) => !r.included));
@@ -280,11 +301,29 @@ const postCopy = () => {
 };
 
 const patchMember = (em, data) => {
-    router.patch(
-        route('organizations.events.members.update', [slug.value, eventId.value, em.id]),
-        data,
-        { preserveScroll: true },
-    );
+    const row = rosterState.value?.roster?.find((r) => r.id === em.id);
+    const snapshot = row ? { ...row } : null;
+
+    if (row) {
+        Object.assign(row, data);
+        if (Object.prototype.hasOwnProperty.call(data, 'invited')) {
+            row.invited = Boolean(data.invited);
+            row.invited_at = data.invited ? row.invited_at ?? new Date().toISOString() : null;
+        }
+    }
+
+    router.patch(route('organizations.events.members.update', [slug.value, eventId.value, em.id]), data, {
+        preserveScroll: true,
+        only: ['roster'],
+        onError: () => {
+            if (snapshot && rosterState.value?.roster) {
+                const target = rosterState.value.roster.find((r) => r.id === em.id);
+                if (target) {
+                    Object.assign(target, snapshot);
+                }
+            }
+        },
+    });
 };
 
 const selectedEmIds = ref(new Set());
@@ -797,14 +836,14 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                             </td>
                             <td class="px-3 py-2">
                                 <Toggle
-                                    :model-value="row.included"
+                                    v-model="row.included"
                                     :disabled="!canManage"
                                     @update:model-value="(v) => patchMember(row, { included: v })"
                                 />
                             </td>
                             <td class="px-3 py-2">
                                 <Toggle
-                                    :model-value="row.invited"
+                                    v-model="row.invited"
                                     :disabled="!canManage"
                                     @update:model-value="(v) => patchMember(row, { invited: v })"
                                 />
@@ -863,7 +902,7 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                                 <td class="px-3 py-2">{{ row.display_name }}</td>
                                 <td class="px-3 py-2">
                                     <Toggle
-                                        :model-value="row.included"
+                                        v-model="row.included"
                                         :disabled="!canManage"
                                         @update:model-value="(v) => patchMember(row, { included: v })"
                                     />

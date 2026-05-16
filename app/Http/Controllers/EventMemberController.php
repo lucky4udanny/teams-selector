@@ -231,7 +231,17 @@ class EventMemberController extends Controller
             'eventMembers.member.memberEventTypeSkills' => fn ($q) => $q->where('event_type_id', $event->event_type_id),
         ]);
 
-        $roster = $event->eventMembers->map(function (EventMember $em) {
+        $roster = $event->eventMembers
+            ->sortBy(
+                fn (EventMember $em) => sprintf(
+                    '%s|%s|%010d',
+                    mb_strtolower($em->member->last_name ?? ''),
+                    mb_strtolower($em->member->first_name ?? ''),
+                    $em->id,
+                ),
+            )
+            ->values()
+            ->map(function (EventMember $em) {
             $m = $em->member;
             $skill = $m->memberEventTypeSkills->first();
 
