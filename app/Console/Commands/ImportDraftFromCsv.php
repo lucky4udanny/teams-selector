@@ -285,7 +285,7 @@ class ImportDraftFromCsv extends Command
         foreach ($teamMembers as $label => $memberIds) {
             $teamLabelToIndex[$label] = count($teams);
             $teams[] = ['member_ids' => $memberIds];
-            $teamNames[] = $label;
+            $teamNames[] = (string) $label;
         }
 
         ksort($groupTeams);
@@ -302,7 +302,7 @@ class ImportDraftFromCsv extends Command
             }
             sort($indices);
             $groups[] = ['team_indices' => $indices];
-            $groupNames[] = $gLabel;
+            $groupNames[] = (string) $gLabel;
         }
 
         $allMemberIds = array_values(array_unique(array_merge(...array_values($teamMembers))));

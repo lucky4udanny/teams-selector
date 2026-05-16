@@ -702,6 +702,24 @@ const displayMember = (id) => memberById.value.get(id) ?? `#${id}`;
 
 const finalTeams = computed(() => (Array.isArray(finalState.value?.teams) ? finalState.value.teams : []));
 const finalTeamNames = computed(() => finalState.value?.team_names || []);
+const finalGroups = computed(() => (Array.isArray(finalState.value?.groups) ? finalState.value.groups : []));
+const finalGroupNames = computed(() => finalState.value?.group_names || []);
+
+const indexToLetter = (i) => String.fromCharCode(65 + i);
+
+const teamDisplayLabel = (ti, names) => {
+    const num = String(ti + 1);
+    const name = String(names?.[ti] ?? '').trim();
+    if (name && name !== num) return `${num} · ${name}`;
+    return name || num;
+};
+
+const groupDisplayLabel = (gi, names) => {
+    const letter = indexToLetter(gi);
+    const name = String(names?.[gi] ?? '').trim();
+    if (name && name !== letter) return `${letter} · ${name}`;
+    return name || letter;
+};
 </script>
 
 <template>
@@ -730,7 +748,13 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                         : 'bg-brand-mist/80 text-brand-navy hover:bg-brand-mist'
                 "
             >
-                {{ t === 'final' ? 'Final' : t }}
+                {{
+                    t === 'final'
+                        ? 'Final Teams'
+                        : t === 'drafts'
+                          ? 'Team Drafts'
+                          : t.charAt(0).toUpperCase() + t.slice(1)
+                }}
             </Link>
         </nav>
 
@@ -1268,15 +1292,41 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                     <DangerButton type="button" @click="showRevert = true">Revert final (admin)</DangerButton>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-2">
+                <!-- Grouped view -->
+                <div v-if="finalGroups.length" class="space-y-8">
+                    <section v-for="(group, gi) in finalGroups" :key="`fg${gi}`">
+                        <h3 class="mb-4 text-sm font-semibold uppercase tracking-wide text-brand-blue/60">
+                            Group {{ groupDisplayLabel(gi, finalGroupNames) }}
+                        </h3>
+                        <div class="grid gap-4 lg:grid-cols-2">
+                            <div
+                                v-for="ti in group.team_indices || []"
+                                :key="`ft${ti}`"
+                                class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
+                            >
+                                <h4 class="mb-2 font-semibold text-brand-navy">
+                                    Team {{ teamDisplayLabel(ti, finalTeamNames) }}
+                                </h4>
+                                <ul class="space-y-1 text-sm">
+                                    <li v-for="mid in finalTeams[ti]?.member_ids || []" :key="mid">
+                                        {{ displayMember(mid) }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Flat view (no groups) -->
+                <div v-else class="grid gap-6 lg:grid-cols-2">
                     <section
                         v-for="(t, ti) in finalTeams"
                         :key="`ft${ti}`"
                         class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
                     >
-                        <h3 class="mb-2 font-semibold text-brand-navy">
-                            {{ finalTeamNames[ti] || `Team ${ti + 1}` }}
-                        </h3>
+                        <h4 class="mb-2 font-semibold text-brand-navy">
+                            Team {{ teamDisplayLabel(ti, finalTeamNames) }}
+                        </h4>
                         <ul class="space-y-1 text-sm">
                             <li v-for="mid in t.member_ids || []" :key="mid">
                                 {{ displayMember(mid) }}

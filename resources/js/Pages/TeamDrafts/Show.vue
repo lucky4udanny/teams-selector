@@ -137,6 +137,22 @@ const runDelete = () => {
     );
 };
 
+const indexToLetter = (i) => String.fromCharCode(65 + i);
+
+const teamDisplayLabel = (ti, names) => {
+    const num = String(ti + 1);
+    const name = String(names?.[ti] ?? '').trim();
+    if (name && name !== num) return `${num} · ${name}`;
+    return name || num;
+};
+
+const groupDisplayLabel = (gi, names) => {
+    const letter = indexToLetter(gi);
+    const name = String(names?.[gi] ?? '').trim();
+    if (name && name !== letter) return `${letter} · ${name}`;
+    return name || letter;
+};
+
 const penaltyHue = computed(() => {
     const p = totalPenalty.value;
     if (p === null || p === undefined) {
@@ -230,12 +246,77 @@ const penaltyHue = computed(() => {
             </ul>
         </Alert>
 
-        <form
-            v-if="canUpdate"
-            class="ts-card-padded mb-8"
-            @submit.prevent="saveNames"
-        >
-            <h2 class="ts-heading-section mb-4">Names</h2>
+        <!-- Grouped view -->
+        <div v-if="groups.length" class="space-y-10">
+            <section v-for="(group, gi) in groups" :key="`grp${gi}`">
+                <div class="mb-4 flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-brand-blue/40">Group</span>
+                    <TextInput
+                        v-if="canUpdate"
+                        v-model="teamNamesForm.group_names[gi]"
+                        :placeholder="indexToLetter(gi)"
+                        class="w-36 text-sm font-semibold"
+                    />
+                    <span v-else class="text-sm font-semibold text-brand-navy">
+                        {{ groupDisplayLabel(gi, teamNamesForm.group_names) }}
+                    </span>
+                </div>
+                <div class="grid gap-4 lg:grid-cols-2">
+                    <div
+                        v-for="ti in group.team_indices || []"
+                        :key="`team${ti}`"
+                        class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
+                    >
+                        <div class="mb-3 flex items-center gap-2">
+                            <span class="shrink-0 text-xs font-medium text-brand-blue/40">{{ ti + 1 }}</span>
+                            <TextInput
+                                v-if="canUpdate"
+                                v-model="teamNamesForm.team_names[ti]"
+                                :placeholder="String(ti + 1)"
+                                class="flex-1 text-sm font-semibold"
+                            />
+                            <h4 v-else class="font-semibold text-brand-navy">
+                                {{ teamDisplayLabel(ti, teamNamesForm.team_names) }}
+                            </h4>
+                        </div>
+                        <ul class="space-y-1 text-sm text-brand-blue/90">
+                            <li v-for="mid in teams[ti]?.member_ids || []" :key="mid">
+                                {{ memberName(mid) }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Flat view (no groups) -->
+        <div v-else class="grid gap-6 lg:grid-cols-2">
+            <section
+                v-for="(team, ti) in teams"
+                :key="`team${ti}`"
+                class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
+            >
+                <div class="mb-3 flex items-center gap-2">
+                    <span class="shrink-0 text-xs font-medium text-brand-blue/40">{{ ti + 1 }}</span>
+                    <TextInput
+                        v-if="canUpdate"
+                        v-model="teamNamesForm.team_names[ti]"
+                        :placeholder="String(ti + 1)"
+                        class="flex-1 text-sm font-semibold"
+                    />
+                    <h4 v-else class="font-semibold text-brand-navy">
+                        {{ teamDisplayLabel(ti, teamNamesForm.team_names) }}
+                    </h4>
+                </div>
+                <ul class="space-y-1 text-sm text-brand-blue/90">
+                    <li v-for="mid in team.member_ids || []" :key="mid">
+                        {{ memberName(mid) }}
+                    </li>
+                </ul>
+            </section>
+        </div>
+
+        <div v-if="canUpdate && teams.length" class="mt-8 border-t border-brand-mist pt-6">
             <Alert v-if="namesFormHasErrors" variant="error" class="mb-4" role="alert">
                 Please fix name errors before saving.
             </Alert>
@@ -245,64 +326,9 @@ const penaltyHue = computed(() => {
             <p v-if="teamNamesForm.errors.group_names" class="mb-2 text-sm text-red-600">
                 {{ teamNamesForm.errors.group_names }}
             </p>
-            <div class="grid gap-6 lg:grid-cols-2">
-                <div>
-                    <h3 class="mb-3 text-sm font-semibold text-brand-navy">Teams</h3>
-                    <div class="space-y-2">
-                        <div
-                            v-for="(t, ti) in teams"
-                            :key="`tn${ti}`"
-                            class="flex items-center gap-2"
-                        >
-                            <span class="w-8 text-xs text-brand-blue/60">{{ ti + 1 }}</span>
-                            <TextInput
-                                v-model="teamNamesForm.team_names[ti]"
-                                class="flex-1 text-sm"
-                                :placeholder="`Team ${ti + 1}`"
-                            />
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="mb-3 text-sm font-semibold text-brand-navy">Groups</h3>
-                    <div class="space-y-2">
-                        <div
-                            v-for="(g, gi) in groups"
-                            :key="`gn${gi}`"
-                            class="flex items-center gap-2"
-                        >
-                            <span class="w-8 text-xs text-brand-blue/60">{{ gi + 1 }}</span>
-                            <TextInput
-                                v-model="teamNamesForm.group_names[gi]"
-                                class="flex-1 text-sm"
-                                :placeholder="`Group ${gi + 1}`"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-6">
-                <PrimaryButton type="submit" :disabled="teamNamesForm.processing">
-                    {{ teamNamesForm.processing ? 'Saving…' : 'Save names' }}
-                </PrimaryButton>
-            </div>
-        </form>
-
-        <div class="grid gap-6 lg:grid-cols-2">
-            <section
-                v-for="(team, ti) in teams"
-                :key="`team${ti}`"
-                class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
-            >
-                <h3 class="mb-3 font-semibold text-brand-navy">
-                    {{ teamNamesForm.team_names[ti] || `Team ${ti + 1}` }}
-                </h3>
-                <ul class="space-y-1 text-sm text-brand-blue/90">
-                    <li v-for="mid in team.member_ids || []" :key="mid">
-                        {{ memberName(mid) }}
-                    </li>
-                </ul>
-            </section>
+            <PrimaryButton type="button" :disabled="teamNamesForm.processing" @click="saveNames">
+                {{ teamNamesForm.processing ? 'Saving…' : 'Save names' }}
+            </PrimaryButton>
         </div>
 
         <div
