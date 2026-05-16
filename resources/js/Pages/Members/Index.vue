@@ -94,15 +94,15 @@ const cancelEdit = () => {
 
     <OrganizationLayout :organization="organization">
         <template #header>
-            <h1 class="text-2xl font-bold text-slate-900">Members</h1>
+            <h1 class="text-2xl font-bold text-brand-navy">Members</h1>
         </template>
 
         <div v-if="canManage" class="mb-8 grid gap-6 lg:grid-cols-2">
             <form
-                class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                class="rounded-2xl border border-brand-mist bg-white p-6 shadow-sm"
                 @submit.prevent="submitAdd"
             >
-                <h2 class="mb-4 text-sm font-semibold text-slate-800">Add</h2>
+                <h2 class="mb-4 text-sm font-semibold text-brand-navy">Add</h2>
                 <div class="space-y-3">
                     <div>
                         <InputLabel for="name" value="Name" />
@@ -140,11 +140,11 @@ const cancelEdit = () => {
             </form>
 
             <form
-                class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                class="rounded-2xl border border-brand-mist bg-white p-6 shadow-sm"
                 @submit.prevent="submitImport"
             >
-                <h2 class="mb-2 text-sm font-semibold text-slate-800">CSV import</h2>
-                <p class="mb-4 text-xs text-slate-500">
+                <h2 class="mb-2 text-sm font-semibold text-brand-navy">CSV import</h2>
+                <p class="mb-4 text-xs text-brand-blue/70">
                     Header: <code>name</code>, optional <code>email</code>,
                     <code>notes</code>
                 </p>
@@ -163,45 +163,45 @@ const cancelEdit = () => {
             </form>
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-slate-200">
-                <thead class="bg-slate-50">
+        <div class="overflow-hidden rounded-2xl border border-brand-mist bg-white shadow-sm">
+            <table class="min-w-full divide-y divide-brand-mist">
+                <thead class="bg-brand-cream">
                     <tr>
                         <th
-                            class="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500"
+                            class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70"
                         >
                             Name
                         </th>
                         <th
-                            class="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500"
+                            class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70"
                         >
                             Email
                         </th>
                         <th
                             v-if="canManage"
-                            class="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500"
+                            class="px-4 py-3 text-right text-xs font-medium uppercase text-brand-blue/70"
                         >
                             Actions
                         </th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-brand-mist">
                     <tr
                         v-for="m in members"
                         :key="m.id"
-                        :class="m.deleted_at ? 'bg-slate-50 opacity-70' : ''"
+                        :class="m.deleted_at ? 'bg-brand-cream opacity-70' : ''"
                     >
-                        <td class="px-4 py-3 text-sm text-slate-900">
+                        <td class="px-4 py-3 text-sm text-brand-navy">
                             {{ m.name }}
                         </td>
-                        <td class="px-4 py-3 text-sm text-slate-600">
+                        <td class="px-4 py-3 text-sm text-brand-blue/80">
                             {{ m.email || '—' }}
                         </td>
                         <td v-if="canManage" class="px-4 py-3 text-right text-sm">
                             <template v-if="!m.deleted_at">
                                 <button
                                     type="button"
-                                    class="text-indigo-600 hover:underline"
+                                    class="text-brand-blue hover:underline"
                                     @click="startEdit(m)"
                                 >
                                     Edit
@@ -237,7 +237,7 @@ const cancelEdit = () => {
                 class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
                 @submit.prevent="saveEdit"
             >
-                <h3 class="mb-4 font-semibold text-slate-900">Edit member</h3>
+                <h3 class="mb-4 font-semibold text-brand-navy">Edit member</h3>
                 <div class="space-y-3">
                     <div>
                         <InputLabel value="Name" />

@@ -1,5 +1,6 @@
 # Teams selector
 
+- **Product branding:** App UI uses **TeamForge** assets in `public/` — navy `#0A3557`, blue `#1A6893`, sky `#1D85BF`, orange `#F7941C`. Login uses a split layout with `icon-detail.svg` as a cropped hero background; authenticated nav uses `Wordmark.svg`. Semantic utility classes live in `resources/css/app.css` (`ts-card`, `ts-btn-primary`, etc.).
 - **Auth entry:** Visit `/` or `/login` for the sign-in form (Breeze + Inertia); after login, users land on organizations via the `dashboard` route.
 - **Migration order:** Domain tables use one second per migration: `155540` organizations, `155541` selection_drafts, `155542` approved_selections, `155543` members, `155544` organization_user, `155545` rules—so FK order is explicit without relying on alphabetical filename order.
 - Organizations are identified by `slug` in URLs (`/organizations/{slug}/...`).

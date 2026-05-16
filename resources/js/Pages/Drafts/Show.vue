@@ -67,7 +67,7 @@ const nameById = computed(() => {
     <OrganizationLayout :organization="organization">
         <template #header>
             <div class="flex flex-wrap items-center justify-between gap-4">
-                <h1 class="text-2xl font-bold text-slate-900">
+                <h1 class="text-2xl font-bold text-brand-navy">
                     {{ draft.name || 'Draft' }}
                 </h1>
                 <div class="flex gap-2">
@@ -90,11 +90,11 @@ const nameById = computed(() => {
 
         <div
             v-else-if="state.teams?.length"
-            class="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            class="mb-6 rounded-2xl border border-brand-mist bg-white p-6 shadow-sm"
         >
             <div class="mb-2 flex items-center justify-between">
-                <h2 class="font-semibold text-slate-900">Result</h2>
-                <span class="text-sm text-slate-600"
+                <h2 class="font-semibold text-brand-navy">Result</h2>
+                <span class="text-sm text-brand-blue/80"
                     >Penalty {{ state.total_penalty ?? 0 }}</span
                 >
             </div>
@@ -102,9 +102,9 @@ const nameById = computed(() => {
                 <div
                     v-for="(g, gi) in state.groups || []"
                     :key="gi"
-                    class="rounded-xl border border-slate-100 bg-slate-50 p-4"
+                    class="rounded-xl border border-brand-mist bg-brand-cream p-4"
                 >
-                    <p class="mb-2 text-xs font-semibold uppercase text-slate-500">
+                    <p class="mb-2 text-xs font-semibold uppercase text-brand-blue/70">
                         Group {{ gi + 1 }}
                     </p>
                     <div
@@ -112,8 +112,8 @@ const nameById = computed(() => {
                         :key="ti"
                         class="mb-3 last:mb-0"
                     >
-                        <p class="text-xs text-slate-500">Team {{ ti + 1 }}</p>
-                        <ul class="mt-1 text-sm text-slate-900">
+                        <p class="text-xs text-brand-blue/70">Team {{ ti + 1 }}</p>
+                        <ul class="mt-1 text-sm text-brand-navy">
                             <li
                                 v-for="mid in (state.teams[ti] || {}).member_ids ||
                                 []"
@@ -163,7 +163,7 @@ const nameById = computed(() => {
                         id="notes"
                         v-model="approveForm.notes"
                         rows="2"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm"
+                        class="mt-1 block w-full rounded-md border-brand-mist shadow-sm"
                     />
                 </div>
                 <div>

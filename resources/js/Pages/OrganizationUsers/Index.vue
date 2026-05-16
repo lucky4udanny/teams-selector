@@ -49,15 +49,15 @@ const remove = (userId) => {
 
     <OrganizationLayout :organization="organization">
         <template #header>
-            <h1 class="text-2xl font-bold text-slate-900">Organization users</h1>
+            <h1 class="text-2xl font-bold text-brand-navy">Organization users</h1>
         </template>
 
         <form
-            class="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            class="mb-8 rounded-2xl border border-brand-mist bg-white p-6 shadow-sm"
             @submit.prevent="submitAdd"
         >
-            <h2 class="mb-4 text-sm font-semibold text-slate-800">Add user</h2>
-            <p class="mb-4 text-xs text-slate-500">
+            <h2 class="mb-4 text-sm font-semibold text-brand-navy">Add user</h2>
+            <p class="mb-4 text-xs text-brand-blue/70">
                 User must already have an account (registered email).
             </p>
             <div class="flex flex-wrap items-end gap-4">
@@ -77,7 +77,7 @@ const remove = (userId) => {
                     <select
                         id="role"
                         v-model="addForm.role"
-                        class="mt-1 block rounded-md border-slate-300 shadow-sm"
+                        class="mt-1 block rounded-md border-brand-mist shadow-sm"
                     >
                         <option v-for="r in roles" :key="r" :value="r">
                             {{ r }}
@@ -88,32 +88,32 @@ const remove = (userId) => {
             </div>
         </form>
 
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50">
+        <div class="overflow-hidden rounded-2xl border border-brand-mist bg-white shadow-sm">
+            <table class="min-w-full divide-y divide-brand-mist text-sm">
+                <thead class="bg-brand-cream">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">
                             Name
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">
                             Email
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">
                             Role
                         </th>
-                        <th class="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">
+                        <th class="px-4 py-3 text-right text-xs font-medium uppercase text-brand-blue/70">
                             Actions
                         </th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-brand-mist">
                     <tr v-for="u in users" :key="u.id">
                         <td class="px-4 py-3">{{ u.name }}</td>
                         <td class="px-4 py-3">{{ u.email }}</td>
                         <td class="px-4 py-3">
                             <select
                                 :value="u.role"
-                                class="rounded border-slate-300 text-sm"
+                                class="rounded border-brand-mist text-sm"
                                 @change="
                                     updateRole(u.id, $event.target.value)
                                 "

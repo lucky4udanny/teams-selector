@@ -27,7 +27,7 @@ const nameById = computed(() => {
     <OrganizationLayout :organization="organization">
         <template #header>
             <div class="flex flex-wrap items-center justify-between gap-4">
-                <h1 class="text-2xl font-bold text-slate-900">
+                <h1 class="text-2xl font-bold text-brand-navy">
                     {{ selection.title || 'Selection' }}
                 </h1>
                 <div class="flex flex-wrap gap-2">
@@ -66,7 +66,7 @@ const nameById = computed(() => {
             </div>
         </template>
 
-        <p v-if="selection.notes" class="mb-6 text-sm text-slate-600">
+        <p v-if="selection.notes" class="mb-6 text-sm text-brand-blue/80">
             {{ selection.notes }}
         </p>
 
@@ -74,20 +74,20 @@ const nameById = computed(() => {
             <div
                 v-for="(g, gi) in snap.groups || []"
                 :key="gi"
-                class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                class="rounded-2xl border border-brand-mist bg-white p-4 shadow-sm"
             >
-                <h2 class="mb-3 text-sm font-semibold text-slate-800">
+                <h2 class="mb-3 text-sm font-semibold text-brand-navy">
                     Group {{ gi + 1 }}
                 </h2>
                 <div
                     v-for="ti in g.team_indices || []"
                     :key="ti"
-                    class="mb-4 border-b border-slate-100 pb-4 last:mb-0 last:border-0 last:pb-0"
+                    class="mb-4 border-b border-brand-mist pb-4 last:mb-0 last:border-0 last:pb-0"
                 >
-                    <p class="text-xs font-medium text-slate-500">
+                    <p class="text-xs font-medium text-brand-blue/70">
                         Team {{ ti + 1 }}
                     </p>
-                    <ul class="mt-1 text-sm text-slate-900">
+                    <ul class="mt-1 text-sm text-brand-navy">
                         <li
                             v-for="mid in (snap.teams[ti] || {}).member_ids || []"
                             :key="mid"

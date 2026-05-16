@@ -13,7 +13,7 @@ defineProps({
 
     <OrganizationLayout :organization="organization">
         <template #header>
-            <h1 class="text-2xl font-bold text-slate-900">Approved selections</h1>
+            <h1 class="text-2xl font-bold text-brand-navy">Approved selections</h1>
         </template>
 
         <ul class="space-y-2">
@@ -25,12 +25,12 @@ defineProps({
                             s.id,
                         ])
                     "
-                    class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-200"
+                    class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-mist bg-white px-4 py-3 shadow-sm transition hover:border-brand-blue/35"
                 >
-                    <span class="font-medium text-slate-900">{{
+                    <span class="font-medium text-brand-navy">{{
                         s.title || 'Selection #' + s.id
                     }}</span>
-                    <span class="text-xs text-slate-500">{{
+                    <span class="text-xs text-brand-blue/70">{{
                         s.created_at
                     }}</span>
                     <span class="w-full text-xs text-amber-800 sm:w-auto"

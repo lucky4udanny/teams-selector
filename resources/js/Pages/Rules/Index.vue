@@ -102,20 +102,20 @@ const memberOptions = computed(() =>
 
     <OrganizationLayout :organization="organization">
         <template #header>
-            <h1 class="text-2xl font-bold text-slate-900">Rules</h1>
+            <h1 class="text-2xl font-bold text-brand-navy">Rules</h1>
         </template>
 
         <div
             v-if="canManage"
-            class="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            class="mb-8 rounded-2xl border border-brand-mist bg-white p-6 shadow-sm"
         >
-            <h2 class="mb-4 text-sm font-semibold text-slate-800">Add rule</h2>
+            <h2 class="mb-4 text-sm font-semibold text-brand-navy">Add rule</h2>
             <form class="grid gap-4 md:grid-cols-2" @submit.prevent="submitAdd">
                 <div>
                     <InputLabel value="Type" />
                     <select
                         v-model="addForm.type"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm"
+                        class="mt-1 block w-full rounded-md border-brand-mist shadow-sm"
                     >
                         <option v-for="t in ruleTypes" :key="t" :value="t">
                             {{ t }}
@@ -127,7 +127,7 @@ const memberOptions = computed(() =>
                     <InputLabel value="Scope" />
                     <select
                         v-model="addForm.scope"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm"
+                        class="mt-1 block w-full rounded-md border-brand-mist shadow-sm"
                     >
                         <option v-for="s in ruleScopes" :key="s" :value="s">
                             {{ s }}
@@ -179,7 +179,7 @@ const memberOptions = computed(() =>
                         <InputLabel value="Member A" />
                         <select
                             v-model.number="addForm.config.member_a_id"
-                            class="mt-1 block w-full rounded-md border-slate-300"
+                            class="mt-1 block w-full rounded-md border-brand-mist"
                         >
                             <option
                                 v-for="o in memberOptions"
@@ -194,7 +194,7 @@ const memberOptions = computed(() =>
                         <InputLabel value="Member B" />
                         <select
                             v-model.number="addForm.config.member_b_id"
-                            class="mt-1 block w-full rounded-md border-slate-300"
+                            class="mt-1 block w-full rounded-md border-brand-mist"
                         >
                             <option
                                 v-for="o in memberOptions"
@@ -221,42 +221,42 @@ const memberOptions = computed(() =>
             </form>
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50">
+        <div class="overflow-hidden rounded-2xl border border-brand-mist bg-white shadow-sm">
+            <table class="min-w-full divide-y divide-brand-mist text-sm">
+                <thead class="bg-brand-cream">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">
                             Type
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">
                             Scope
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">
                             Weight
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">
                             Config
                         </th>
                         <th
                             v-if="canManage"
-                            class="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500"
+                            class="px-4 py-3 text-right text-xs font-medium uppercase text-brand-blue/70"
                         >
                             Actions
                         </th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-brand-mist">
                     <tr v-for="r in rules" :key="r.id">
                         <td class="px-4 py-3 font-mono text-xs">{{ r.type }}</td>
                         <td class="px-4 py-3">{{ r.scope }}</td>
                         <td class="px-4 py-3">{{ r.weight }}</td>
-                        <td class="max-w-xs truncate px-4 py-3 font-mono text-xs text-slate-600">
+                        <td class="max-w-xs truncate px-4 py-3 font-mono text-xs text-brand-blue/80">
                             {{ JSON.stringify(r.config) }}
                         </td>
                         <td v-if="canManage" class="px-4 py-3 text-right">
                             <button
                                 type="button"
-                                class="text-indigo-600 hover:underline"
+                                class="text-brand-blue hover:underline"
                                 @click="openEdit(r)"
                             >
                                 Edit
@@ -289,7 +289,7 @@ const memberOptions = computed(() =>
                         <InputLabel value="Type" />
                         <select
                             v-model="editForm.type"
-                            class="mt-1 block w-full rounded-md border-slate-300"
+                            class="mt-1 block w-full rounded-md border-brand-mist"
                         >
                             <option v-for="t in ruleTypes" :key="t" :value="t">
                                 {{ t }}
@@ -300,7 +300,7 @@ const memberOptions = computed(() =>
                         <InputLabel value="Scope" />
                         <select
                             v-model="editForm.scope"
-                            class="mt-1 block w-full rounded-md border-slate-300"
+                            class="mt-1 block w-full rounded-md border-brand-mist"
                         >
                             <option v-for="s in ruleScopes" :key="s" :value="s">
                                 {{ s }}
@@ -335,7 +335,7 @@ const memberOptions = computed(() =>
                         <InputLabel value="Member A" />
                         <select
                             v-model.number="editForm.config.member_a_id"
-                            class="mt-1 block w-full rounded-md border-slate-300"
+                            class="mt-1 block w-full rounded-md border-brand-mist"
                         >
                             <option
                                 v-for="o in memberOptions"
@@ -348,7 +348,7 @@ const memberOptions = computed(() =>
                         <InputLabel class="mt-2" value="Member B" />
                         <select
                             v-model.number="editForm.config.member_b_id"
-                            class="mt-1 block w-full rounded-md border-slate-300"
+                            class="mt-1 block w-full rounded-md border-brand-mist"
                         >
                             <option
                                 v-for="o in memberOptions"

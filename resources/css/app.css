@@ -8,8 +8,16 @@
 
 @theme {
     --font-sans:
-        'Figtree', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
-        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+        'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+
+    --color-brand-navy: #0a3557;
+    --color-brand-blue: #1a6893;
+    --color-brand-sky: #1d85bf;
+    --color-brand-orange: #f7941c;
+    --color-brand-cream: #f4f8fb;
+    --color-brand-mist: #e8f1f7;
 }
 
 /* App-wide semantic status colors (not overridden per org) */
@@ -18,9 +26,13 @@
         --ts-success: 22 163 74;
         --ts-warning: 180 83 9;
         --ts-danger: 220 38 38;
-        --ts-info: 37 99 235;
-        --brand-primary: 79 70 229;
-        --brand-accent: 99 102 241;
+        --ts-info: 26 104 147;
+        --brand-primary: 26 104 147;
+        --brand-accent: 247 148 28;
+    }
+
+    body {
+        @apply bg-brand-cream text-brand-navy antialiased;
     }
 }
 
@@ -35,7 +47,84 @@
         @apply rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-900;
     }
     .ts-alert-info {
-        @apply rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-blue-900;
+        @apply rounded-lg border border-brand-blue/20 bg-brand-mist px-4 py-3 text-brand-navy;
+    }
+
+    .ts-page {
+        @apply min-h-screen bg-brand-cream;
+    }
+
+    .ts-card {
+        @apply overflow-hidden rounded-2xl border border-brand-mist bg-white shadow-sm shadow-brand-navy/5;
+    }
+
+    .ts-card-padded {
+        @apply overflow-hidden rounded-2xl border border-brand-mist bg-white p-6 shadow-sm shadow-brand-navy/5;
+    }
+
+    .ts-card-interactive {
+        @apply flex items-center gap-4 overflow-hidden rounded-2xl border border-brand-mist bg-white p-6 shadow-sm shadow-brand-navy/5 transition duration-200 hover:border-brand-blue/35 hover:shadow-md hover:shadow-brand-blue/10;
+    }
+
+    .ts-heading-page {
+        @apply text-2xl font-bold tracking-tight text-brand-navy;
+    }
+
+    .ts-heading-section {
+        @apply text-sm font-semibold text-brand-navy;
+    }
+
+    .ts-text-muted {
+        @apply text-sm text-brand-blue/70;
+    }
+
+    .ts-icon-tile-blue {
+        @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-blue/10 text-brand-blue;
+    }
+
+    .ts-icon-tile-orange {
+        @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-orange/15 text-brand-orange;
+    }
+
+    .ts-icon-tile-sky {
+        @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-sky/15 text-brand-sky;
+    }
+
+    .ts-icon-tile-navy {
+        @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-navy/10 text-brand-navy;
+    }
+
+    .ts-btn-primary {
+        @apply inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-blue/25 transition duration-150 hover:bg-brand-sky focus:outline-none focus:ring-2 focus:ring-brand-orange/50 focus:ring-offset-2 active:bg-brand-navy disabled:opacity-50;
+    }
+
+    .ts-btn-secondary {
+        @apply inline-flex items-center justify-center rounded-lg border border-brand-mist bg-white px-4 py-2.5 text-sm font-semibold text-brand-navy shadow-sm transition duration-150 hover:border-brand-blue/30 hover:bg-brand-cream focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:ring-offset-2 disabled:opacity-50;
+    }
+
+    .ts-input {
+        @apply rounded-lg border-brand-mist shadow-sm focus:border-brand-blue focus:ring-brand-blue/30;
+    }
+
+    .ts-nav-active {
+        @apply border-b-2 border-brand-orange text-brand-navy;
+    }
+
+    .ts-nav-inactive {
+        @apply border-b-2 border-transparent text-brand-blue/80 transition hover:border-brand-blue/30 hover:text-brand-navy;
+    }
+
+    .ts-auth-card {
+        @apply w-full rounded-2xl border border-white/80 bg-white/95 p-8 shadow-xl shadow-brand-navy/10 backdrop-blur-sm;
+    }
+
+    .ts-hero-gradient {
+        background: linear-gradient(
+            145deg,
+            var(--color-brand-navy) 0%,
+            var(--color-brand-blue) 48%,
+            var(--color-brand-sky) 100%
+        );
     }
 }
 

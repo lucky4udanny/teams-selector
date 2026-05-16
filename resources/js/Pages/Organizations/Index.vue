@@ -25,19 +25,16 @@ const submit = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
+            <h2 class="ts-heading-page text-xl">
                 Organizations
             </h2>
         </template>
 
         <div class="py-8">
             <div class="mx-auto max-w-3xl sm:px-6 lg:px-8">
-                <form
-                    class="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-                    @submit.prevent="submit"
-                >
-                    <h3 class="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-800">
-                        <BuildingOffice2Icon class="h-5 w-5 text-indigo-600" />
+                <form class="ts-card-padded mb-10" @submit.prevent="submit">
+                    <h3 class="ts-heading-section mb-4 flex items-center gap-2">
+                        <BuildingOffice2Icon class="h-5 w-5 text-brand-orange" />
                         New organization
                     </h3>
                     <div>
@@ -63,7 +60,7 @@ const submit = () => {
                     <li v-for="o in organizations" :key="o.id">
                         <Link
                             :href="route('organizations.show', o.slug)"
-                            class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-200 hover:shadow"
+                            class="ts-card-interactive justify-between rounded-xl p-4"
                         >
                             <span class="flex items-center gap-3">
                                 <img
@@ -74,19 +71,19 @@ const submit = () => {
                                 />
                                 <span
                                     v-else
-                                    class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-xs font-medium text-slate-500"
+                                    class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-mist text-xs font-medium text-brand-blue/70"
                                     >{{ o.name.charAt(0) }}</span
                                 >
                                 <span>
-                                    <span class="block font-medium text-slate-900">{{
+                                    <span class="block font-medium text-brand-navy">{{
                                         o.name
                                     }}</span>
-                                    <span class="text-xs text-slate-500">{{
+                                    <span class="text-xs text-brand-blue/70">{{
                                         o.role
                                     }}</span>
                                 </span>
                             </span>
-                            <span class="text-slate-400">→</span>
+                            <span class="text-brand-blue/50">→</span>
                         </Link>
                     </li>
                 </ul>

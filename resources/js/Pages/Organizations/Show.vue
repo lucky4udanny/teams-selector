@@ -21,8 +21,8 @@ const props = defineProps({
 const isAdmin = computed(() => props.organization.role === 'admin');
 
 const settingsForm = useForm({
-    brand_primary: props.organization.brand_primary || '#4f46e5',
-    brand_accent: props.organization.brand_accent || '#6366f1',
+    brand_primary: props.organization.brand_primary || '#1a6893',
+    brand_accent: props.organization.brand_accent || '#f7941c',
     logo: null,
     remove_logo: false,
 });
@@ -45,7 +45,7 @@ const saveSettings = () => {
 
     <OrganizationLayout :organization="organization">
         <template #header>
-            <h1 class="text-2xl font-bold text-slate-900">
+            <h1 class="ts-heading-page">
                 {{ organization.name }}
             </h1>
         </template>
@@ -53,64 +53,56 @@ const saveSettings = () => {
         <div class="grid gap-6 md:grid-cols-2">
             <Link
                 :href="route('organizations.members.index', organization.slug)"
-                class="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-200"
+                class="ts-card-interactive"
             >
-                <div
-                    class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"
-                >
+                <div class="ts-icon-tile-blue">
                     <UsersIcon class="h-7 w-7" />
                 </div>
                 <div>
-                    <p class="font-semibold text-slate-900">Members</p>
-                    <p class="text-sm text-slate-500">
+                    <p class="font-semibold text-brand-navy">Members</p>
+                    <p class="text-sm text-brand-blue/70">
                         {{ organization.counts.members }} people
                     </p>
                 </div>
             </Link>
             <Link
                 :href="route('organizations.rules.index', organization.slug)"
-                class="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-200"
+                class="ts-card-interactive"
             >
-                <div
-                    class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-700"
-                >
+                <div class="ts-icon-tile-orange">
                     <WrenchScrewdriverIcon class="h-7 w-7" />
                 </div>
                 <div>
-                    <p class="font-semibold text-slate-900">Rules</p>
-                    <p class="text-sm text-slate-500">
+                    <p class="font-semibold text-brand-navy">Rules</p>
+                    <p class="text-sm text-brand-blue/70">
                         {{ organization.counts.rules }} defined
                     </p>
                 </div>
             </Link>
             <Link
                 :href="route('organizations.drafts.index', organization.slug)"
-                class="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-200"
+                class="ts-card-interactive"
             >
-                <div
-                    class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 text-violet-700"
-                >
+                <div class="ts-icon-tile-sky">
                     <ClipboardDocumentListIcon class="h-7 w-7" />
                 </div>
                 <div>
-                    <p class="font-semibold text-slate-900">Drafts</p>
-                    <p class="text-sm text-slate-500">
+                    <p class="font-semibold text-brand-navy">Drafts</p>
+                    <p class="text-sm text-brand-blue/70">
                         {{ organization.counts.drafts }} open
                     </p>
                 </div>
             </Link>
             <Link
                 :href="route('organizations.selections.index', organization.slug)"
-                class="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-200"
+                class="ts-card-interactive"
             >
-                <div
-                    class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700"
-                >
+                <div class="ts-icon-tile-navy">
                     <UserGroupIcon class="h-7 w-7" />
                 </div>
                 <div>
-                    <p class="font-semibold text-slate-900">Selections</p>
-                    <p class="text-sm text-slate-500">
+                    <p class="font-semibold text-brand-navy">Selections</p>
+                    <p class="text-sm text-brand-blue/70">
                         {{ organization.counts.approved }} approved
                     </p>
                 </div>
@@ -119,9 +111,9 @@ const saveSettings = () => {
 
         <section
             v-if="isAdmin"
-            class="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            class="ts-card-padded mt-10"
         >
-            <h2 class="mb-4 text-sm font-semibold text-slate-800">Branding</h2>
+            <h2 class="ts-heading-section mb-4">Branding</h2>
             <form class="space-y-4" @submit.prevent="saveSettings">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
@@ -131,7 +123,7 @@ const saveSettings = () => {
                             v-model="settingsForm.brand_primary"
                             type="text"
                             class="mt-1 block w-full"
-                            placeholder="#4f46e5"
+                            placeholder="#1a6893"
                         />
                         <InputError
                             class="mt-2"
@@ -145,7 +137,7 @@ const saveSettings = () => {
                             v-model="settingsForm.brand_accent"
                             type="text"
                             class="mt-1 block w-full"
-                            placeholder="#6366f1"
+                            placeholder="#f7941c"
                         />
                         <InputError
                             class="mt-2"
@@ -159,7 +151,7 @@ const saveSettings = () => {
                         id="logo"
                         type="file"
                         accept="image/png,image/jpeg,image/gif,image/webp"
-                        class="mt-1 block w-full text-sm text-slate-600"
+                        class="mt-1 block w-full text-sm text-brand-blue/80"
                         @change="pickLogo"
                     />
                     <InputError
@@ -167,11 +159,11 @@ const saveSettings = () => {
                         :message="settingsForm.errors.logo"
                     />
                 </div>
-                <label class="flex items-center gap-2 text-sm text-slate-700">
+                <label class="flex items-center gap-2 text-sm text-brand-navy/90">
                     <input
                         v-model="settingsForm.remove_logo"
                         type="checkbox"
-                        class="rounded border-slate-300"
+                        class="rounded border-brand-mist"
                     />
                     Remove current logo
                 </label>

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Branding (TeamForge):** Site-wide design refresh using assets in `public/` (`Logo.svg`, `Wordmark.svg`, `icon-detail.svg`, brand blues/orange). Plus Jakarta Sans typography, design tokens in `resources/css/app.css`, split-panel login with cropped icon-detail hero, updated layouts and components.
 - **Auth / home:** `/` redirects guests to the Breeze login page (`/login`) instead of the default Laravel Welcome screen; authenticated users go to the dashboard. Logout returns to login. Guest layout shows `APP_NAME`.
 - **Cloudflare / HTTPS:** `trustProxies(at: '*')` in `bootstrap/app.php` so requests behind Cloudflare honor forwarded HTTPS; pair with Cloudflare **SSL/TLS = Full or Full (strict)** (not Flexible) to avoid redirect loops. Documented in `docs/DEPLOY_FORGE.md`.
 - **Migrations:** Domain migrations use unique sequential timestamps `2026_04_19_155540`–`155545` (organizations → selection_drafts → approved_selections → members → organization_user → rules) so order does not depend on filename sorting. **If a database already recorded the old migration filenames**, update the `migration` column in `migrations` to match the new names, or rollback domain migrations before redeploying—otherwise Laravel may try to re-run creates.

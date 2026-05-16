@@ -28,16 +28,18 @@ const showingNavigationDropdown = ref(false);
 
 const slug = computed(() => props.organization.slug);
 const brandStyle = computed(() => ({
-    '--brand-primary': props.organization.brand_primary || '#4f46e5',
-    '--brand-accent': props.organization.brand_accent || '#6366f1',
+    '--brand-primary': props.organization.brand_primary || '#1a6893',
+    '--brand-accent': props.organization.brand_accent || '#f7941c',
 }));
 
 const isAdmin = computed(() => props.organization.role === 'admin');
 </script>
 
 <template>
-    <div :style="brandStyle" class="min-h-screen bg-slate-50">
-        <nav class="border-b border-slate-200 bg-white shadow-sm">
+    <div :style="brandStyle" class="ts-page">
+        <nav
+            class="border-b border-brand-mist bg-white/90 shadow-sm shadow-brand-navy/5 backdrop-blur-md"
+        >
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 justify-between">
                     <div class="flex min-w-0 flex-1 items-center gap-6">
@@ -53,10 +55,11 @@ const isAdmin = computed(() => props.organization.role === 'admin');
                             />
                             <ApplicationLogo
                                 v-else
-                                class="block h-9 w-auto fill-current text-slate-700"
+                                variant="icon"
+                                class="h-9 w-9"
                             />
                             <span
-                                class="hidden truncate text-sm font-semibold text-slate-900 sm:inline lg:max-w-xs"
+                                class="hidden truncate text-sm font-semibold text-brand-navy sm:inline lg:max-w-xs"
                                 >{{ organization.name }}</span
                             >
                         </Link>
@@ -132,7 +135,7 @@ const isAdmin = computed(() => props.organization.role === 'admin');
                                 <span class="inline-flex rounded-md">
                                     <button
                                         type="button"
-                                        class="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+                                        class="inline-flex items-center rounded-lg border border-transparent bg-white px-3 py-2 text-sm font-medium text-brand-blue transition hover:text-brand-navy"
                                     >
                                         {{ page.props.auth.user.name }}
                                         <svg
@@ -170,7 +173,7 @@ const isAdmin = computed(() => props.organization.role === 'admin');
                     <div class="-me-2 flex items-center md:hidden">
                         <button
                             type="button"
-                            class="inline-flex items-center justify-center rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            class="inline-flex items-center justify-center rounded-lg p-2 text-brand-blue/70 hover:bg-brand-mist hover:text-brand-navy"
                             @click="
                                 showingNavigationDropdown =
                                     !showingNavigationDropdown
@@ -214,7 +217,7 @@ const isAdmin = computed(() => props.organization.role === 'admin');
                     block: showingNavigationDropdown,
                     hidden: !showingNavigationDropdown,
                 }"
-                class="border-t border-slate-100 md:hidden"
+                class="border-t border-brand-mist md:hidden"
             >
                 <div class="space-y-1 px-2 pb-3 pt-2">
                     <ResponsiveNavLink
@@ -258,7 +261,7 @@ const isAdmin = computed(() => props.organization.role === 'admin');
 
         <header
             v-if="$slots.header"
-            class="border-b border-slate-100 bg-white"
+            class="border-b border-brand-mist bg-white"
         >
             <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 <slot name="header" />
