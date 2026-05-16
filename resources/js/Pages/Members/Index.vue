@@ -42,15 +42,27 @@ const importForm = useForm({
     file: null,
 });
 
+const fileInputRef = ref(null);
+
 const pickFile = (e) => {
     importForm.file = e.target.files?.[0] ?? null;
+    importForm.clearErrors('file');
 };
 
 const submitImport = () => {
+    if (!importForm.file || importForm.processing) {
+        return;
+    }
+
     importForm.post(route('organizations.members.import', props.organization.slug), {
         forceFormData: true,
         preserveScroll: true,
-        onSuccess: () => importForm.reset('file'),
+        onSuccess: () => {
+            importForm.reset('file');
+            if (fileInputRef.value) {
+                fileInputRef.value.value = '';
+            }
+        },
     });
 };
 
@@ -316,22 +328,25 @@ const restore = (id) => {
             </form>
 
             <form class="ts-card-padded" @submit.prevent="submitImport">
-                <h2 class="ts-heading-section mb-2">CSV import</h2>
+                <h2 class="ts-heading-section mb-2">Import members</h2>
                 <p class="mb-4 text-sm text-brand-blue/70">
-                    Header columns:
+                    Upload a spreadsheet from Excel (<code class="rounded bg-brand-mist px-1">.csv</code> or
+                    <code class="rounded bg-brand-mist px-1">.xlsx</code>). Use a header row with
                     <code class="rounded bg-brand-mist px-1">first_name</code> and/or
-                    <code class="rounded bg-brand-mist px-1">last_name</code>, optional
+                    <code class="rounded bg-brand-mist px-1">last_name</code> (any column order; extra
+                    columns are ignored). Optional:
                     <code class="rounded bg-brand-mist px-1">email</code>,
                     <code class="rounded bg-brand-mist px-1">phone</code>,
                     <code class="rounded bg-brand-mist px-1">company</code>,
-                    <code class="rounded bg-brand-mist px-1">sector</code> (matches sector name),
+                    <code class="rounded bg-brand-mist px-1">sector</code>,
                     <code class="rounded bg-brand-mist px-1">notes</code>.
                 </p>
                 <label class="block">
                     <span class="text-sm font-medium text-brand-navy">File</span>
                     <input
+                        ref="fileInputRef"
                         type="file"
-                        accept=".csv,.txt"
+                        accept=".csv,.txt,.xlsx,.xls"
                         class="mt-2 block w-full text-sm text-brand-navy file:mr-3 file:rounded-lg file:border-0 file:bg-brand-mist file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-brand-blue/10"
                         @change="pickFile"
                     />
@@ -340,7 +355,12 @@ const restore = (id) => {
                     {{ importForm.errors.file }}
                 </p>
                 <div class="mt-4">
-                    <SecondaryButton :disabled="importForm.processing || !importForm.file">Import CSV</SecondaryButton>
+                    <PrimaryButton
+                        type="submit"
+                        :disabled="importForm.processing || !importForm.file"
+                    >
+                        Import
+                    </PrimaryButton>
                 </div>
             </form>
         </div>

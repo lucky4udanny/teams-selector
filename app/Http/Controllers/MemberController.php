@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\ProvidesOrganizationProps;
 use App\Models\Member;
 use App\Models\Organization;
+use App\Services\MemberCsvImportParser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -123,86 +124,83 @@ class MemberController extends Controller
         return redirect()->back();
     }
 
-    public function import(Request $request, Organization $organization): RedirectResponse
+    public function import(Request $request, Organization $organization, MemberCsvImportParser $parser): RedirectResponse
     {
         $this->authorize('manageMembers', $organization);
 
         $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
+            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:10240'],
         ]);
 
-        $path = $request->file('file')->getRealPath();
-        $fh = fopen($path, 'r');
-        if ($fh === false) {
+        $uploaded = $request->file('file');
+        $path = $uploaded?->getRealPath();
+        if ($path === false || $path === null) {
             return redirect()->back()->withErrors(['file' => 'Could not read file.']);
         }
 
-        $header = fgetcsv($fh);
-        if ($header === false) {
-            fclose($fh);
-
-            return redirect()->back()->withErrors(['file' => 'Empty CSV.']);
+        try {
+            $parsed = $parser->parseFile($path, $uploaded->getClientOriginalExtension());
+        } catch (\RuntimeException $e) {
+            return redirect()->back()->withErrors(['file' => $e->getMessage()]);
         }
 
-        $normalize = fn (string $s): string => strtolower(trim($s));
-        $header = array_map($normalize, $header);
-
-        $idx = static function (array $header, string $name): ?int {
-            $i = array_search($name, $header, true);
-
-            return $i === false ? null : $i;
-        };
-
-        $firstIdx = $idx($header, 'first_name');
-        $lastIdx = $idx($header, 'last_name');
-
-        if ($firstIdx === null && $lastIdx === null) {
-            fclose($fh);
-
-            return redirect()->back()->withErrors(['file' => 'CSV must include first_name and/or last_name columns.']);
-        }
-
-        $emailIdx = $idx($header, 'email');
-        $phoneIdx = $idx($header, 'phone');
-        $companyIdx = $idx($header, 'company');
-        $sectorIdx = $idx($header, 'sector');
-        $notesIdx = $idx($header, 'notes');
-
+        $indices = $parsed['indices'];
         $sectorsByName = $organization->sectors()
             ->get()
             ->mapWithKeys(fn ($s) => [mb_strtolower($s->name) => $s->id]);
 
         $count = 0;
-        while (($row = fgetcsv($fh)) !== false) {
-            $first = $firstIdx !== null ? trim((string) ($row[$firstIdx] ?? '')) : '';
-            $last = $lastIdx !== null ? trim((string) ($row[$lastIdx] ?? '')) : '';
+        $skipped = 0;
+
+        foreach ($parsed['rows'] as $row) {
+            $first = $indices['first'] !== null ? trim((string) ($row[$indices['first']] ?? '')) : '';
+            $last = $indices['last'] !== null ? trim((string) ($row[$indices['last']] ?? '')) : '';
             if ($first === '' && $last === '') {
+                $skipped++;
+
                 continue;
             }
 
             $sectorId = null;
-            if ($sectorIdx !== null) {
-                $raw = trim((string) ($row[$sectorIdx] ?? ''));
+            if ($indices['sector'] !== null) {
+                $raw = trim((string) ($row[$indices['sector']] ?? ''));
                 if ($raw !== '') {
                     $sectorId = $sectorsByName[mb_strtolower($raw)] ?? null;
                 }
             }
 
-            $email = $emailIdx !== null ? trim((string) ($row[$emailIdx] ?? '')) : '';
+            $email = $indices['email'] !== null ? trim((string) ($row[$indices['email']] ?? '')) : '';
+
             $organization->members()->create([
                 'first_name' => $first !== '' ? $first : ($last !== '' ? $last : 'Member'),
                 'last_name' => $first !== '' ? ($last !== '' ? $last : null) : null,
                 'email' => $email !== '' ? $email : null,
-                'phone' => $phoneIdx !== null && trim((string) ($row[$phoneIdx] ?? '')) !== '' ? trim((string) $row[$phoneIdx]) : null,
-                'company' => $companyIdx !== null && trim((string) ($row[$companyIdx] ?? '')) !== '' ? trim((string) $row[$companyIdx]) : null,
+                'phone' => $indices['phone'] !== null && trim((string) ($row[$indices['phone']] ?? '')) !== ''
+                    ? trim((string) $row[$indices['phone']])
+                    : null,
+                'company' => $indices['company'] !== null && trim((string) ($row[$indices['company']] ?? '')) !== ''
+                    ? trim((string) $row[$indices['company']])
+                    : null,
                 'sector_id' => $sectorId,
-                'notes' => $notesIdx !== null && trim((string) ($row[$notesIdx] ?? '')) !== '' ? trim((string) $row[$notesIdx]) : null,
+                'notes' => $indices['notes'] !== null && trim((string) ($row[$indices['notes']] ?? '')) !== ''
+                    ? trim((string) $row[$indices['notes']])
+                    : null,
             ]);
             $count++;
         }
-        fclose($fh);
 
-        return redirect()->back()->with('status', 'Imported '.$count.' members.');
+        if ($count === 0) {
+            return redirect()->back()->withErrors([
+                'file' => 'No member rows found. Each row needs at least a first or last name.',
+            ]);
+        }
+
+        $message = 'Imported '.$count.' member'.($count === 1 ? '' : 's').'.';
+        if ($skipped > 0) {
+            $message .= ' Skipped '.$skipped.' empty row'.($skipped === 1 ? '' : 's').'.';
+        }
+
+        return redirect()->back()->with('status', $message);
     }
 
     /**

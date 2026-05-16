@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Fix (members import):** Skip leading blank spreadsheet rows and scan the first rows for the real header (fixes Excel files with an empty comma row above column names).
+- **Feat (members import):** `MemberCsvImportParser` scores UTF-8/UTF-16/Windows-1252 × comma/semicolon/tab encodings and picks the best parse; accepts `.xlsx`/`.xls` via PhpSpreadsheet; simpler UI copy and import success message (skipped empty rows).
+- **Fix (members CSV):** Convert UTF-16 Excel CSV (BOM or heuristic) to UTF-8 before parsing; clearer error when headers are unreadable.
+- **Fix (members CSV):** Auto-detect comma/semicolon/tab delimiters (Excel locale exports often use `;`), strip UTF-8 BOM, normalize spaced headers (`First Name` → `first_name`); error message lists detected headers when name columns are missing.
+- **Fix (members CSV):** Import button on `Members/Index` used `SecondaryButton` (`type="button"`), so the form never submitted; use `PrimaryButton type="submit"` and clear the file input after success.
+- **Test (members):** `MemberCsvImportTest` covers CSV import success and missing name-column validation.
 - **Test (events):** `EventCentricFlowTest` covers event create, roster uniqueness, team-size singleton, multi-draft generate, finalize, duplicate reset, preferred-pair solver penalty.
 - **Refactor (UI):** Removed obsolete org-level `Drafts/`, `Selections/`, and `Rules/` Inertia pages (replaced by event-centric routes).
 - **Feat (solver):** `TeamSolverService` supports `preferred_pair`, `skill_leveling` (min/max avg), and `repeat_pair` by prior `event_id`; `PairHistoryService` reads finalized prior-event drafts.
