@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Feat (draft:import-csv):** Added `--team-col=` and `--group-col=` flags to explicitly specify column names (needed for multi-year CSVs where auto-detection picks the wrong year); added `--create-missing` flag to auto-create member records for names not found in the org.
 - **Fix (ImportDraftFromCsv):** `$firstName`/`$lastName` now explicitly `trim()`-ed at extraction point so the member lookup key matches the index built from trimmed DB values; previously, whitespace around CSV name cells could cause valid members to be skipped.
 - **Style (TeamDraftController):** `where('status', ...)` and `orWhere('status', ...)` now use `->value` on `EventMemberStatus` enum cases for consistency with `EventPlanningConflictService`; Laravel 13 converts backed enums automatically, but explicit `->value` matches the established codebase pattern and prevents future reader confusion.
 - **Feat (tooling):** `members:patch-from-csv {org} {csv}` Artisan command patches `sector_id` and `company` on existing members by matching `first_name`+`last_name` within the org; auto-creates missing sectors; supports `--dry-run`; non-production guard (`--force` to override).

@@ -16,6 +16,9 @@ class ImportDraftFromCsv extends Command
                             {csv : Path to the CSV file}
                             {--user= : User ID to attribute the draft/finalization to (defaults to first user)}
                             {--draft-name= : Name for the imported draft (default: "Imported from CSV")}
+                            {--team-col= : Exact header name of the team column (auto-detected when omitted)}
+                            {--group-col= : Exact header name of the group column (auto-detected when omitted)}
+                            {--create-missing : Create member records for names not found in the org}
                             {--force : Allow running in production}';
 
     protected $description = '[Testing] Import a finalized team/group assignment CSV into an event draft';
@@ -188,8 +191,12 @@ class ImportDraftFromCsv extends Command
     private function buildState(Event $event, array $rows): ?array
     {
         $sampleRow = $rows[0] ?? [];
-        $teamCol = null;
-        $groupCol = null;
+
+        // Allow explicit column override; otherwise auto-detect by substring
+        $explicitTeamCol  = $this->option('team-col');
+        $explicitGroupCol = $this->option('group-col');
+        $teamCol  = $explicitTeamCol  !== null ? strtolower(trim($explicitTeamCol))  : null;
+        $groupCol = $explicitGroupCol !== null ? strtolower(trim($explicitGroupCol)) : null;
 
         foreach (array_keys($sampleRow) as $col) {
             if ($teamCol === null && str_contains($col, 'team')) {
@@ -201,7 +208,13 @@ class ImportDraftFromCsv extends Command
         }
 
         if ($teamCol === null) {
-            $this->error('No column containing "team" found in CSV headers.');
+            $this->error('No column containing "team" found in CSV headers. Use --team-col= to specify one.');
+
+            return null;
+        }
+
+        if (! array_key_exists($teamCol, $sampleRow)) {
+            $this->error("Team column \"{$teamCol}\" not found in CSV. Available: ".implode(', ', array_keys($sampleRow)));
 
             return null;
         }
@@ -210,13 +223,15 @@ class ImportDraftFromCsv extends Command
         $this->line('Group column : '.($groupCol !== null ? "\"{$groupCol}\"" : '(none — event will have no groups)'));
         $this->newLine();
 
+        $createMissing = (bool) $this->option('create-missing');
+
         $orgMembers = Member::query()
             ->where('organization_id', $event->organization_id)
             ->get(['id', 'first_name', 'last_name']);
 
         $memberIndex = [];
         foreach ($orgMembers as $m) {
-            $key = strtolower(trim($m->first_name)).'|'.strtolower(trim($m->last_name));
+            $key = strtolower(trim($m->first_name)).'|'.strtolower(trim((string) $m->last_name));
             $memberIndex[$key] = $m->id;
         }
 
@@ -228,7 +243,7 @@ class ImportDraftFromCsv extends Command
 
         foreach ($rows as $row) {
             $firstName = trim($row['first_name'] ?? '');
-            $lastName = trim($row['last_name'] ?? '');
+            $lastName  = trim($row['last_name'] ?? '');
             $teamLabel = trim($row[$teamCol] ?? '');
             $groupLabel = $groupCol !== null ? trim($row[$groupCol] ?? '') : '';
 
@@ -242,8 +257,18 @@ class ImportDraftFromCsv extends Command
 
             $key = strtolower($firstName).'|'.strtolower($lastName);
             if (! isset($memberIndex[$key])) {
-                $warnings[] = "Member not found in org: \"{$firstName} {$lastName}\" — skipped.";
-                continue;
+                if ($createMissing) {
+                    $newMember = Member::create([
+                        'organization_id' => $event->organization_id,
+                        'first_name' => $firstName,
+                        'last_name'  => $lastName ?: null,
+                    ]);
+                    $memberIndex[$key] = $newMember->id;
+                    $this->line("  Created member: \"{$firstName} {$lastName}\"");
+                } else {
+                    $warnings[] = "Member not found: \"{$firstName} {$lastName}\" — skipped. (Use --create-missing to auto-create.)";
+                    continue;
+                }
             }
 
             $memberId = $memberIndex[$key];
