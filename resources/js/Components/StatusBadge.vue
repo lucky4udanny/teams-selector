@@ -63,6 +63,7 @@ const onUpdate = (value) => {
         <ListboxInput
             :model-value="model"
             :options="statusOptions"
+            portal
             @update:model-value="onUpdate"
         />
     </div>

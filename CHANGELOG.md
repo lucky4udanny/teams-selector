@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **Fix (roster):** Event show `?tab=roster` assigns `roster` as the member rows array (not nested `roster.roster`); RSVP counts stay on `event.rsvp_counts` only.
+- **Fix (roster):** Status dropdown clipped at bottom of table — `ListboxInput` gains a `portal` prop that teleports the options list to `<body>` with `position:fixed` and auto-detects whether to open upward or downward; `StatusBadge` opts in via `portal`.
 - **UX (roster):** Clickable column headers (Member, Included, Invited, Status) toggle sort direction inline; active column shows ↑/↓ arrow; inactive columns show ↕; sort preference persisted in `localStorage` per organization via `rosterSort.js`.
 - **Fix (roster):** Invited/included toggles use optimistic local state and partial Inertia reload; `Toggle` off state no longer looks disabled (white + ring).
 - **Feat (roster):** Bulk add members from organization via searchable checklist (`RosterMemberPicker`) with select all/clear on the event roster tab.
