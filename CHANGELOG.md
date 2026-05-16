@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **Local Docker (Forge parity):** Laravel Sail with PHP 8.4, PostgreSQL 18, Redis, Mailpit, Node 22, and a `queue` worker service. Documented in `docs/LOCAL_DOCKER.md`; `composer run docker:setup` for first-time container setup.
+- **Docker security:** Hardened `docker/sail/Dockerfile` (no Playwright/FFmpeg, `runuser` instead of `gosu`, slimmer PHP set, `redis:7.4-alpine`). Scout: app image **3C/20H → 0C/1H** vs stock Sail.
 - **Branding (TeamForge):** Site-wide design refresh using assets in `public/` (`Logo.svg`, `Wordmark.svg`, `icon-detail.svg`, brand blues/orange). Plus Jakarta Sans typography, design tokens in `resources/css/app.css`, split-panel login with cropped icon-detail hero, updated layouts and components.
 - **Auth / home:** `/` redirects guests to the Breeze login page (`/login`) instead of the default Laravel Welcome screen; authenticated users go to the dashboard. Logout returns to login. Guest layout shows `APP_NAME`.
 - **Cloudflare / HTTPS:** `trustProxies(at: '*')` in `bootstrap/app.php` so requests behind Cloudflare honor forwarded HTTPS; pair with Cloudflare **SSL/TLS = Full or Full (strict)** (not Flexible) to avoid redirect loops. Documented in `docs/DEPLOY_FORGE.md`.

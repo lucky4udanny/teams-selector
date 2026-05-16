@@ -107,3 +107,22 @@ You can still use SQLite on the host: uncomment the SQLite block in `.env.exampl
 - **Rebuild after `compose.yaml` changes:** `./vendor/bin/sail build --no-cache` then `sail up -d`.
 
 See also [DEPLOY_FORGE.md](DEPLOY_FORGE.md) for production deploy steps.
+
+## Image security (Docker Scout)
+
+The app image is built from `docker/sail/Dockerfile` (hardened Sail runtime), not the stock vendor image:
+
+- Removed Playwright browser deps, FFmpeg, and unused PHP extensions (smaller attack surface).
+- Replaced `gosu` (Go binary with stale CVEs) with `runuser`.
+- `apt-get upgrade` on every build; Node **22**; `redis:8-alpine` (do not downgrade Redis while `sail-redis` volume exists — RDB format mismatch).
+
+After changes, Scout on the app image dropped from **3 critical / 20 high** to **0 critical / 1 high** (mostly npm `picomatch` in Node).
+
+**PostgreSQL** (`postgres:18-alpine`) may still report Go stdlib CVEs in Scout — those come from upstream Postgres/Alpine binaries, not Laravel. Re-pull periodically: `docker pull postgres:18-alpine && ./vendor/bin/sail up -d --force-recreate pgsql`.
+
+Rebuild the app image after `docker/sail` changes:
+
+```bash
+./vendor/bin/sail build --no-cache
+./vendor/bin/sail up -d
+```
