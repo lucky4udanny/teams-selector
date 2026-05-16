@@ -10,6 +10,7 @@ import ListboxInput from '@/Components/ListboxInput.vue';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import ProgressRing from '@/Components/ProgressRing.vue';
+import RosterMemberPicker from '@/Components/RosterMemberPicker.vue';
 import RangeSlider from '@/Components/RangeSlider.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
@@ -218,13 +219,8 @@ const rosterWaiting = computed(() => rosterRows.value.filter((r) => !r.included)
 
 const rosterMemberIds = computed(() => new Set(rosterRows.value.map((r) => r.member_id)));
 
-const addMemberOptions = computed(() =>
-    (props.orgMembers || [])
-        .filter((m) => !rosterMemberIds.value.has(m.id))
-        .map((m) => ({
-            value: m.id,
-            label: m.display_name,
-        })),
+const availableMembersToAdd = computed(() =>
+    (props.orgMembers || []).filter((m) => !rosterMemberIds.value.has(m.id)),
 );
 
 const copyEventOptions = computed(() =>
@@ -234,14 +230,15 @@ const copyEventOptions = computed(() =>
     })),
 );
 
-const selectedToAdd = ref([]);
+const selectedMemberIdsToAdd = ref([]);
+const addMembersProcessing = ref(false);
 const copyFromId = ref(null);
 const rosterNotice = ref(null);
 const draftsNotice = ref(null);
 
 const postAddMembers = () => {
     rosterNotice.value = null;
-    if (!selectedToAdd.value?.length) {
+    if (!selectedMemberIdsToAdd.value?.length) {
         rosterNotice.value = {
             variant: 'warning',
             message: 'Select at least one member to add to the roster.',
@@ -249,10 +246,19 @@ const postAddMembers = () => {
 
         return;
     }
+    addMembersProcessing.value = true;
     router.post(
         route('organizations.events.members.store', [slug.value, eventId.value]),
-        { member_ids: selectedToAdd.value },
-        { preserveScroll: true, onSuccess: () => (selectedToAdd.value = []) },
+        { member_ids: selectedMemberIdsToAdd.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                selectedMemberIdsToAdd.value = [];
+            },
+            onFinish: () => {
+                addMembersProcessing.value = false;
+            },
+        },
     );
 };
 
@@ -718,21 +724,36 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                 {{ rosterNotice.message }}
             </Alert>
 
-            <div v-if="canManage" class="ts-card-padded grid gap-6 lg:grid-cols-2">
-                <div>
-                    <h3 class="mb-2 text-sm font-semibold text-brand-navy">Add members</h3>
-                    <ComboboxInput
-                        v-model="selectedToAdd"
-                        :options="addMemberOptions"
-                        multiple
-                        placeholder="Search members…"
+            <div v-if="canManage" class="grid gap-6 lg:grid-cols-2">
+                <div class="ts-card-padded lg:col-span-2 xl:col-span-1">
+                    <h3 class="mb-1 text-sm font-semibold text-brand-navy">Add members from organization</h3>
+                    <p class="mb-4 text-xs text-brand-blue/60">
+                        Select one or more members, then add them to the roster in one step.
+                    </p>
+                    <RosterMemberPicker
+                        v-model="selectedMemberIdsToAdd"
+                        :members="availableMembersToAdd"
                     />
-                    <PrimaryButton class="mt-3" type="button" @click="postAddMembers">
-                        Add to roster
+                    <PrimaryButton
+                        class="mt-4"
+                        type="button"
+                        :disabled="addMembersProcessing || selectedMemberIdsToAdd.length === 0"
+                        @click="postAddMembers"
+                    >
+                        {{
+                            addMembersProcessing
+                                ? 'Adding…'
+                                : selectedMemberIdsToAdd.length === 1
+                                  ? 'Add 1 member to roster'
+                                  : `Add ${selectedMemberIdsToAdd.length} members to roster`
+                        }}
                     </PrimaryButton>
                 </div>
-                <div>
+                <div class="ts-card-padded">
                     <h3 class="mb-2 text-sm font-semibold text-brand-navy">Copy from event</h3>
+                    <p class="mb-3 text-xs text-brand-blue/60">
+                        Copy the full roster from another event in this organization.
+                    </p>
                     <ComboboxInput v-model="copyFromId" :options="copyEventOptions" placeholder="Pick event…" />
                     <SecondaryButton class="mt-3" type="button" @click="postCopy">
                         Copy roster

@@ -55,6 +55,27 @@ class EventCentricFlowTest extends TestCase
         ]);
     }
 
+    public function test_roster_bulk_add_members_from_organization(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+        $members = Member::factory()->count(3)->create(['organization_id' => $org->id]);
+        $ids = $members->pluck('id')->all();
+
+        $this->post(route('organizations.events.members.store', [$org, $event]), [
+            'member_ids' => $ids,
+        ])
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        foreach ($ids as $memberId) {
+            $this->assertDatabaseHas('event_members', [
+                'event_id' => $event->id,
+                'member_id' => $memberId,
+            ]);
+        }
+    }
+
     public function test_roster_enforces_unique_member_per_event(): void
     {
         [, $org] = $this->actingAsOrganizer();
