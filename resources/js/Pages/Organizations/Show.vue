@@ -1,7 +1,7 @@
 <script setup>
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
+import ColorInput from '@/Components/ColorInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
@@ -118,11 +118,9 @@ const saveSettings = () => {
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
                         <InputLabel for="brand_primary" value="Primary" />
-                        <TextInput
+                        <ColorInput
                             id="brand_primary"
                             v-model="settingsForm.brand_primary"
-                            type="text"
-                            class="mt-1 block w-full"
                             placeholder="#1a6893"
                         />
                         <InputError
@@ -132,11 +130,9 @@ const saveSettings = () => {
                     </div>
                     <div>
                         <InputLabel for="brand_accent" value="Accent" />
-                        <TextInput
+                        <ColorInput
                             id="brand_accent"
                             v-model="settingsForm.brand_accent"
-                            type="text"
-                            class="mt-1 block w-full"
                             placeholder="#f7941c"
                         />
                         <InputError
@@ -144,6 +140,28 @@ const saveSettings = () => {
                             :message="settingsForm.errors.brand_accent"
                         />
                     </div>
+                </div>
+                <div
+                    class="flex flex-wrap items-center gap-3 rounded-lg border border-brand-mist bg-brand-cream/60 px-4 py-3"
+                    aria-hidden="true"
+                >
+                    <span class="text-xs font-medium text-brand-blue/70"
+                        >Preview</span
+                    >
+                    <span
+                        class="inline-flex rounded-lg px-3 py-1.5 text-sm font-semibold text-white shadow-sm"
+                        :style="{
+                            backgroundColor: settingsForm.brand_primary,
+                        }"
+                        >Primary</span
+                    >
+                    <span
+                        class="inline-flex rounded-lg px-3 py-1.5 text-sm font-semibold text-white shadow-sm"
+                        :style="{
+                            backgroundColor: settingsForm.brand_accent,
+                        }"
+                        >Accent</span
+                    >
                 </div>
                 <div>
                     <InputLabel for="logo" value="Logo" />

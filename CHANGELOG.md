@@ -2,7 +2,10 @@
 
 ## Unreleased
 
+- **UI (branding):** Primary/accent colors use a swatch + native color picker + hex field (`ColorInput.vue`) on the org settings page; live preview chips below the pickers.
+- **UI (org nav):** Organization header shows org logo **or** org name, not both; logo preferred when `logo_url` is set (`OrganizationLayout.vue`).
 - **Fix (tests):** Restore `DB_CONNECTION=sqlite` and `DB_DATABASE=:memory:` in `phpunit.xml` so `composer test` / `php artisan test` do not require Docker PostgreSQL when `.env` defaults to `pgsql`.
+- **Fix (docker:setup):** Run `composer install` before Sail so `./vendor/bin/sail` exists on a fresh clone.
 - **Local Docker (Forge parity):** Laravel Sail with PHP 8.4, PostgreSQL 18, Redis, Mailpit, Node 22, and a `queue` worker service. Documented in `docs/LOCAL_DOCKER.md`; `composer run docker:setup` for first-time container setup.
 - **Docker security:** Hardened `docker/sail/Dockerfile` (no Playwright/FFmpeg, `runuser` instead of `gosu`, slimmer PHP set, `redis:7.4-alpine`). Scout: app image **3C/20H → 0C/1H** vs stock Sail.
 - **Branding (TeamForge):** Site-wide design refresh using assets in `public/` (`Logo.svg`, `Wordmark.svg`, `icon-detail.svg`, brand blues/orange). Plus Jakarta Sans typography, design tokens in `resources/css/app.css`, split-panel login with cropped icon-detail hero, updated layouts and components.

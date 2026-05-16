@@ -1,7 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import FlashToasts from '@/Components/FlashToasts.vue';
@@ -50,16 +49,12 @@ const isAdmin = computed(() => props.organization.role === 'admin');
                             <img
                                 v-if="organization.logo_url"
                                 :src="organization.logo_url"
-                                alt=""
+                                :alt="organization.name"
                                 class="h-10 max-w-[140px] object-contain"
                             />
-                            <ApplicationLogo
-                                v-else
-                                variant="icon"
-                                class="h-9 w-9"
-                            />
                             <span
-                                class="hidden truncate text-sm font-semibold text-brand-navy sm:inline lg:max-w-xs"
+                                v-else
+                                class="truncate text-sm font-semibold text-brand-navy sm:text-base lg:max-w-xs"
                                 >{{ organization.name }}</span
                             >
                         </Link>
