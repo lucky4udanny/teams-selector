@@ -227,8 +227,8 @@ class ImportDraftFromCsv extends Command
         $warnings = [];
 
         foreach ($rows as $row) {
-            $firstName = $row['first_name'] ?? '';
-            $lastName = $row['last_name'] ?? '';
+            $firstName = trim($row['first_name'] ?? '');
+            $lastName = trim($row['last_name'] ?? '');
             $teamLabel = trim($row[$teamCol] ?? '');
             $groupLabel = $groupCol !== null ? trim($row[$groupCol] ?? '') : '';
 

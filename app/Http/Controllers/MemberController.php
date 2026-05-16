@@ -149,9 +149,12 @@ class MemberController extends Controller
         }
 
         $indices = $parsed['indices'];
+
+        /** @var array<string, int> $sectorsByName  lowercase name → id (populated lazily) */
         $sectorsByName = $organization->sectors()
             ->get()
-            ->mapWithKeys(fn ($s) => [mb_strtolower($s->name) => $s->id]);
+            ->mapWithKeys(fn ($s) => [mb_strtolower($s->name) => $s->id])
+            ->all();
 
         $count = 0;
         $skipped = 0;
@@ -169,7 +172,12 @@ class MemberController extends Controller
             if ($indices['sector'] !== null) {
                 $raw = trim((string) ($row[$indices['sector']] ?? ''));
                 if ($raw !== '') {
-                    $sectorId = $sectorsByName[mb_strtolower($raw)] ?? null;
+                    $key = mb_strtolower($raw);
+                    if (! isset($sectorsByName[$key])) {
+                        $sector = $organization->sectors()->firstOrCreate(['name' => $raw]);
+                        $sectorsByName[$key] = $sector->id;
+                    }
+                    $sectorId = $sectorsByName[$key];
                 }
             }
 

@@ -2,7 +2,9 @@
 
 ## Unreleased
 
+- **Fix (ImportDraftFromCsv):** `$firstName`/`$lastName` now explicitly `trim()`-ed at extraction point so the member lookup key matches the index built from trimmed DB values; previously, whitespace around CSV name cells could cause valid members to be skipped.
 - **Style (TeamDraftController):** `where('status', ...)` and `orWhere('status', ...)` now use `->value` on `EventMemberStatus` enum cases for consistency with `EventPlanningConflictService`; Laravel 13 converts backed enums automatically, but explicit `->value` matches the established codebase pattern and prevents future reader confusion.
+- **Fix (members import):** Sector names from the CSV are now auto-created via `firstOrCreate` when they don't already exist in the org; previously any unrecognised sector name was silently dropped, leaving `sector_id = null`.
 - **Fix (draft/final display):** `teamDisplayLabel` / `groupDisplayLabel` helpers now wrap values with `String()` before `.trim()` to handle integer values in `team_names`/`group_names` JSON (PHP numeric string array keys are cast to int, stored as JSON integers, received as JS numbers); `ImportDraftFromCsv` also now casts all labels to `(string)` before building state.
 - **UX (events):** "Team Drafts" and "Final Teams" tab labels (was "drafts"/"final"); all other tabs now properly capitalised.
 - **UX (team draft show):** Removed separate "Names" form card; group and team names are now edited inline — a `TextInput` appears directly in each group header and team card header when `canUpdate` is true; a single "Save names" button appears below the full display.
