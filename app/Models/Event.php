@@ -119,22 +119,27 @@ class Event extends Model
     }
 
     /**
-     * @return array{pending: int, accepted: int, declined: int, invited: int}
+     * @return array{included: int, waiting: int, invited: int, pending: int, accepted: int, declined: int}
      */
     public function rsvpCounts(): array
     {
-        $rows = $this->eventMembers()
+        $includedRows = $this->eventMembers()
+            ->where('included', true)
             ->selectRaw('status, count(*) as c')
             ->groupBy('status')
             ->pluck('c', 'status');
 
-        $invited = (int) $this->eventMembers()->where('invited', true)->count();
+        $included = (int) $this->eventMembers()->where('included', true)->count();
+        $waiting  = (int) $this->eventMembers()->where('included', false)->count();
+        $invited  = (int) $this->eventMembers()->where('included', true)->where('invited', true)->count();
 
         return [
-            'pending' => (int) ($rows[EventMemberStatus::Pending->value] ?? 0),
-            'accepted' => (int) ($rows[EventMemberStatus::Accepted->value] ?? 0),
-            'declined' => (int) ($rows[EventMemberStatus::Declined->value] ?? 0),
-            'invited' => $invited,
+            'included' => $included,
+            'waiting'  => $waiting,
+            'invited'  => $invited,
+            'pending'  => (int) ($includedRows[EventMemberStatus::Pending->value] ?? 0),
+            'accepted' => (int) ($includedRows[EventMemberStatus::Accepted->value] ?? 0),
+            'declined' => (int) ($includedRows[EventMemberStatus::Declined->value] ?? 0),
         ];
     }
 

@@ -776,9 +776,12 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
         <!-- Roster -->
         <section v-else-if="tab === 'roster' && roster != null" class="space-y-8">
             <div class="flex flex-wrap gap-2">
+                <Badge variant="neutral">{{ rsvp.included ?? 0 }} included</Badge>
+                <Badge variant="info">{{ rsvp.invited ?? 0 }} invited</Badge>
                 <Badge variant="success">{{ rsvp.accepted ?? 0 }} accepted</Badge>
                 <Badge variant="warning">{{ rsvp.pending ?? 0 }} pending</Badge>
                 <Badge variant="danger">{{ rsvp.declined ?? 0 }} declined</Badge>
+                <Badge variant="neutral">{{ rsvp.waiting ?? 0 }} waiting list</Badge>
             </div>
 
             <Alert
