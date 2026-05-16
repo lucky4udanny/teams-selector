@@ -9,6 +9,7 @@
 - **Members import:** `MemberCsvImportParser` tries multiple encodings and delimiters and picks the parse that finds name columns; also reads `.xlsx`/`.xls`. `MemberController@import` — header row with `first_name` / `last_name` (or spaced labels); extra columns ignored. Inertia `useForm` + `forceFormData: true`; submit via `PrimaryButton type="submit"`.
 - Approved selections store an immutable `snapshot` including `branding` (logo URL and colors) for consistent print/export.
 - Team generation uses `TeamSolverService` with weighted penalties; blocking roster issues (e.g. member count vs team size) surface as `blocking_errors` on the draft state.
+- **Event roster tab:** `EventController@show` with `?tab=roster` passes `roster` as a list of event-member rows; `rsvp_counts` lives on `event` only (`rosterPayloadPublic()` is split when building Inertia props).
 - **Repeat-pair history:** `PairHistoryService` and `TeamSolverService::membersByGroup` merge group members via `team_indices` and ignore missing team slots (`($teams[$ti] ?? [])['member_ids']`).
 - **Event rules sort_order:** `Event::recalculateRuleSortOrders()` sets `0..n` by descending `weight` (then `id`); called after rule CRUD and event duplicate.
 - Frontend toolchain: **Vite 8**, **Tailwind CSS v4** (`@tailwindcss/vite`), **Vue 3.5+**; Node **≥ 22.12** per `package.json` / `.nvmrc`.
@@ -18,4 +19,4 @@
 - **Catalog forms:** Event types / sectors use `resources/js/utils/formValidation.js` for client checks; Laravel returns custom validation messages and `flash.status` / `flash.error` (toasts via `FlashToasts`). Event type delete is blocked when events reference the type.
 - **Event flows UX:** Events index/show and team-draft show run the same `formValidation.js` helpers before Inertia submits; roster/draft actions show inline `Alert` when selection is empty; rule modal validates type/scope/config client-side; finalize uses a confirm dialog and is blocked server-side (and in UI) when `blocking_errors` is non-empty.
 - **Roster bulk add:** Event roster tab uses `RosterMemberPicker` — searchable list of org members not yet on the roster, with select all/clear and one POST of `member_ids` to `events.members.store`.
-- **Roster table:** `EventMemberController` returns members sorted by last/first name; toggles update local roster state immediately and reload only the `roster` prop.
+- **Roster table:** Sort column and direction are chosen in the UI (`rosterSort.js`); preference persists in `localStorage` per org slug (`teams-selector:roster-sort:{slug}`). Default: last name ascending. Toggles update local roster state immediately and reload only the `roster` prop.

@@ -55,23 +55,14 @@ class EventCentricFlowTest extends TestCase
         ]);
     }
 
-    public function test_roster_payload_is_sorted_by_member_name(): void
+    public function test_roster_payload_includes_all_event_members(): void
     {
         [, $org] = $this->actingAsOrganizer();
         $event = Event::factory()->create(['organization_id' => $org->id]);
 
-        $zeke = Member::factory()->create([
-            'organization_id' => $org->id,
-            'first_name' => 'Zeke',
-            'last_name' => 'Zulu',
-        ]);
-        $amy = Member::factory()->create([
-            'organization_id' => $org->id,
-            'first_name' => 'Amy',
-            'last_name' => 'Adams',
-        ]);
+        $members = Member::factory()->count(2)->create(['organization_id' => $org->id]);
 
-        foreach ([$zeke, $amy] as $member) {
+        foreach ($members as $member) {
             EventMember::query()->create([
                 'event_id' => $event->id,
                 'member_id' => $member->id,
@@ -83,12 +74,38 @@ class EventCentricFlowTest extends TestCase
         }
 
         $payload = app(\App\Http\Controllers\EventMemberController::class)->rosterPayloadPublic($event);
-        $names = array_column($payload['roster'], 'display_name');
 
-        $this->assertSame(
-            [trim($amy->first_name.' '.$amy->last_name), trim($zeke->first_name.' '.$zeke->last_name)],
-            $names,
+        $this->assertCount(2, $payload['roster']);
+        $this->assertEqualsCanonicalizing(
+            $members->pluck('id')->all(),
+            array_column($payload['roster'], 'member_id'),
         );
+    }
+
+    public function test_event_show_roster_tab_passes_roster_as_top_level_array(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+        $member = Member::factory()->create(['organization_id' => $org->id]);
+
+        EventMember::query()->create([
+            'event_id' => $event->id,
+            'member_id' => $member->id,
+            'included' => true,
+            'invited' => false,
+            'status' => EventMemberStatus::Pending,
+            'status_changed_at' => now(),
+        ]);
+
+        $this->get(route('organizations.events.show', [$org, $event]).'?tab=roster')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Events/Show')
+                ->where('tab', 'roster')
+                ->has('roster', 1)
+                ->where('roster.0.member_id', $member->id)
+                ->has('event.rsvp_counts')
+                ->missing('roster.roster'));
     }
 
     public function test_roster_bulk_add_members_from_organization(): void

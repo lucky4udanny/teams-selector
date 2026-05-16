@@ -140,7 +140,9 @@ class EventController extends Controller
         ];
 
         if ($tab === 'roster') {
-            $payload['roster'] = app(EventMemberController::class)->rosterPayloadPublic($event);
+            $rosterData = app(EventMemberController::class)->rosterPayloadPublic($event);
+            $payload['roster'] = $rosterData['roster'];
+            $payload['event']['rsvp_counts'] = $rosterData['rsvp_counts'];
         }
 
         if ($tab === 'rules') {

@@ -25,6 +25,11 @@ import {
     validateGenerateDraft,
     validateRuleForm,
 } from '@/utils/formValidation';
+import {
+    loadRosterSortPreference,
+    saveRosterSortPreference,
+    sortRosterRows,
+} from '@/utils/rosterSort';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 
@@ -41,7 +46,7 @@ const props = defineProps({
     eventTypes: Array,
     finalizedEvents: Array,
     copySourceEvents: Array,
-    roster: Object,
+    roster: Array,
     rules: Array,
     team_drafts: Array,
     final_draft: Object,
@@ -211,32 +216,53 @@ const runDeleteEvent = () => {
 };
 
 /* ——— Roster ——— */
-const cloneRosterPayload = (roster) => {
-    if (!roster) {
-        return null;
-    }
+const cloneRosterRows = (roster) => (roster || []).map((row) => ({ ...row }));
 
-    return {
-        ...roster,
-        roster: (roster.roster || []).map((row) => ({ ...row })),
-    };
-};
-
-const rosterState = ref(cloneRosterPayload(props.roster));
+const rosterState = ref(cloneRosterRows(props.roster));
 
 watch(
     () => props.roster,
     (roster) => {
-        rosterState.value = cloneRosterPayload(roster);
+        rosterState.value = cloneRosterRows(roster);
     },
     { deep: true },
 );
 
-const rosterRows = computed(() => rosterState.value?.roster || []);
-const rsvp = computed(() => rosterState.value?.rsvp_counts || props.event.rsvp_counts || {});
+const rosterRows = computed(() => rosterState.value || []);
+const rsvp = computed(() => props.event.rsvp_counts || {});
 
-const rosterIncluded = computed(() => rosterRows.value.filter((r) => r.included));
-const rosterWaiting = computed(() => rosterRows.value.filter((r) => !r.included));
+const rosterSort = ref(loadRosterSortPreference(props.organization.slug));
+
+watch(
+    () => props.organization.slug,
+    (orgSlug) => {
+        rosterSort.value = loadRosterSortPreference(orgSlug);
+    },
+);
+
+watch(
+    rosterSort,
+    (pref) => {
+        saveRosterSortPreference(slug.value, pref);
+    },
+    { deep: true },
+);
+
+const sortedRosterRows = computed(() => sortRosterRows(rosterRows.value, rosterSort.value));
+
+const rosterIncluded = computed(() => sortedRosterRows.value.filter((r) => r.included));
+const rosterWaiting = computed(() => sortedRosterRows.value.filter((r) => !r.included));
+
+const setRosterSort = (column) => {
+    if (rosterSort.value.column === column) {
+        rosterSort.value = {
+            column,
+            direction: rosterSort.value.direction === 'asc' ? 'desc' : 'asc',
+        };
+    } else {
+        rosterSort.value = { column, direction: 'asc' };
+    }
+};
 
 const rosterMemberIds = computed(() => new Set(rosterRows.value.map((r) => r.member_id)));
 
@@ -301,7 +327,7 @@ const postCopy = () => {
 };
 
 const patchMember = (em, data) => {
-    const row = rosterState.value?.roster?.find((r) => r.id === em.id);
+    const row = rosterState.value?.find((r) => r.id === em.id);
     const snapshot = row ? { ...row } : null;
 
     if (row) {
@@ -314,10 +340,10 @@ const patchMember = (em, data) => {
 
     router.patch(route('organizations.events.members.update', [slug.value, eventId.value, em.id]), data, {
         preserveScroll: true,
-        only: ['roster'],
+        only: ['roster', 'event'],
         onError: () => {
-            if (snapshot && rosterState.value?.roster) {
-                const target = rosterState.value.roster.find((r) => r.id === em.id);
+            if (snapshot && rosterState.value) {
+                const target = rosterState.value.find((r) => r.id === em.id);
                 if (target) {
                     Object.assign(target, snapshot);
                 }
@@ -364,7 +390,7 @@ const bulkPatch = (payload) => {
 const localNotes = reactive({});
 
 watch(
-    () => props.roster?.roster,
+    () => props.roster,
     (rows) => {
         (rows || []).forEach((r) => {
             localNotes[r.id] = r.notes ?? '';
@@ -748,7 +774,7 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
         </section>
 
         <!-- Roster -->
-        <section v-else-if="tab === 'roster' && roster" class="space-y-8">
+        <section v-else-if="tab === 'roster' && roster != null" class="space-y-8">
             <div class="flex flex-wrap gap-2">
                 <Badge variant="success">{{ rsvp.accepted ?? 0 }} accepted</Badge>
                 <Badge variant="warning">{{ rsvp.pending ?? 0 }} pending</Badge>
@@ -813,11 +839,67 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
                     <thead class="bg-brand-cream">
                         <tr>
                             <th v-if="canManage" class="w-10 px-2 py-2" />
-                            <th class="px-3 py-2 text-left">Member</th>
-                            <th class="px-3 py-2 text-left">Included</th>
-                            <th class="px-3 py-2 text-left">Invited</th>
-                            <th class="px-3 py-2 text-left">Status</th>
-                            <th class="px-3 py-2 text-left">Notes</th>
+                            <th class="px-3 py-2 text-left">
+                                <button
+                                    type="button"
+                                    class="group inline-flex items-center gap-1 font-semibold text-brand-navy hover:text-brand-blue"
+                                    @click="setRosterSort('last_name')"
+                                >
+                                    Member
+                                    <span class="text-brand-blue/40 group-hover:text-brand-blue">
+                                        <template v-if="rosterSort.column === 'last_name'">
+                                            {{ rosterSort.direction === 'asc' ? '↑' : '↓' }}
+                                        </template>
+                                        <template v-else>↕</template>
+                                    </span>
+                                </button>
+                            </th>
+                            <th class="px-3 py-2 text-left">
+                                <button
+                                    type="button"
+                                    class="group inline-flex items-center gap-1 font-semibold text-brand-navy hover:text-brand-blue"
+                                    @click="setRosterSort('included')"
+                                >
+                                    Included
+                                    <span class="text-brand-blue/40 group-hover:text-brand-blue">
+                                        <template v-if="rosterSort.column === 'included'">
+                                            {{ rosterSort.direction === 'asc' ? '↑' : '↓' }}
+                                        </template>
+                                        <template v-else>↕</template>
+                                    </span>
+                                </button>
+                            </th>
+                            <th class="px-3 py-2 text-left">
+                                <button
+                                    type="button"
+                                    class="group inline-flex items-center gap-1 font-semibold text-brand-navy hover:text-brand-blue"
+                                    @click="setRosterSort('invited')"
+                                >
+                                    Invited
+                                    <span class="text-brand-blue/40 group-hover:text-brand-blue">
+                                        <template v-if="rosterSort.column === 'invited'">
+                                            {{ rosterSort.direction === 'asc' ? '↑' : '↓' }}
+                                        </template>
+                                        <template v-else>↕</template>
+                                    </span>
+                                </button>
+                            </th>
+                            <th class="px-3 py-2 text-left">
+                                <button
+                                    type="button"
+                                    class="group inline-flex items-center gap-1 font-semibold text-brand-navy hover:text-brand-blue"
+                                    @click="setRosterSort('status')"
+                                >
+                                    Status
+                                    <span class="text-brand-blue/40 group-hover:text-brand-blue">
+                                        <template v-if="rosterSort.column === 'status'">
+                                            {{ rosterSort.direction === 'asc' ? '↑' : '↓' }}
+                                        </template>
+                                        <template v-else>↕</template>
+                                    </span>
+                                </button>
+                            </th>
+                            <th class="px-3 py-2 text-left font-semibold text-brand-navy">Notes</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-brand-mist">

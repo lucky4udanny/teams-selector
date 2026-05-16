@@ -232,15 +232,6 @@ class EventMemberController extends Controller
         ]);
 
         $roster = $event->eventMembers
-            ->sortBy(
-                fn (EventMember $em) => sprintf(
-                    '%s|%s|%010d',
-                    mb_strtolower($em->member->last_name ?? ''),
-                    mb_strtolower($em->member->first_name ?? ''),
-                    $em->id,
-                ),
-            )
-            ->values()
             ->map(function (EventMember $em) {
             $m = $em->member;
             $skill = $m->memberEventTypeSkills->first();
