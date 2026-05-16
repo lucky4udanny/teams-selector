@@ -11,3 +11,4 @@
 - **Members import:** `Members/Index` accepts `.csv` or `.xlsx`; `MemberCsvImportParser` auto-detects encoding and delimiter. Route `organizations.members.import`, `forceFormData`, `PrimaryButton type="submit"`.
 - **Inertia event UI:** Event **Show** tabs are driven by `?tab=` (`details`, `roster`, `rules`, `drafts`, `final`); roster/members and rules mutations use the scoped `organizations.events.*` web routes (patch/bulk/post), and the final tab builds export URLs with a `columns=` query matching `EventExportController`’s allowed column keys.
 - **Pair history:** `PairHistoryService::pairsForPriorEvent` tolerates corrupt `team_indices` in stored draft JSON when building group-scope repeat pairs.
+- **DateInput:** With `model-type="yyyy-MM-dd"`, bind string dates only—see [teams-selector](features/teams-selector.md).

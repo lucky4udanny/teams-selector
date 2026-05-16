@@ -5,6 +5,7 @@
 - **Fix (members import):** Guard null/missing upload before `getClientOriginalExtension()`; validate readable temp path only after file exists.
 - **Fix (pair history):** Skip out-of-bounds `team_indices` when rebuilding group pairs from prior finalized drafts (`PairHistoryService`).
 - **Test (pair history):** `PairHistoryServiceTest` covers invalid team index and team-scope pairs.
+- **Fix (DateInput):** Keep `VueDatePicker` model as `yyyy-MM-dd` strings (not `Date` objects) so `model-type` parsing does not throw `dateString.match is not a function`.
 - **Fix (Modal):** Backdrop used `fixed` without a lower z-index than the panel; panel now `relative z-10`, backdrop `z-0`, flex-centered layout.
 - **Fix (Toggle):** Import `SwitchGroup` and `SwitchLabel` from Headless UI v1 (`Switch.Group` / `Switch.Label` are undefined).
 - **Fix (members import):** Skip leading blank spreadsheet rows and scan the first rows for the real header (fixes Excel files with an empty comma row above column names).

@@ -23,27 +23,33 @@ const props = defineProps({
     },
 });
 
+const toYmd = (value) => {
+    if (value instanceof Date) {
+        const y = value.getFullYear();
+        const m = String(value.getMonth() + 1).padStart(2, '0');
+        const day = String(value.getDate()).padStart(2, '0');
+
+        return `${y}-${m}-${day}`;
+    }
+
+    const text = String(value).trim();
+    if (text === '') {
+        return null;
+    }
+
+    return text.length >= 10 ? text.slice(0, 10) : text;
+};
+
 const internal = computed({
     get() {
-        if (!model.value) {
+        if (model.value == null || model.value === '') {
             return null;
         }
 
-        if (model.value instanceof Date) {
-            return model.value;
-        }
-
-        return new Date(`${model.value}T12:00:00`);
+        return toYmd(model.value);
     },
     set(value) {
-        if (!value) {
-            model.value = null;
-
-            return;
-        }
-
-        const d = value instanceof Date ? value : new Date(value);
-        model.value = d.toISOString().slice(0, 10);
+        model.value = value == null || value === '' ? null : toYmd(value);
     },
 });
 </script>
