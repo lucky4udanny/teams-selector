@@ -4,6 +4,7 @@ import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import ProgressRing from '@/Components/ProgressRing.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import TeamMemberEditor from '@/Components/TeamMemberEditor.vue';
 import TextInput from '@/Components/TextInput.vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
 import { applyFormErrors, validateDraftNames } from '@/utils/formValidation';
@@ -153,6 +154,60 @@ const groupDisplayLabel = (gi, names) => {
     return name || letter;
 };
 
+// ── Team member editing ──────────────────────────────────────────────────────
+const editingTeamIndex = ref(null);
+const editMemberIds = ref([]);
+const editSearch = ref('');
+const editSaving = ref(false);
+
+const startEdit = (ti) => {
+    editingTeamIndex.value = ti;
+    editMemberIds.value = [...(teams.value[ti]?.member_ids ?? [])];
+    editSearch.value = '';
+};
+
+const cancelEdit = () => {
+    editingTeamIndex.value = null;
+    editMemberIds.value = [];
+    editSearch.value = '';
+};
+
+const removeMember = (id) => {
+    editMemberIds.value = editMemberIds.value.filter((m) => m !== id);
+};
+
+const addMember = (id) => {
+    if (!editMemberIds.value.includes(id)) {
+        editMemberIds.value = [...editMemberIds.value, id];
+    }
+    editSearch.value = '';
+};
+
+const editSearchResults = computed(() => {
+    const q = editSearch.value.toLowerCase().trim();
+    if (!q) return [];
+    return (props.orgMembers ?? [])
+        .filter((m) => !editMemberIds.value.includes(m.id) && m.display_name.toLowerCase().includes(q))
+        .slice(0, 8);
+});
+
+const saveTeamMembers = (ti) => {
+    editSaving.value = true;
+    router.patch(
+        route('organizations.events.team-drafts.update-team-members', [
+            props.organization.slug,
+            props.event.id,
+            props.teamDraft.id,
+        ]),
+        { team_index: ti, member_ids: editMemberIds.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => cancelEdit(),
+            onFinish: () => { editSaving.value = false; },
+        },
+    );
+};
+
 const penaltyHue = computed(() => {
     const p = totalPenalty.value;
     if (p === null || p === undefined) {
@@ -265,7 +320,8 @@ const penaltyHue = computed(() => {
                     <div
                         v-for="ti in group.team_indices || []"
                         :key="`team${ti}`"
-                        class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
+                        class="rounded-xl border bg-white p-4 shadow-sm"
+                        :class="editingTeamIndex === ti ? 'border-brand-blue/30' : 'border-brand-mist'"
                     >
                         <div class="mb-3 flex items-center gap-2">
                             <span class="shrink-0 text-xs font-medium text-brand-blue/40">{{ ti + 1 }}</span>
@@ -278,8 +334,30 @@ const penaltyHue = computed(() => {
                             <h4 v-else class="font-semibold text-brand-navy">
                                 {{ teamDisplayLabel(ti, teamNamesForm.team_names) }}
                             </h4>
+                            <button
+                                v-if="canUpdate && editingTeamIndex !== ti"
+                                type="button"
+                                class="ml-auto shrink-0 text-xs text-brand-blue/50 hover:text-brand-blue"
+                                @click="startEdit(ti)"
+                            >
+                                Edit members
+                            </button>
                         </div>
-                        <ul class="space-y-1 text-sm text-brand-blue/90">
+                        <template v-if="editingTeamIndex === ti">
+                            <TeamMemberEditor
+                                :edit-member-ids="editMemberIds"
+                                :edit-search="editSearch"
+                                :edit-search-results="editSearchResults"
+                                :edit-saving="editSaving"
+                                :member-name="memberName"
+                                @update:edit-search="editSearch = $event"
+                                @remove="removeMember"
+                                @add="addMember"
+                                @save="saveTeamMembers(ti)"
+                                @cancel="cancelEdit"
+                            />
+                        </template>
+                        <ul v-else class="space-y-1 text-sm text-brand-blue/90">
                             <li v-for="mid in teams[ti]?.member_ids || []" :key="mid">
                                 {{ memberName(mid) }}
                             </li>
@@ -294,7 +372,8 @@ const penaltyHue = computed(() => {
             <section
                 v-for="(team, ti) in teams"
                 :key="`team${ti}`"
-                class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
+                class="rounded-xl border bg-white p-4 shadow-sm"
+                :class="editingTeamIndex === ti ? 'border-brand-blue/30' : 'border-brand-mist'"
             >
                 <div class="mb-3 flex items-center gap-2">
                     <span class="shrink-0 text-xs font-medium text-brand-blue/40">{{ ti + 1 }}</span>
@@ -307,8 +386,30 @@ const penaltyHue = computed(() => {
                     <h4 v-else class="font-semibold text-brand-navy">
                         {{ teamDisplayLabel(ti, teamNamesForm.team_names) }}
                     </h4>
+                    <button
+                        v-if="canUpdate && editingTeamIndex !== ti"
+                        type="button"
+                        class="ml-auto shrink-0 text-xs text-brand-blue/50 hover:text-brand-blue"
+                        @click="startEdit(ti)"
+                    >
+                        Edit members
+                    </button>
                 </div>
-                <ul class="space-y-1 text-sm text-brand-blue/90">
+                <template v-if="editingTeamIndex === ti">
+                    <TeamMemberEditor
+                        :edit-member-ids="editMemberIds"
+                        :edit-search="editSearch"
+                        :edit-search-results="editSearchResults"
+                        :edit-saving="editSaving"
+                        :member-name="memberName"
+                        @update:edit-search="editSearch = $event"
+                        @remove="removeMember"
+                        @add="addMember"
+                        @save="saveTeamMembers(ti)"
+                        @cancel="cancelEdit"
+                    />
+                </template>
+                <ul v-else class="space-y-1 text-sm text-brand-blue/90">
                     <li v-for="mid in team.member_ids || []" :key="mid">
                         {{ memberName(mid) }}
                     </li>

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Feat (team draft):** Admin "Edit members" button on each team card (grouped and flat views); clicking opens an inline editor with remove-member buttons and a live search-to-add field; saves via new `PATCH .../team-members` endpoint which rebuilds the global `member_ids` from all teams and validates members belong to the org.
+- **Feat (TeamDraftController):** `updateTeamMembers` action — validates `team_index` exists in draft state, confirms all submitted member IDs belong to the org, patches `state.teams[i].member_ids`, and rebuilds `state.member_ids`; gated by `update` event policy (admin only).
+- **Feat (component):** `TeamMemberEditor.vue` — self-contained inline editor for a single team's member list; accepts current IDs, search query, search results, saving state, and `memberName` resolver; emits `remove`, `add`, `save`, `cancel`, `update:editSearch`; keeps team card templates clean.
 - **Fix (skill leveling):** `min_avg`/`max_avg` cast to `(float)` in both `TeamSolverService` and `EventPlanningConflictService` (was `(int)`, silently truncating values like `45.5` → `45`); `skillRangeDeviation` parameter types corrected from `int` to `float` to match.
 - **Feat (draft:import-csv):** Added `--team-col=` and `--group-col=` flags to explicitly specify column names (needed for multi-year CSVs where auto-detection picks the wrong year); added `--create-missing` flag to auto-create member records for names not found in the org.
 - **Fix (ImportDraftFromCsv):** `$firstName`/`$lastName` now explicitly `trim()`-ed at extraction point so the member lookup key matches the index built from trimmed DB values; previously, whitespace around CSV name cells could cause valid members to be skipped.

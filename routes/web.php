@@ -85,6 +85,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/organizations/{organization}/events/{event}/team-drafts/{teamDraft}', [TeamDraftController::class, 'destroy'])->name('organizations.events.team-drafts.destroy');
         Route::post('/organizations/{organization}/events/{event}/team-drafts/{teamDraft}/finalize', [TeamDraftController::class, 'finalize'])->name('organizations.events.team-drafts.finalize');
         Route::patch('/organizations/{organization}/events/{event}/team-drafts/{teamDraft}/names', [TeamDraftController::class, 'updateNames'])->name('organizations.events.team-drafts.update-names');
+        Route::patch('/organizations/{organization}/events/{event}/team-drafts/{teamDraft}/team-members', [TeamDraftController::class, 'updateTeamMembers'])->name('organizations.events.team-drafts.update-team-members');
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

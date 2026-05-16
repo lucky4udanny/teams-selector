@@ -204,6 +204,56 @@ class TeamDraftController extends Controller
         return redirect()->back()->with('status', 'Final teams reverted. You can generate new drafts.');
     }
 
+    public function updateTeamMembers(Request $request, Organization $organization, Event $event, TeamDraft $teamDraft): RedirectResponse|JsonResponse
+    {
+        $this->authorize('update', $event);
+
+        $validated = $request->validate([
+            'team_index' => ['required', 'integer', 'min:0'],
+            'member_ids' => ['required', 'array'],
+            'member_ids.*' => ['integer', 'exists:members,id'],
+        ]);
+
+        $state = is_array($teamDraft->state) ? $teamDraft->state : [];
+        $teams = $state['teams'] ?? [];
+        $teamIndex = (int) $validated['team_index'];
+
+        if (! isset($teams[$teamIndex])) {
+            abort(422, "Team index {$teamIndex} does not exist in this draft.");
+        }
+
+        // Validate all member IDs belong to this org
+        $orgMemberIds = Member::query()
+            ->where('organization_id', $organization->id)
+            ->pluck('id')
+            ->all();
+
+        $memberIds = array_values(array_unique(array_map('intval', $validated['member_ids'])));
+        $invalid = array_diff($memberIds, $orgMemberIds);
+        if ($invalid !== []) {
+            abort(422, 'One or more members do not belong to this organisation.');
+        }
+
+        $state['teams'][$teamIndex]['member_ids'] = $memberIds;
+
+        // Rebuild the global member_ids list from all teams
+        $allMemberIds = [];
+        foreach ($state['teams'] as $team) {
+            foreach ($team['member_ids'] ?? [] as $mid) {
+                $allMemberIds[] = (int) $mid;
+            }
+        }
+        $state['member_ids'] = array_values(array_unique($allMemberIds));
+
+        $teamDraft->update(['state' => $state]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['teamDraft' => ['id' => $teamDraft->id, 'state' => $teamDraft->fresh()->state]]);
+        }
+
+        return redirect()->back()->with('status', 'Team members updated.');
+    }
+
     public function updateNames(Request $request, Organization $organization, Event $event, TeamDraft $teamDraft): RedirectResponse|JsonResponse
     {
         $this->authorize('update', $event);
