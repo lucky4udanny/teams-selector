@@ -1,6 +1,6 @@
 # Documentation index
 
-- [Local Docker / Sail](LOCAL_DOCKER.md) — Forge-aligned dev stack (PHP 8.4, PostgreSQL, Redis, Mailpit, Node 22); hardened `docker/sail` image for fewer Scout CVEs. `composer run docker:setup` runs `composer install` first so Sail is available on a fresh clone.
+- [Local Docker / Sail](LOCAL_DOCKER.md) — Forge-aligned dev stack (PHP 8.4, PostgreSQL, Redis, Mailpit, Node 22); hardened `docker/sail` image for fewer Scout CVEs. `composer run docker:setup` runs `composer install` first so Sail is available on a fresh clone. `.env.example` uses Docker service hostnames (`pgsql`, `redis`, `mailpit`); host-only dev should uncomment SQLite/loopback overrides.
 - **PHPUnit DB:** `phpunit.xml` forces `DB_CONNECTION=sqlite` and `DB_DATABASE=:memory:` so host `composer test` works without Sail; `.env` may still use PostgreSQL for local app dev.
 - **Org nav brand:** `OrganizationLayout` shows `logo_url` **or** `organization.name`, never both.
 - **Branding form:** `ColorInput.vue` (swatch + picker + hex) on `Organizations/Show.vue`; styling follows [Tailwind Plus](https://tailwindcss.com/plus) Application UI input patterns (ring inset, split control). Live org UI: `.ts-org-branded` maps primary → buttons/inputs/nav, accent → active tab underline.

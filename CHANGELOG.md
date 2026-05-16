@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fix (docker):** `.env.example` defaults `REDIS_HOST=redis` (Sail service hostname) instead of `127.0.0.1`, which fails inside containers when using Redis cache or queue.
 - **UI (org branding):** Organization pages (`.ts-org-branded`) apply `--org-primary` to buttons, inputs, and nav links and `--org-accent` to active tab underlines (desktop + mobile).
 - **Fix (branding):** `ColorInput` passes trimmed/normalized hex to the native color picker (whitespace-padded values no longer break the swatch).
 - **UI (branding):** Primary/accent colors use a swatch + native color picker + hex field (`ColorInput.vue`) on the org settings page; live preview chips below the pickers.
