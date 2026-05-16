@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Style (TeamDraftController):** `where('status', ...)` and `orWhere('status', ...)` now use `->value` on `EventMemberStatus` enum cases for consistency with `EventPlanningConflictService`; Laravel 13 converts backed enums automatically, but explicit `->value` matches the established codebase pattern and prevents future reader confusion.
 - **Feat (tooling):** `draft:import-csv {eventId} {csvFile}` Artisan command imports a historical team/group CSV as a finalized `TeamDraft`; detects team/group columns by name substring, looks up members by first+last name within the org, builds canonical `state` JSON, and marks the event finalized. Non-production guard (requires `--force` in production). CSV must be placed inside the project directory when using Sail/Docker.
 - **Fix (migration):** `final_team_draft_id` on `events` now carries a proper FK constraint (`references team_drafts.id nullOnDelete`) added in migration `100011`, resolving the circular dependency with `100002`.
 - **Fix (migration):** Members profile migration coalesces NULL `name` to empty string before applying NOT NULL on `first_name`, preventing migration failure on pre-existing rows with a NULL name.

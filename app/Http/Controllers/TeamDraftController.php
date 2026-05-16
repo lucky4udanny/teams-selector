@@ -50,9 +50,9 @@ class TeamDraftController extends Controller
         $memberQuery = $event->eventMembers()
             ->where('included', true)
             ->where(function ($q) use ($includePending): void {
-                $q->where('status', EventMemberStatus::Accepted);
+                $q->where('status', EventMemberStatus::Accepted->value);
                 if ($includePending) {
-                    $q->orWhere('status', EventMemberStatus::Pending);
+                    $q->orWhere('status', EventMemberStatus::Pending->value);
                 }
             });
 
