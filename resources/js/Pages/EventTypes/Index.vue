@@ -19,28 +19,37 @@ const canManage = computed(() =>
     ['admin', 'organizer'].includes(props.organization?.role),
 );
 
+const normalizeSortOrder = (value) =>
+    value === '' || value == null ? null : Number(value);
+
 const addForm = useForm({
     name: '',
-    sort_order: null,
+    sort_order: '',
 });
 
 const submitAdd = () => {
-    addForm.post(route('organizations.event-types.store', props.organization.slug), {
-        preserveScroll: true,
-        onSuccess: () => addForm.reset('name', 'sort_order'),
-    });
+    addForm
+        .transform((data) => ({
+            ...data,
+            sort_order: normalizeSortOrder(data.sort_order),
+        }))
+        .post(route('organizations.event-types.store', props.organization.slug), {
+            preserveScroll: true,
+            onSuccess: () => addForm.reset('name', 'sort_order'),
+        });
 };
 
 const editingId = ref(null);
 const editForm = useForm({
     name: '',
-    sort_order: null,
+    sort_order: '',
 });
 
 const startEdit = (t) => {
     editingId.value = t.id;
     editForm.name = t.name;
-    editForm.sort_order = t.sort_order;
+    editForm.sort_order =
+        t.sort_order != null && t.sort_order !== '' ? String(t.sort_order) : '';
     editForm.clearErrors();
 };
 
@@ -53,16 +62,24 @@ const saveEdit = () => {
     if (!editingId.value) {
         return;
     }
-    editForm.patch(
-        route('organizations.event-types.update', [props.organization.slug, editingId.value]),
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                editingId.value = null;
-                editForm.clearErrors();
+    editForm
+        .transform((data) => ({
+            ...data,
+            sort_order: normalizeSortOrder(data.sort_order),
+        }))
+        .patch(
+            route('organizations.event-types.update', [
+                props.organization.slug,
+                editingId.value,
+            ]),
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    editingId.value = null;
+                    editForm.clearErrors();
+                },
             },
-        },
-    );
+        );
 };
 
 const destroyId = ref(null);
@@ -101,10 +118,6 @@ const runDestroy = () => {
         <template #header>
             <div>
                 <h1 class="ts-heading-page">Event types</h1>
-                <p class="mt-1 text-sm text-brand-blue/70">
-                    Event types drive per-member skill sliders and event configuration. Seeded examples
-                    include Golf, Sales, Public Speaking, and Social Mixer (see database seeder).
-                </p>
             </div>
         </template>
 
