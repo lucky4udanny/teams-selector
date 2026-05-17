@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fix (EventRuleController):** `assertRepeatPairUnique` now includes `scope` in the duplicate check, allowing one team-scoped and one group-scoped "avoid same members" rule per prior event (previously any second rule for the same prior event was rejected regardless of scope).
 - **Fix (EventRuleController):** `repeat_pair` validation plucked bare `'id'` from the `previousEvents()` BelongsToMany query, which joins `events` with `event_previous_event`; PostgreSQL raised `column reference "id" is ambiguous`; fixed by qualifying to `'events.id'`.
 - **UX (rules):** Renamed `repeat_pair` rule display label from "Repeat pair (prior event)" to "Avoid same members (prior event)" — the old name implied the rule *favoured* repeating pairs; updated related hint text in Events/Index and Events/Show.
 - **Fix (Events/Show):** Final tab empty state used `tabUrl('drafts')` which is undefined — replaced with the correct `eventHref('drafts')` (defined on line 58); prevented `ReferenceError` when no finalized assignment exists.

@@ -31,7 +31,7 @@ class EventRuleController extends Controller
         $this->assertGroupScopeAllowed($event, $scope);
         $this->assertConfigValid($type, $validated['config'], $event);
         $this->assertSingletonNotDuplicated($event, $type, $scope);
-        $this->assertRepeatPairUnique($event, $type, $validated['config']);
+        $this->assertRepeatPairUnique($event, $type, $scope, $validated['config']);
 
         $rule = $event->rules()->create([
             'type' => $type,
@@ -64,7 +64,7 @@ class EventRuleController extends Controller
         $this->assertGroupScopeAllowed($event, $scope);
         $this->assertConfigValid($type, $validated['config'], $event);
         $this->assertSingletonNotDuplicated($event, $type, $scope, $rule->id);
-        $this->assertRepeatPairUnique($event, $type, $validated['config'], $rule->id);
+        $this->assertRepeatPairUnique($event, $type, $scope, $validated['config'], $rule->id);
 
         $rule->update([
             'type' => $type,
@@ -122,7 +122,7 @@ class EventRuleController extends Controller
     /**
      * @param  array<string, mixed>  $config
      */
-    private function assertRepeatPairUnique(Event $event, RuleType $type, array $config, ?int $exceptRuleId = null): void
+    private function assertRepeatPairUnique(Event $event, RuleType $type, RuleScope $scope, array $config, ?int $exceptRuleId = null): void
     {
         if ($type !== RuleType::RepeatPair) {
             return;
@@ -136,6 +136,7 @@ class EventRuleController extends Controller
         $q = Rule::query()
             ->where('event_id', $event->id)
             ->where('type', RuleType::RepeatPair)
+            ->where('scope', $scope)
             ->where('config->event_id', $priorId);
 
         if ($exceptRuleId) {
@@ -144,7 +145,7 @@ class EventRuleController extends Controller
 
         if ($q->exists()) {
             throw ValidationException::withMessages([
-                'config' => 'A repeat_pair rule for this prior event already exists.',
+                'config' => 'An "avoid same members" rule for this prior event and scope already exists.',
             ]);
         }
     }
