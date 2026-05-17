@@ -6,6 +6,7 @@ import ProgressRing from '@/Components/ProgressRing.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TeamMemberEditor from '@/Components/TeamMemberEditor.vue';
 import TextInput from '@/Components/TextInput.vue';
+import Toggle from '@/Components/Toggle.vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
 import {
     avgSkill,
@@ -14,7 +15,7 @@ import {
     useExportColumns,
 } from '@/composables/useExportColumns';
 import { applyFormErrors, validateDraftNames } from '@/utils/formValidation';
-import { Bars3Icon, PlusIcon, XMarkIcon } from '@heroicons/vue/20/solid';
+import { ArrowDownTrayIcon, Bars3Icon, ChevronDownIcon, PlusIcon, PrinterIcon, XMarkIcon } from '@heroicons/vue/20/solid';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
@@ -75,6 +76,9 @@ const memberScreenDetails = (mid: number) =>
     buildMemberDetails(mid, memberFullById.value.get(mid), selectedExportColumns.value, memberName(mid));
 
 const handlePrint = () => window.print();
+
+const columnsOpen = ref(false);
+const showViolations = ref(true);
 
 const showSkillColumn = computed(() => selectedExportColumns.value.includes('skill'));
 
@@ -467,11 +471,22 @@ const showViolationPenalty = (v: Violation): boolean =>
             </ul>
         </Alert>
 
-        <!-- Column selection and print -->
+        <!-- Column selection and actions -->
         <div class="mb-6 rounded-xl border border-brand-mist bg-white p-4 shadow-sm">
-            <div class="mb-4">
-                <span class="mb-2 block text-sm font-medium text-brand-navy">Columns</span>
+            <!-- Collapsible columns header -->
+            <button
+                type="button"
+                class="flex w-full items-center justify-between text-sm font-medium text-brand-navy"
+                @click="columnsOpen = !columnsOpen"
+            >
+                Columns
+                <ChevronDownIcon
+                    class="h-4 w-4 text-brand-blue/50 transition-transform duration-200"
+                    :class="{ 'rotate-180': columnsOpen }"
+                />
+            </button>
 
+            <div v-show="columnsOpen" class="mt-3 mb-4 space-y-3">
                 <!-- Selected columns — drag to reorder -->
                 <div class="flex min-h-[48px] flex-wrap gap-2 rounded-lg border border-brand-mist bg-brand-mist/20 p-3">
                     <p v-if="!selectedExportColumns.length" class="text-sm italic text-brand-blue/50">
@@ -500,7 +515,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                 </div>
 
                 <!-- Available columns to add -->
-                <div v-if="availableExportColumns.length" class="mt-3">
+                <div v-if="availableExportColumns.length">
                     <span class="mb-1.5 block text-xs text-brand-blue/60">Add columns</span>
                     <div class="flex flex-wrap gap-1.5">
                         <button
@@ -517,13 +532,21 @@ const showViolationPenalty = (v: Violation): boolean =>
                 </div>
             </div>
 
-            <button
-                type="button"
-                class="text-sm font-medium text-brand-blue hover:underline"
-                @click="handlePrint"
-            >
-                Print
-            </button>
+            <!-- Actions: print icon button + violations toggle -->
+            <div class="flex flex-wrap items-center gap-3 border-t border-brand-mist pt-4">
+                <button
+                    type="button"
+                    title="Print"
+                    aria-label="Print"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-brand-mist bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-brand-mist/30"
+                    @click="handlePrint"
+                >
+                    <PrinterIcon class="h-4 w-4" />
+                    Print
+                </button>
+
+                <Toggle v-model="showViolations" label="Show violations" class="ml-2" />
+            </div>
         </div>
 
         <!-- Grouped view -->
@@ -546,7 +569,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                     >Avg skill: {{ groupAvgSkill.get(gi) }}</span>
                 </div>
                 <ul
-                    v-if="groupViolations.get(gi)?.length"
+                    v-if="showViolations && groupViolations.get(gi)?.length"
                     class="mb-4 space-y-1"
                 >
                     <li
@@ -625,7 +648,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                                 </li>
                             </ul>
                             <ul
-                                v-if="teamViolations.get(ti)?.length"
+                                v-if="showViolations && teamViolations.get(ti)?.length"
                                 class="mt-3 space-y-1 border-t border-amber-100 pt-3"
                             >
                                 <li
@@ -711,7 +734,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                         </li>
                     </ul>
                     <ul
-                        v-if="teamViolations.get(ti)?.length"
+                        v-if="showViolations && teamViolations.get(ti)?.length"
                         class="mt-3 space-y-1 border-t border-amber-100 pt-3"
                     >
                         <li

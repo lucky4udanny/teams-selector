@@ -19,7 +19,7 @@ import Toggle from '@/Components/Toggle.vue';
 import WeightSlider from '@/Components/WeightSlider.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
-import { Bars3Icon, PlusIcon, XMarkIcon } from '@heroicons/vue/20/solid';
+import { ArrowDownTrayIcon, Bars3Icon, ChevronDownIcon, PlusIcon, PrinterIcon, XMarkIcon } from '@heroicons/vue/20/solid';
 import {
     applyFormErrors,
     validateEventDetails,
@@ -852,6 +852,9 @@ const finalBlockingErrors = computed(() =>
     Array.isArray(finalState.value?.blocking_errors) ? finalState.value.blocking_errors : [],
 );
 
+const columnsOpen = ref(false);
+const showViolations = ref(true);
+
 const showSkillColumn = computed(() => selectedExportColumns.value.includes('skill'));
 
 const finalTeamAvgSkill = computed(() => {
@@ -918,7 +921,7 @@ const groupDisplayLabel = (gi, names) => {
                         : 'bg-brand-mist/80 text-brand-navy hover:bg-brand-mist'
                 "
             >
-                {{ t === 'drafts' ? 'Team Drafts' : t.charAt(0).toUpperCase() + t.slice(1) }}
+                {{ t === 'drafts' ? 'Teams' : t.charAt(0).toUpperCase() + t.slice(1) }}
             </Link>
         </nav>
 
@@ -1392,82 +1395,118 @@ const groupDisplayLabel = (gi, names) => {
                     <span class="font-medium text-brand-blue/80">
                         Penalty: {{ finalState.total_penalty ?? '—' }}
                     </span>
-                    <span
-                        v-if="finalViolationCount > 0"
-                        class="font-medium text-amber-700"
-                    >
-                        {{ finalViolationCount }} violation{{ finalViolationCount === 1 ? '' : 's' }}
-                    </span>
-                    <span v-else class="text-green-700">No violations</span>
+                    <template v-if="showViolations">
+                        <span
+                            v-if="finalViolationCount > 0"
+                            class="font-medium text-amber-700"
+                        >
+                            {{ finalViolationCount }} violation{{ finalViolationCount === 1 ? '' : 's' }}
+                        </span>
+                        <span v-else class="text-green-700">No violations</span>
+                    </template>
                 </div>
 
-                <Alert v-if="finalBlockingErrors.length" variant="error" class="text-xs">
+                <Alert v-if="showViolations && finalBlockingErrors.length" variant="error" class="text-xs">
                     {{ finalBlockingErrors.join('; ') }}
                 </Alert>
 
-                <!-- Column selection and ordering -->
+                <!-- Column selection — collapsible -->
                 <div class="border-t border-green-200 pt-5">
-                    <span class="mb-2 block text-sm font-medium text-brand-navy">Columns</span>
-
-                    <!-- Selected columns — drag to reorder -->
-                    <div class="flex min-h-[48px] flex-wrap gap-2 rounded-lg border border-green-200 bg-white p-3">
-                        <p v-if="!selectedExportColumns.length" class="text-sm italic text-brand-blue/50">
-                            No columns selected — nothing will export.
-                        </p>
-                        <div
-                            v-for="(col, idx) in selectedExportColumns"
-                            :key="col"
-                            draggable="true"
-                            class="inline-flex cursor-grab select-none items-center gap-1 rounded-md bg-brand-blue/10 px-2 py-1 text-xs font-medium text-brand-navy transition-opacity"
-                            :class="{ 'opacity-40': dragColIdx === idx }"
-                            @dragstart="onColDragStart(idx)"
-                            @dragover.prevent="onColDragOver(idx)"
-                            @dragend="onColDragEnd"
-                        >
-                            <Bars3Icon class="h-3.5 w-3.5 shrink-0 text-brand-blue/40" />
-                            {{ exportColumnLabel(col) }}
-                            <button
-                                type="button"
-                                class="ml-1 text-brand-blue/50 hover:text-brand-navy"
-                                @click.stop="removeExportColumn(col)"
-                            >
-                                <XMarkIcon class="h-3.5 w-3.5" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Available columns to add -->
-                    <div v-if="availableExportColumns.length" class="mt-3">
-                        <span class="mb-1.5 block text-xs text-brand-blue/60">Add columns</span>
-                        <div class="flex flex-wrap gap-1.5">
-                            <button
-                                v-for="col in availableExportColumns"
-                                :key="col.value"
-                                type="button"
-                                class="inline-flex items-center gap-1 rounded-md border border-brand-mist bg-white px-2 py-1 text-xs font-medium text-brand-blue/70 transition-colors hover:border-brand-blue/30 hover:text-brand-navy"
-                                @click="addExportColumn(col.value)"
-                            >
-                                <PlusIcon class="h-3 w-3" />
-                                {{ col.label }}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Export actions -->
-                <div class="flex flex-wrap gap-3">
                     <button
                         type="button"
-                        class="font-medium text-brand-blue hover:underline"
-                        @click="handlePrint"
-                    >Print</button>
-                    <a :href="csvExportUrl" class="font-medium text-brand-blue hover:underline">Download CSV</a>
-                    <a :href="xlsxExportUrl" class="font-medium text-brand-blue hover:underline">Download Excel</a>
+                        class="flex w-full items-center justify-between text-sm font-medium text-brand-navy"
+                        @click="columnsOpen = !columnsOpen"
+                    >
+                        Columns
+                        <ChevronDownIcon
+                            class="h-4 w-4 text-brand-blue/50 transition-transform duration-200"
+                            :class="{ 'rotate-180': columnsOpen }"
+                        />
+                    </button>
+
+                    <div v-show="columnsOpen" class="mt-3 space-y-3">
+                        <!-- Selected columns — drag to reorder -->
+                        <div class="flex min-h-[48px] flex-wrap gap-2 rounded-lg border border-green-200 bg-white p-3">
+                            <p v-if="!selectedExportColumns.length" class="text-sm italic text-brand-blue/50">
+                                No columns selected — nothing will export.
+                            </p>
+                            <div
+                                v-for="(col, idx) in selectedExportColumns"
+                                :key="col"
+                                draggable="true"
+                                class="inline-flex cursor-grab select-none items-center gap-1 rounded-md bg-brand-blue/10 px-2 py-1 text-xs font-medium text-brand-navy transition-opacity"
+                                :class="{ 'opacity-40': dragColIdx === idx }"
+                                @dragstart="onColDragStart(idx)"
+                                @dragover.prevent="onColDragOver(idx)"
+                                @dragend="onColDragEnd"
+                            >
+                                <Bars3Icon class="h-3.5 w-3.5 shrink-0 text-brand-blue/40" />
+                                {{ exportColumnLabel(col) }}
+                                <button
+                                    type="button"
+                                    class="ml-1 text-brand-blue/50 hover:text-brand-navy"
+                                    @click.stop="removeExportColumn(col)"
+                                >
+                                    <XMarkIcon class="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Available columns to add -->
+                        <div v-if="availableExportColumns.length">
+                            <span class="mb-1.5 block text-xs text-brand-blue/60">Add columns</span>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button
+                                    v-for="col in availableExportColumns"
+                                    :key="col.value"
+                                    type="button"
+                                    class="inline-flex items-center gap-1 rounded-md border border-brand-mist bg-white px-2 py-1 text-xs font-medium text-brand-blue/70 transition-colors hover:border-brand-blue/30 hover:text-brand-navy"
+                                    @click="addExportColumn(col.value)"
+                                >
+                                    <PlusIcon class="h-3 w-3" />
+                                    {{ col.label }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Revert -->
-                <div v-if="canRevertFinal" class="flex flex-wrap gap-3 border-t border-green-200 pt-5">
-                    <DangerButton type="button" @click="showRevert = true">Revert to draft</DangerButton>
+                <!-- Actions: export icon buttons + violations toggle + revert -->
+                <div class="flex flex-wrap items-center gap-3 border-t border-green-200 pt-5">
+                    <button
+                        type="button"
+                        title="Print"
+                        aria-label="Print"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-green-50"
+                        @click="handlePrint"
+                    >
+                        <PrinterIcon class="h-4 w-4" />
+                        Print
+                    </button>
+                    <a
+                        :href="csvExportUrl"
+                        title="Download CSV"
+                        aria-label="Download CSV"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-green-50"
+                    >
+                        <ArrowDownTrayIcon class="h-4 w-4" />
+                        CSV
+                    </a>
+                    <a
+                        :href="xlsxExportUrl"
+                        title="Download Excel"
+                        aria-label="Download Excel"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-green-50"
+                    >
+                        <ArrowDownTrayIcon class="h-4 w-4" />
+                        XLS
+                    </a>
+
+                    <Toggle v-model="showViolations" label="Show violations" class="ml-2" />
+
+                    <DangerButton v-if="canRevertFinal" type="button" class="ml-auto" @click="showRevert = true">
+                        Revert to draft
+                    </DangerButton>
                 </div>
 
                 <!-- Grouped view -->
