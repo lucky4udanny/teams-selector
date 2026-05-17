@@ -7,8 +7,8 @@
  */
 
 export const ROSTER_SORT_COLUMNS = [
-    { value: 'last_name', label: 'Last name' },
-    { value: 'first_name', label: 'First name' },
+    { value: 'last_name', label: 'Last Name' },
+    { value: 'first_name', label: 'First Name' },
     { value: 'email', label: 'Email' },
     { value: 'sector', label: 'Sector' },
     { value: 'status', label: 'Status' },

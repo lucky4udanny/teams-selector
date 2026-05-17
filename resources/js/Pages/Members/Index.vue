@@ -9,6 +9,7 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 import SkillSlider from '@/Components/SkillSlider.vue';
 import TextInput from '@/Components/TextInput.vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
+import { loadMemberSortPreference, saveMemberSortPreference } from '@/utils/memberSort';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
@@ -249,8 +250,9 @@ const restore = (id) => {
 };
 
 // ── Table sorting ──────────────────────────────────────────────────────────
-const sortKey = ref('name');
-const sortDir = ref('asc');
+const { key: initialKey, dir: initialDir } = loadMemberSortPreference(props.organization.slug);
+const sortKey = ref(initialKey);
+const sortDir = ref(initialDir);
 
 const toggleSort = (key) => {
     if (sortKey.value === key) {
@@ -259,11 +261,14 @@ const toggleSort = (key) => {
         sortKey.value = key;
         sortDir.value = 'asc';
     }
+    saveMemberSortPreference(props.organization.slug, { key: sortKey.value, dir: sortDir.value });
 };
 
 const getSortValue = (m, key) => {
     switch (key) {
         case 'name':
+            return `${m.last_name ?? ''} ${m.first_name ?? ''}`.trim().toLowerCase();
+        case 'first_name':
             return `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim().toLowerCase();
         case 'company':
             return (m.company ?? '').toLowerCase();
@@ -333,10 +338,25 @@ const sortedMembers = computed(() => {
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1 hover:text-brand-navy"
+                                class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
+                                @click="toggleSort('first_name')"
+                            >
+                                First Name
+                                <span class="text-[10px]" aria-hidden="true">
+                                    <template v-if="sortKey === 'first_name'">
+                                        {{ sortDir === 'asc' ? '▲' : '▼' }}
+                                    </template>
+                                    <template v-else>⇅</template>
+                                </span>
+                            </button>
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
                                 @click="toggleSort('name')"
                             >
-                                Name
+                                Last Name
                                 <span class="text-[10px]" aria-hidden="true">
                                     <template v-if="sortKey === 'name'">
                                         {{ sortDir === 'asc' ? '▲' : '▼' }}
@@ -351,7 +371,7 @@ const sortedMembers = computed(() => {
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1 hover:text-brand-navy"
+                                class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
                                 @click="toggleSort('company')"
                             >
                                 Org / Company
@@ -366,7 +386,7 @@ const sortedMembers = computed(() => {
                         <th class="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70 md:table-cell">
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1 hover:text-brand-navy"
+                                class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
                                 @click="toggleSort('sector')"
                             >
                                 Sector
@@ -393,8 +413,10 @@ const sortedMembers = computed(() => {
                         :class="m.deleted_at ? 'bg-brand-cream/80 opacity-80' : ''"
                     >
                         <td class="px-4 py-3 text-sm text-brand-navy">
-                            {{ m.first_name }}
-                            <span v-if="m.last_name">{{ ' ' + m.last_name }}</span>
+                            {{ m.first_name || '—' }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-brand-navy">
+                            {{ m.last_name || '—' }}
                         </td>
                         <td class="px-4 py-3 text-sm text-brand-blue/80">
                             <div>{{ m.email || '—' }}</div>

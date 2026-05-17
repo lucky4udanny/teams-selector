@@ -938,67 +938,67 @@ const groupDisplayLabel = (gi, names) => {
                                     @change="toggleSelectAll(rosterIncluded, $event.target.checked)"
                                 />
                             </th>
-                            <th class="px-3 py-2 text-left">
+                            <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
                                 <button
                                     type="button"
-                                    class="group inline-flex items-center gap-1 font-semibold text-brand-navy hover:text-brand-blue"
+                                    class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
                                     @click="setRosterSort('last_name')"
                                 >
                                     Member
-                                    <span class="text-brand-blue/40 group-hover:text-brand-blue">
+                                    <span class="text-[10px]" aria-hidden="true">
                                         <template v-if="rosterSort.column === 'last_name'">
-                                            {{ rosterSort.direction === 'asc' ? '↑' : '↓' }}
+                                            {{ rosterSort.direction === 'asc' ? '▲' : '▼' }}
                                         </template>
-                                        <template v-else>↕</template>
+                                        <template v-else>⇅</template>
                                     </span>
                                 </button>
                             </th>
-                            <th class="px-3 py-2 text-left">
+                            <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
                                 <button
                                     type="button"
-                                    class="group inline-flex items-center gap-1 font-semibold text-brand-navy hover:text-brand-blue"
+                                    class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
                                     @click="setRosterSort('included')"
                                 >
                                     Included
-                                    <span class="text-brand-blue/40 group-hover:text-brand-blue">
+                                    <span class="text-[10px]" aria-hidden="true">
                                         <template v-if="rosterSort.column === 'included'">
-                                            {{ rosterSort.direction === 'asc' ? '↑' : '↓' }}
+                                            {{ rosterSort.direction === 'asc' ? '▲' : '▼' }}
                                         </template>
-                                        <template v-else>↕</template>
+                                        <template v-else>⇅</template>
                                     </span>
                                 </button>
                             </th>
-                            <th class="px-3 py-2 text-left">
+                            <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
                                 <button
                                     type="button"
-                                    class="group inline-flex items-center gap-1 font-semibold text-brand-navy hover:text-brand-blue"
+                                    class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
                                     @click="setRosterSort('invited')"
                                 >
                                     Invited
-                                    <span class="text-brand-blue/40 group-hover:text-brand-blue">
+                                    <span class="text-[10px]" aria-hidden="true">
                                         <template v-if="rosterSort.column === 'invited'">
-                                            {{ rosterSort.direction === 'asc' ? '↑' : '↓' }}
+                                            {{ rosterSort.direction === 'asc' ? '▲' : '▼' }}
                                         </template>
-                                        <template v-else>↕</template>
+                                        <template v-else>⇅</template>
                                     </span>
                                 </button>
                             </th>
-                            <th class="px-3 py-2 text-left">
+                            <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
                                 <button
                                     type="button"
-                                    class="group inline-flex items-center gap-1 font-semibold text-brand-navy hover:text-brand-blue"
+                                    class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
                                     @click="setRosterSort('status')"
                                 >
                                     Status
-                                    <span class="text-brand-blue/40 group-hover:text-brand-blue">
+                                    <span class="text-[10px]" aria-hidden="true">
                                         <template v-if="rosterSort.column === 'status'">
-                                            {{ rosterSort.direction === 'asc' ? '↑' : '↓' }}
+                                            {{ rosterSort.direction === 'asc' ? '▲' : '▼' }}
                                         </template>
-                                        <template v-else>↕</template>
+                                        <template v-else>⇅</template>
                                     </span>
                                 </button>
                             </th>
-                            <th class="px-3 py-2 text-left font-semibold text-brand-navy">Notes</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">Notes</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-brand-mist">
@@ -1074,9 +1074,9 @@ const groupDisplayLabel = (gi, names) => {
                                         @change="toggleSelectAll(rosterWaiting, $event.target.checked)"
                                     />
                                 </th>
-                                <th class="px-3 py-2 text-left">Member</th>
-                                <th class="px-3 py-2 text-left">Include</th>
-                                <th class="px-3 py-2 text-left">Status</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">Member</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">Include</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">Status</th>
                             </tr>
                         </thead>
                         <tbody>
