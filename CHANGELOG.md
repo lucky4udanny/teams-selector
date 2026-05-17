@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Feat (Drafts/Merge):** Merged the "Drafts" and "Final Teams" tabs into a single "Team Drafts" tab; `?tab=final` now redirects to `?tab=drafts`; the finalized draft is loaded alongside the draft list when `tab=drafts` and rendered at the top of the page inside a green success card with the full team grid, column selector, print/CSV/Excel export, and violation summary; non-final drafts appear below as summary cards; the column selector and print tools are also available on every individual draft via `TeamDrafts/Show.vue`.
+
+- **Feat (Drafts/Skill Column):** Added a "Skill" column option to the export column selector; `EventController` and `TeamDraftController` now load the event-type skill level for every org member and include `skill_level` in the `orgMembers` payload; `buildMemberDetails()` renders the skill value when the column is selected; `TeamDrafts/Show.vue` now shows richer per-member cards (sector, email, skill, etc.) driven by the same column selection.
+
+- **Refactor (ExportColumns):** Extracted column options, `buildMemberDetails`, and drag-reorder state into a shared `useExportColumns` composable (`resources/js/composables/useExportColumns.ts`) to eliminate duplication between `Events/Show.vue` and `TeamDrafts/Show.vue`; both pages share the same `localStorage` key so column settings persist and stay in sync.
+
 - **Fix (TeamSolver/Skills):** Members with no skill record for the event type now receive a default skill level of 50 (neutral midpoint) instead of 0; 0 remains a valid assigned skill level and is not affected; the default is applied in `skillLevelsForEvent()` so the skill map is always complete, with `averageSkill()` carrying a matching `?? 50` fallback.
 
 - **Feat (Drafts/Violations):** Violations are now displayed inline per team and group in the draft view; `TeamSolverService` enriches each violation with structured fields (`team_index`, `group_index`, `member_ids`, `avg_skill`/`min_avg`/`max_avg` for skill levelling, `offending_member_ids`/`attribute_value_label` for attribute rules); the frontend renders human-readable English bullets under each team panel and group heading (e.g. "Alice and Bob share sector Finance") with a score shown for variable-penalty violations; event-level violations (preferred pair separated) appear in the summary alert at the top; sector names are resolved server-side via a single Sector lookup.

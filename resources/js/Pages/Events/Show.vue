@@ -31,6 +31,12 @@ import {
     saveRosterSortPreference,
     sortRosterRows,
 } from '@/utils/rosterSort';
+import {
+    avgSkill,
+    buildMemberDetails,
+    exportColumnOptions,
+    useExportColumns,
+} from '@/composables/useExportColumns';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 
@@ -73,90 +79,17 @@ const scopeLabels = {
     group: 'Group',
 };
 
-const exportColumnOptions = [
-    { value: 'team_index', label: 'Team #' },
-    { value: 'team_name', label: 'Team name' },
-    { value: 'group_index', label: 'Group #' },
-    { value: 'group_name', label: 'Group name' },
-    { value: 'member_id', label: 'Member ID' },
-    { value: 'display_name', label: 'Display name' },
-    { value: 'first_name', label: 'First name' },
-    { value: 'last_name', label: 'Last name' },
-    { value: 'email', label: 'Email' },
-    { value: 'phone', label: 'Phone' },
-    { value: 'company', label: 'Company' },
-    { value: 'sector', label: 'Sector' },
-    { value: 'notes', label: 'Notes' },
-];
-
-const EXPORT_COLUMNS_STORAGE_KEY = 'ts:exportColumns';
-
-const loadStoredExportColumns = () => {
-    try {
-        const stored = localStorage.getItem(EXPORT_COLUMNS_STORAGE_KEY);
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed)) {
-                const valid = parsed.filter((v) =>
-                    exportColumnOptions.some((o) => o.value === v),
-                );
-                if (valid.length) return valid;
-            }
-        }
-    } catch {
-        // ignore parse/storage errors
-    }
-    return exportColumnOptions.map((c) => c.value);
-};
-
-const selectedExportColumns = ref(loadStoredExportColumns());
-
-watch(
+const {
     selectedExportColumns,
-    (cols) => {
-        try {
-            localStorage.setItem(EXPORT_COLUMNS_STORAGE_KEY, JSON.stringify(cols));
-        } catch {
-            // ignore storage errors
-        }
-    },
-);
-
-const dragColIdx = ref(null);
-
-const exportColumnLabel = (value) =>
-    exportColumnOptions.find((o) => o.value === value)?.label ?? value;
-
-const availableExportColumns = computed(() =>
-    exportColumnOptions.filter((o) => !selectedExportColumns.value.includes(o.value)),
-);
-
-const removeExportColumn = (value) => {
-    selectedExportColumns.value = selectedExportColumns.value.filter((v) => v !== value);
-};
-
-const addExportColumn = (value) => {
-    if (!selectedExportColumns.value.includes(value)) {
-        selectedExportColumns.value = [...selectedExportColumns.value, value];
-    }
-};
-
-const onColDragStart = (idx) => {
-    dragColIdx.value = idx;
-};
-
-const onColDragOver = (idx) => {
-    if (dragColIdx.value === null || dragColIdx.value === idx) return;
-    const cols = [...selectedExportColumns.value];
-    const [item] = cols.splice(dragColIdx.value, 1);
-    cols.splice(idx, 0, item);
-    selectedExportColumns.value = cols;
-    dragColIdx.value = idx;
-};
-
-const onColDragEnd = () => {
-    dragColIdx.value = null;
-};
+    dragColIdx,
+    exportColumnLabel,
+    availableExportColumns,
+    removeExportColumn,
+    addExportColumn,
+    onColDragStart,
+    onColDragOver,
+    onColDragEnd,
+} = useExportColumns();
 
 const handlePrint = async () => {
     let html;
@@ -824,48 +757,8 @@ const memberFullById = computed(() => {
     return m;
 });
 
-const memberScreenDetails = (mid) => {
-    const m = memberFullById.value.get(mid);
-    const raw = selectedExportColumns.value.reduce((acc, col) => {
-        if (col === 'display_name') {
-            acc.push({ key: 'display_name', value: m?.display_name || displayMember(mid), isName: true });
-        } else if (col === 'first_name' && m?.first_name) {
-            acc.push({ key: 'first_name', value: m.first_name, isName: true });
-        } else if (col === 'last_name' && m?.last_name) {
-            acc.push({ key: 'last_name', value: m.last_name, isName: true });
-        } else if (col === 'member_id') {
-            acc.push({ key: 'id', value: `#${mid}` });
-        } else if (col === 'email' && m?.email) {
-            acc.push({ key: 'email', value: m.email });
-        } else if (col === 'phone' && m?.phone) {
-            acc.push({ key: 'phone', value: m.phone });
-        } else if (col === 'company' && m?.company) {
-            acc.push({ key: 'company', value: m.company });
-        } else if (col === 'sector' && m?.sector?.name) {
-            acc.push({ key: 'sector', value: m.sector.name });
-        } else if (col === 'notes' && m?.notes) {
-            acc.push({ key: 'notes', value: m.notes });
-        }
-        return acc;
-    }, []);
-
-    // Merge adjacent first_name + last_name (in either order) onto one line
-    const result = [];
-    for (let i = 0; i < raw.length; i++) {
-        const curr = raw[i];
-        const next = raw[i + 1];
-        const adjacent =
-            (curr.key === 'first_name' && next?.key === 'last_name') ||
-            (curr.key === 'last_name' && next?.key === 'first_name');
-        if (adjacent) {
-            result.push({ key: 'full_name', value: `${curr.value} ${next.value}`, isName: true });
-            i++;
-        } else {
-            result.push(curr);
-        }
-    }
-    return result;
-};
+const memberScreenDetails = (mid) =>
+    buildMemberDetails(mid, memberFullById.value.get(mid), selectedExportColumns.value, displayMember(mid));
 
 // Arrange members in a roughly square grid — ceil(√n), max 4 columns
 const memberCardColumns = (count) => Math.min(4, Math.ceil(Math.sqrt(count || 1)));
@@ -950,6 +843,38 @@ const finalTeamNames = computed(() => finalState.value?.team_names || []);
 const finalGroups = computed(() => (Array.isArray(finalState.value?.groups) ? finalState.value.groups : []));
 const finalGroupNames = computed(() => finalState.value?.group_names || []);
 
+const nonFinalDrafts = computed(() => props.team_drafts || []);
+const finalDraftSummary = computed(() => (props.team_drafts || []).find((d) => d.is_final) ?? null);
+const finalViolationCount = computed(() =>
+    Array.isArray(finalState.value?.violations) ? finalState.value.violations.length : 0,
+);
+const finalBlockingErrors = computed(() =>
+    Array.isArray(finalState.value?.blocking_errors) ? finalState.value.blocking_errors : [],
+);
+
+const showSkillColumn = computed(() => selectedExportColumns.value.includes('skill'));
+
+const finalTeamAvgSkill = computed(() => {
+    if (!showSkillColumn.value) return new Map();
+    const m = new Map();
+    finalTeams.value.forEach((team, ti) => {
+        m.set(ti, avgSkill(team.member_ids || [], memberFullById.value));
+    });
+    return m;
+});
+
+const finalGroupAvgSkill = computed(() => {
+    if (!showSkillColumn.value) return new Map();
+    const m = new Map();
+    finalGroups.value.forEach((group, gi) => {
+        const memberIds = (group.team_indices || []).flatMap(
+            (ti) => finalTeams.value[ti]?.member_ids || [],
+        );
+        m.set(gi, avgSkill(memberIds, memberFullById.value));
+    });
+    return m;
+});
+
 const indexToLetter = (i) => String.fromCharCode(65 + i);
 
 const teamDisplayLabel = (ti, names) => {
@@ -983,7 +908,7 @@ const groupDisplayLabel = (gi, names) => {
 
         <nav class="mb-8 flex flex-wrap gap-2 border-b border-brand-mist pb-2">
             <Link
-                v-for="t in ['details', 'roster', 'rules', 'drafts', 'final']"
+                v-for="t in ['details', 'roster', 'rules', 'drafts']"
                 :key="t"
                 :href="eventHref(t)"
                 class="rounded-lg px-3 py-2 text-sm font-medium capitalize"
@@ -993,13 +918,7 @@ const groupDisplayLabel = (gi, names) => {
                         : 'bg-brand-mist/80 text-brand-navy hover:bg-brand-mist'
                 "
             >
-                {{
-                    t === 'final'
-                        ? 'Final Teams'
-                        : t === 'drafts'
-                          ? 'Team Drafts'
-                          : t.charAt(0).toUpperCase() + t.slice(1)
-                }}
+                {{ t === 'drafts' ? 'Team Drafts' : t.charAt(0).toUpperCase() + t.slice(1) }}
             </Link>
         </nav>
 
@@ -1428,7 +1347,7 @@ const groupDisplayLabel = (gi, names) => {
             />
         </section>
 
-        <!-- Drafts -->
+        <!-- Drafts (includes finalized draft at top) -->
         <section v-else-if="tab === 'drafts' && team_drafts" class="space-y-8">
             <Alert
                 v-if="draftsNotice"
@@ -1438,6 +1357,198 @@ const groupDisplayLabel = (gi, names) => {
                 {{ draftsNotice.message }}
             </Alert>
 
+            <!-- ── Final draft ── -->
+            <div v-if="final_draft && finalState" class="space-y-6 rounded-2xl border-2 border-green-300 bg-green-50 p-6 shadow-sm">
+                <!-- Header -->
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <div class="mb-1 flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800 ring-1 ring-inset ring-green-300">
+                                ✓ Final
+                            </span>
+                            <Link
+                                class="font-semibold text-brand-navy hover:underline"
+                                :href="route('organizations.events.team-drafts.show', [organization.slug, event.id, final_draft.id])"
+                            >
+                                {{ finalDraftSummary?.name || `Draft #${final_draft.id}` }}
+                            </Link>
+                        </div>
+                        <p class="text-xs text-brand-blue/60">
+                            {{ finalDraftSummary?.creator_name || 'Unknown' }}
+                            <template v-if="finalDraftSummary?.created_at">
+                                · {{ new Date(finalDraftSummary.created_at).toLocaleString() }}
+                            </template>
+                        </p>
+                    </div>
+                    <ProgressRing
+                        :value="Math.min(finalViolationCount, 20)"
+                        :max="20"
+                        :size="44"
+                    />
+                </div>
+
+                <!-- Penalty / violations summary -->
+                <div class="flex flex-wrap items-center gap-4 text-sm">
+                    <span class="font-medium text-brand-blue/80">
+                        Penalty: {{ finalState.total_penalty ?? '—' }}
+                    </span>
+                    <span
+                        v-if="finalViolationCount > 0"
+                        class="font-medium text-amber-700"
+                    >
+                        {{ finalViolationCount }} violation{{ finalViolationCount === 1 ? '' : 's' }}
+                    </span>
+                    <span v-else class="text-green-700">No violations</span>
+                </div>
+
+                <Alert v-if="finalBlockingErrors.length" variant="error" class="text-xs">
+                    {{ finalBlockingErrors.join('; ') }}
+                </Alert>
+
+                <!-- Column selection and ordering -->
+                <div class="border-t border-green-200 pt-5">
+                    <span class="mb-2 block text-sm font-medium text-brand-navy">Columns</span>
+
+                    <!-- Selected columns — drag to reorder -->
+                    <div class="flex min-h-[48px] flex-wrap gap-2 rounded-lg border border-green-200 bg-white p-3">
+                        <p v-if="!selectedExportColumns.length" class="text-sm italic text-brand-blue/50">
+                            No columns selected — nothing will export.
+                        </p>
+                        <div
+                            v-for="(col, idx) in selectedExportColumns"
+                            :key="col"
+                            draggable="true"
+                            class="inline-flex cursor-grab select-none items-center gap-1 rounded-md bg-brand-blue/10 px-2 py-1 text-xs font-medium text-brand-navy transition-opacity"
+                            :class="{ 'opacity-40': dragColIdx === idx }"
+                            @dragstart="onColDragStart(idx)"
+                            @dragover.prevent="onColDragOver(idx)"
+                            @dragend="onColDragEnd"
+                        >
+                            <Bars3Icon class="h-3.5 w-3.5 shrink-0 text-brand-blue/40" />
+                            {{ exportColumnLabel(col) }}
+                            <button
+                                type="button"
+                                class="ml-1 text-brand-blue/50 hover:text-brand-navy"
+                                @click.stop="removeExportColumn(col)"
+                            >
+                                <XMarkIcon class="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Available columns to add -->
+                    <div v-if="availableExportColumns.length" class="mt-3">
+                        <span class="mb-1.5 block text-xs text-brand-blue/60">Add columns</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button
+                                v-for="col in availableExportColumns"
+                                :key="col.value"
+                                type="button"
+                                class="inline-flex items-center gap-1 rounded-md border border-brand-mist bg-white px-2 py-1 text-xs font-medium text-brand-blue/70 transition-colors hover:border-brand-blue/30 hover:text-brand-navy"
+                                @click="addExportColumn(col.value)"
+                            >
+                                <PlusIcon class="h-3 w-3" />
+                                {{ col.label }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export actions -->
+                <div class="flex flex-wrap gap-3">
+                    <button
+                        type="button"
+                        class="font-medium text-brand-blue hover:underline"
+                        @click="handlePrint"
+                    >Print</button>
+                    <a :href="csvExportUrl" class="font-medium text-brand-blue hover:underline">Download CSV</a>
+                    <a :href="xlsxExportUrl" class="font-medium text-brand-blue hover:underline">Download Excel</a>
+                </div>
+
+                <!-- Revert -->
+                <div v-if="canRevertFinal" class="flex flex-wrap gap-3 border-t border-green-200 pt-5">
+                    <DangerButton type="button" @click="showRevert = true">Revert to draft</DangerButton>
+                </div>
+
+                <!-- Grouped view -->
+                <div v-if="finalGroups.length" class="space-y-8">
+                    <section v-for="(group, gi) in finalGroups" :key="`fg${gi}`">
+                        <div v-if="showGroupLabel" class="mb-4 flex flex-wrap items-baseline gap-2">
+                            <h3 class="text-sm font-semibold uppercase tracking-wide text-brand-blue/60">
+                                {{ groupLabelForDisplay(gi) }}
+                            </h3>
+                            <span
+                                v-if="showSkillColumn && finalGroupAvgSkill.get(gi) != null"
+                                class="text-xs text-brand-blue/50"
+                            >Avg skill: {{ finalGroupAvgSkill.get(gi) }}</span>
+                        </div>
+                        <div class="grid gap-4 lg:grid-cols-2">
+                            <div
+                                v-for="ti in group.team_indices || []"
+                                :key="`ft${ti}`"
+                                class="rounded-xl border border-green-200 bg-white p-4 shadow-sm"
+                            >
+                                <div v-if="showTeamLabel" class="mb-3 flex flex-wrap items-baseline gap-2">
+                                    <h4 class="font-semibold text-brand-navy">{{ teamLabelForDisplay(ti) }}</h4>
+                                    <span
+                                        v-if="showSkillColumn && finalTeamAvgSkill.get(ti) != null"
+                                        class="text-xs text-brand-blue/50"
+                                    >Avg skill: {{ finalTeamAvgSkill.get(ti) }}</span>
+                                </div>
+                                <ul
+                                    class="grid gap-2"
+                                    :style="{ gridTemplateColumns: `repeat(${memberCardColumns(finalTeams[ti]?.member_ids?.length ?? 0)}, 1fr)` }"
+                                >
+                                    <li
+                                        v-for="mid in finalTeams[ti]?.member_ids || []"
+                                        :key="mid"
+                                        class="rounded-lg bg-green-50 px-2.5 py-2"
+                                    >
+                                        <template v-for="d in memberScreenDetails(mid)" :key="d.key">
+                                            <p v-if="d.isName" class="text-sm font-medium leading-snug text-brand-navy">{{ d.value }}</p>
+                                            <span v-else class="block text-xs text-brand-blue/60">{{ d.value }}</span>
+                                        </template>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Flat view (no groups) -->
+                <div v-else class="grid gap-6 lg:grid-cols-2">
+                    <section
+                        v-for="(t, ti) in finalTeams"
+                        :key="`ft${ti}`"
+                        class="rounded-xl border border-green-200 bg-white p-4 shadow-sm"
+                    >
+                        <div v-if="showTeamLabel" class="mb-3 flex flex-wrap items-baseline gap-2">
+                            <h4 class="font-semibold text-brand-navy">{{ teamLabelForDisplay(ti) }}</h4>
+                            <span
+                                v-if="showSkillColumn && finalTeamAvgSkill.get(ti) != null"
+                                class="text-xs text-brand-blue/50"
+                            >Avg skill: {{ finalTeamAvgSkill.get(ti) }}</span>
+                        </div>
+                        <ul
+                            class="grid gap-2"
+                            :style="{ gridTemplateColumns: `repeat(${memberCardColumns(t.member_ids?.length ?? 0)}, 1fr)` }"
+                        >
+                            <li
+                                v-for="mid in t.member_ids || []"
+                                :key="mid"
+                                class="rounded-lg bg-green-50 px-2.5 py-2"
+                            >
+                                <template v-for="d in memberScreenDetails(mid)" :key="d.key">
+                                    <p v-if="d.isName" class="text-sm font-medium leading-snug text-brand-navy">{{ d.value }}</p>
+                                    <span v-else class="block text-xs text-brand-blue/60">{{ d.value }}</span>
+                                </template>
+                            </li>
+                        </ul>
+                    </section>
+                </div>
+            </div>
+
+            <!-- ── Generate form ── -->
             <div class="ts-card-padded">
                 <h2 class="ts-heading-section mb-4">Generate draft</h2>
                 <div class="mb-4 flex flex-wrap gap-3">
@@ -1481,9 +1592,10 @@ const groupDisplayLabel = (gi, names) => {
                 </form>
             </div>
 
-            <div class="grid gap-4 md:grid-cols-2">
+            <!-- ── Non-final draft cards ── -->
+            <div v-if="nonFinalDrafts.length" class="grid gap-4 md:grid-cols-2">
                 <div
-                    v-for="d in team_drafts"
+                    v-for="d in nonFinalDrafts"
                     :key="d.id"
                     class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
                     :class="
@@ -1498,13 +1610,7 @@ const groupDisplayLabel = (gi, names) => {
                         <div>
                             <Link
                                 class="font-semibold text-brand-navy hover:underline"
-                                :href="
-                                    route('organizations.events.team-drafts.show', [
-                                        organization.slug,
-                                        event.id,
-                                        d.id,
-                                    ])
-                                "
+                                :href="route('organizations.events.team-drafts.show', [organization.slug, event.id, d.id])"
                             >
                                 {{ d.name || `Draft #${d.id}` }}
                             </Link>
@@ -1528,13 +1634,7 @@ const groupDisplayLabel = (gi, names) => {
                     <div class="mt-4 flex flex-wrap gap-2">
                         <Link
                             class="text-sm font-medium text-brand-blue hover:underline"
-                            :href="
-                                route('organizations.events.team-drafts.show', [
-                                    organization.slug,
-                                    event.id,
-                                    d.id,
-                                ])
-                            "
+                            :href="route('organizations.events.team-drafts.show', [organization.slug, event.id, d.id])"
                         >
                             Open
                         </Link>
@@ -1547,7 +1647,7 @@ const groupDisplayLabel = (gi, names) => {
                             Set as final
                         </SecondaryButton>
                         <DangerButton
-                            v-if="canManage && !d.is_final"
+                            v-if="canManage"
                             type="button"
                             class="text-sm"
                             @click="showDeleteDraft = d.id"
@@ -1557,154 +1657,7 @@ const groupDisplayLabel = (gi, names) => {
                     </div>
                 </div>
             </div>
-        </section>
-
-        <!-- Final -->
-        <section v-else-if="tab === 'final'" class="space-y-6">
-            <template v-if="final_draft && finalState">
-                <div class="ts-card-padded">
-                    <h2 class="ts-heading-section mb-4">Export</h2>
-
-                    <!-- Column selection and ordering -->
-                    <div class="mb-5">
-                        <span class="mb-2 block text-sm font-medium text-brand-navy">Columns</span>
-
-                        <!-- Selected columns — drag to reorder -->
-                        <div class="flex min-h-[48px] flex-wrap gap-2 rounded-lg border border-brand-mist bg-white p-3">
-                            <p v-if="!selectedExportColumns.length" class="text-sm italic text-brand-blue/50">
-                                No columns selected — nothing will export.
-                            </p>
-                            <div
-                                v-for="(col, idx) in selectedExportColumns"
-                                :key="col"
-                                draggable="true"
-                                class="inline-flex cursor-grab select-none items-center gap-1 rounded-md bg-brand-blue/10 px-2 py-1 text-xs font-medium text-brand-navy transition-opacity"
-                                :class="{ 'opacity-40': dragColIdx === idx }"
-                                @dragstart="onColDragStart(idx)"
-                                @dragover.prevent="onColDragOver(idx)"
-                                @dragend="onColDragEnd"
-                            >
-                                <Bars3Icon class="h-3.5 w-3.5 shrink-0 text-brand-blue/40" />
-                                {{ exportColumnLabel(col) }}
-                                <button
-                                    type="button"
-                                    class="ml-1 text-brand-blue/50 hover:text-brand-navy"
-                                    @click.stop="removeExportColumn(col)"
-                                >
-                                    <XMarkIcon class="h-3.5 w-3.5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Available columns to add -->
-                        <div v-if="availableExportColumns.length" class="mt-3">
-                            <span class="mb-1.5 block text-xs text-brand-blue/60">Add columns</span>
-                            <div class="flex flex-wrap gap-1.5">
-                                <button
-                                    v-for="col in availableExportColumns"
-                                    :key="col.value"
-                                    type="button"
-                                    class="inline-flex items-center gap-1 rounded-md border border-brand-mist bg-white px-2 py-1 text-xs font-medium text-brand-blue/70 transition-colors hover:border-brand-blue/30 hover:text-brand-navy"
-                                    @click="addExportColumn(col.value)"
-                                >
-                                    <PlusIcon class="h-3 w-3" />
-                                    {{ col.label }}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Export actions -->
-                    <div class="flex flex-wrap gap-3">
-                        <button
-                            type="button"
-                            class="font-medium text-brand-blue hover:underline"
-                            @click="handlePrint"
-                        >Print</button>
-                        <a
-                            :href="csvExportUrl"
-                            class="font-medium text-brand-blue hover:underline"
-                        >Download CSV</a>
-                        <a
-                            :href="xlsxExportUrl"
-                            class="font-medium text-brand-blue hover:underline"
-                        >Download Excel</a>
-                    </div>
-                </div>
-
-                <div v-if="canRevertFinal" class="flex flex-wrap gap-3">
-                    <DangerButton type="button" @click="showRevert = true">Revert to draft</DangerButton>
-                </div>
-
-                <!-- Grouped view -->
-                <div v-if="finalGroups.length" class="space-y-8">
-                    <section v-for="(group, gi) in finalGroups" :key="`fg${gi}`">
-                        <h3 v-if="showGroupLabel" class="mb-4 text-sm font-semibold uppercase tracking-wide text-brand-blue/60">
-                            {{ groupLabelForDisplay(gi) }}
-                        </h3>
-                        <div class="grid gap-4 lg:grid-cols-2">
-                            <div
-                                v-for="ti in group.team_indices || []"
-                                :key="`ft${ti}`"
-                                class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
-                            >
-                                <h4 v-if="showTeamLabel" class="mb-3 font-semibold text-brand-navy">
-                                    {{ teamLabelForDisplay(ti) }}
-                                </h4>
-                                <ul
-                                    class="grid gap-2"
-                                    :style="{ gridTemplateColumns: `repeat(${memberCardColumns(finalTeams[ti]?.member_ids?.length ?? 0)}, 1fr)` }"
-                                >
-                                    <li
-                                        v-for="mid in finalTeams[ti]?.member_ids || []"
-                                        :key="mid"
-                                        class="rounded-lg bg-brand-blue/5 px-2.5 py-2"
-                                    >
-                                        <template v-for="d in memberScreenDetails(mid)" :key="d.key">
-                                            <p v-if="d.isName" class="text-sm font-medium leading-snug text-brand-navy">{{ d.value }}</p>
-                                            <span v-else class="block text-xs text-brand-blue/60">{{ d.value }}</span>
-                                        </template>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                <!-- Flat view (no groups) -->
-                <div v-else class="grid gap-6 lg:grid-cols-2">
-                    <section
-                        v-for="(t, ti) in finalTeams"
-                        :key="`ft${ti}`"
-                        class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
-                    >
-                        <h4 v-if="showTeamLabel" class="mb-3 font-semibold text-brand-navy">
-                            {{ teamLabelForDisplay(ti) }}
-                        </h4>
-                        <ul
-                            class="grid gap-2"
-                            :style="{ gridTemplateColumns: `repeat(${memberCardColumns(t.member_ids?.length ?? 0)}, 1fr)` }"
-                        >
-                            <li
-                                v-for="mid in t.member_ids || []"
-                                :key="mid"
-                                class="rounded-lg bg-brand-blue/5 px-2.5 py-2"
-                            >
-                                <template v-for="d in memberScreenDetails(mid)" :key="d.key">
-                                    <p v-if="d.isName" class="text-sm font-medium leading-snug text-brand-navy">{{ d.value }}</p>
-                                    <span v-else class="block text-xs text-brand-blue/60">{{ d.value }}</span>
-                                </template>
-                            </li>
-                        </ul>
-                    </section>
-                </div>
-            </template>
-            <EmptyState
-                v-else
-                title="No finalized assignment"
-                description="Finalize a team draft to see groups and export links here."
-                :href="eventHref('drafts')"
-            />
+            <p v-else-if="!final_draft" class="text-sm text-brand-blue/60">No drafts yet. Generate one above.</p>
         </section>
 
         <!-- Fallback -->

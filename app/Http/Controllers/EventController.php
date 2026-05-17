@@ -9,6 +9,7 @@ use App\Http\Controllers\Concerns\ProvidesOrganizationProps;
 use App\Models\Event;
 use App\Models\EventType;
 use App\Models\Member;
+use App\Models\MemberEventTypeSkill;
 use App\Models\Organization;
 use App\Models\Rule;
 use Illuminate\Http\RedirectResponse;
@@ -76,16 +77,29 @@ class EventController extends Controller
             ->with('status', 'Event "'.$validated['name'].'" was created.');
     }
 
-    public function show(Request $request, Organization $organization, Event $event): Response
+    public function show(Request $request, Organization $organization, Event $event): Response|RedirectResponse
     {
         $this->authorize('view', $event);
 
         $tab = $request->query('tab', 'details');
-        if (! in_array($tab, ['details', 'roster', 'rules', 'drafts', 'final'], true)) {
+        if ($tab === 'final') {
+            return redirect()->to(
+                route('organizations.events.show', [
+                    'organization' => $organization->slug,
+                    'event' => $event->id,
+                ]).'?tab=drafts'
+            );
+        }
+        if (! in_array($tab, ['details', 'roster', 'rules', 'drafts'], true)) {
             $tab = 'details';
         }
 
         $event->load(['eventType', 'finalTeamDraft', 'previousEvents']);
+
+        $eventSkills = MemberEventTypeSkill::query()
+            ->where('event_type_id', $event->event_type_id)
+            ->pluck('skill_level', 'member_id')
+            ->all();
 
         $membersPick = Member::query()
             ->where('organization_id', $organization->id)
@@ -103,6 +117,7 @@ class EventController extends Controller
                 'company' => $m->company,
                 'sector' => $m->sector?->only(['id', 'name']),
                 'notes' => $m->notes,
+                'skill_level' => isset($eventSkills[$m->id]) ? (int) $eventSkills[$m->id] : null,
             ]);
 
         $payload = [
@@ -168,6 +183,7 @@ class EventController extends Controller
 
         if ($tab === 'drafts') {
             $payload['team_drafts'] = $event->teamDrafts()
+                ->where('is_final', false)
                 ->with('createdBy:id,name')
                 ->orderByDesc('id')
                 ->get()
@@ -186,13 +202,13 @@ class EventController extends Controller
                         'blocking_errors' => $state['blocking_errors'] ?? [],
                     ];
                 });
-        }
 
-        if ($tab === 'final' && $event->finalTeamDraft) {
-            $payload['final_draft'] = [
-                'id' => $event->finalTeamDraft->id,
-                'state' => $event->finalTeamDraft->state,
-            ];
+            if ($event->finalTeamDraft) {
+                $payload['final_draft'] = [
+                    'id' => $event->finalTeamDraft->id,
+                    'state' => $event->finalTeamDraft->state,
+                ];
+            }
         }
 
         return Inertia::render('Events/Show', $payload);

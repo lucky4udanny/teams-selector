@@ -6,6 +6,7 @@ use App\Enums\EventMemberStatus;
 use App\Http\Controllers\Concerns\ProvidesOrganizationProps;
 use App\Models\Event;
 use App\Models\Member;
+use App\Models\MemberEventTypeSkill;
 use App\Models\Organization;
 use App\Models\TeamDraft;
 use App\Services\EventPlanningConflictService;
@@ -105,8 +106,8 @@ class TeamDraftController extends Controller
 
         return Inertia::render('TeamDrafts/Show', [
             'organization' => $this->organizationProps($request, $organization),
-            'canUpdate' => $request->user()->can('update', $event),
-            'canFinalize' => $request->user()->can('finalize', $event),
+            'canUpdate' => $request->user()->can('update', $event) && ! $teamDraft->is_final,
+            'canFinalize' => $request->user()->can('finalize', $event) && ! $teamDraft->is_final,
             'event' => [
                 'id' => $event->id,
                 'name' => $event->name,
@@ -120,15 +121,31 @@ class TeamDraftController extends Controller
                 'created_at' => $teamDraft->created_at?->toIso8601String(),
             ],
             'conflicts' => $this->conflicts->analyze($event),
-            'orgMembers' => Member::query()
-                ->where('organization_id', $organization->id)
-                ->orderBy('first_name')
-                ->orderBy('last_name')
-                ->get()
-                ->map(fn (Member $m) => [
-                    'id' => $m->id,
-                    'display_name' => $m->displayName(),
-                ]),
+            'orgMembers' => (function () use ($organization, $event): \Illuminate\Support\Collection {
+                $eventSkills = MemberEventTypeSkill::query()
+                    ->where('event_type_id', $event->event_type_id)
+                    ->pluck('skill_level', 'member_id')
+                    ->all();
+
+                return Member::query()
+                    ->where('organization_id', $organization->id)
+                    ->with('sector')
+                    ->orderBy('first_name')
+                    ->orderBy('last_name')
+                    ->get()
+                    ->map(fn (Member $m) => [
+                        'id' => $m->id,
+                        'display_name' => $m->displayName(),
+                        'first_name' => $m->first_name,
+                        'last_name' => $m->last_name,
+                        'email' => $m->email,
+                        'phone' => $m->phone,
+                        'company' => $m->company,
+                        'sector' => $m->sector?->only(['id', 'name']),
+                        'notes' => $m->notes,
+                        'skill_level' => isset($eventSkills[$m->id]) ? (int) $eventSkills[$m->id] : null,
+                    ]);
+            })(),
         ]);
     }
 

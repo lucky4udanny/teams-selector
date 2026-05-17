@@ -7,7 +7,14 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TeamMemberEditor from '@/Components/TeamMemberEditor.vue';
 import TextInput from '@/Components/TextInput.vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
+import {
+    avgSkill,
+    buildMemberDetails,
+    exportColumnOptions,
+    useExportColumns,
+} from '@/composables/useExportColumns';
 import { applyFormErrors, validateDraftNames } from '@/utils/formValidation';
+import { Bars3Icon, PlusIcon, XMarkIcon } from '@heroicons/vue/20/solid';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
@@ -44,7 +51,53 @@ const memberMap = computed(() => {
     return m;
 });
 
+const memberFullById = computed(() => {
+    const m = new Map();
+    (props.orgMembers || []).forEach((mem) => m.set(mem.id, mem));
+    return m;
+});
+
 const memberName = (id) => memberMap.value.get(id) ?? `Member #${id}`;
+
+const {
+    selectedExportColumns,
+    dragColIdx,
+    exportColumnLabel,
+    availableExportColumns,
+    removeExportColumn,
+    addExportColumn,
+    onColDragStart,
+    onColDragOver,
+    onColDragEnd,
+} = useExportColumns();
+
+const memberScreenDetails = (mid: number) =>
+    buildMemberDetails(mid, memberFullById.value.get(mid), selectedExportColumns.value, memberName(mid));
+
+const handlePrint = () => window.print();
+
+const showSkillColumn = computed(() => selectedExportColumns.value.includes('skill'));
+
+const teamAvgSkill = computed(() => {
+    if (!showSkillColumn.value) return new Map<number, number | null>();
+    const m = new Map<number, number | null>();
+    teams.value.forEach((team: { member_ids?: number[] }, ti: number) => {
+        m.set(ti, avgSkill(team.member_ids || [], memberFullById.value));
+    });
+    return m;
+});
+
+const groupAvgSkill = computed(() => {
+    if (!showSkillColumn.value) return new Map<number, number | null>();
+    const m = new Map<number, number | null>();
+    groups.value.forEach((group: { team_indices?: number[] }, gi: number) => {
+        const memberIds = (group.team_indices || []).flatMap(
+            (ti: number) => (teams.value[ti]?.member_ids as number[]) || [],
+        );
+        m.set(gi, avgSkill(memberIds, memberFullById.value));
+    });
+    return m;
+});
 
 const teamNamesForm = useForm({
     team_names: [],
@@ -414,6 +467,65 @@ const showViolationPenalty = (v: Violation): boolean =>
             </ul>
         </Alert>
 
+        <!-- Column selection and print -->
+        <div class="mb-6 rounded-xl border border-brand-mist bg-white p-4 shadow-sm">
+            <div class="mb-4">
+                <span class="mb-2 block text-sm font-medium text-brand-navy">Columns</span>
+
+                <!-- Selected columns — drag to reorder -->
+                <div class="flex min-h-[48px] flex-wrap gap-2 rounded-lg border border-brand-mist bg-brand-mist/20 p-3">
+                    <p v-if="!selectedExportColumns.length" class="text-sm italic text-brand-blue/50">
+                        No columns selected.
+                    </p>
+                    <div
+                        v-for="(col, idx) in selectedExportColumns"
+                        :key="col"
+                        draggable="true"
+                        class="inline-flex cursor-grab select-none items-center gap-1 rounded-md bg-brand-blue/10 px-2 py-1 text-xs font-medium text-brand-navy transition-opacity"
+                        :class="{ 'opacity-40': dragColIdx === idx }"
+                        @dragstart="onColDragStart(idx)"
+                        @dragover.prevent="onColDragOver(idx)"
+                        @dragend="onColDragEnd"
+                    >
+                        <Bars3Icon class="h-3.5 w-3.5 shrink-0 text-brand-blue/40" />
+                        {{ exportColumnLabel(col) }}
+                        <button
+                            type="button"
+                            class="ml-1 text-brand-blue/50 hover:text-brand-navy"
+                            @click.stop="removeExportColumn(col)"
+                        >
+                            <XMarkIcon class="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Available columns to add -->
+                <div v-if="availableExportColumns.length" class="mt-3">
+                    <span class="mb-1.5 block text-xs text-brand-blue/60">Add columns</span>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button
+                            v-for="col in availableExportColumns"
+                            :key="col.value"
+                            type="button"
+                            class="inline-flex items-center gap-1 rounded-md border border-brand-mist bg-white px-2 py-1 text-xs font-medium text-brand-blue/70 transition-colors hover:border-brand-blue/30 hover:text-brand-navy"
+                            @click="addExportColumn(col.value)"
+                        >
+                            <PlusIcon class="h-3 w-3" />
+                            {{ col.label }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button
+                type="button"
+                class="text-sm font-medium text-brand-blue hover:underline"
+                @click="handlePrint"
+            >
+                Print
+            </button>
+        </div>
+
         <!-- Grouped view -->
         <div v-if="groups.length" class="space-y-10">
             <section v-for="(group, gi) in groups" :key="`grp${gi}`">
@@ -428,6 +540,10 @@ const showViolationPenalty = (v: Violation): boolean =>
                     <span v-else class="text-sm font-semibold text-brand-navy">
                         {{ groupDisplayLabel(gi, teamNamesForm.group_names) }}
                     </span>
+                    <span
+                        v-if="showSkillColumn && groupAvgSkill.get(gi) != null"
+                        class="text-xs text-brand-blue/50"
+                    >Avg skill: {{ groupAvgSkill.get(gi) }}</span>
                 </div>
                 <ul
                     v-if="groupViolations.get(gi)?.length"
@@ -463,9 +579,15 @@ const showViolationPenalty = (v: Violation): boolean =>
                                 :placeholder="String(ti + 1)"
                                 class="flex-1 text-sm font-semibold"
                             />
-                            <h4 v-else class="font-semibold text-brand-navy">
-                                {{ teamDisplayLabel(ti, teamNamesForm.team_names) }}
-                            </h4>
+                            <template v-else>
+                                <h4 class="font-semibold text-brand-navy">
+                                    {{ teamDisplayLabel(ti, teamNamesForm.team_names) }}
+                                </h4>
+                                <span
+                                    v-if="showSkillColumn && teamAvgSkill.get(ti) != null"
+                                    class="text-xs text-brand-blue/50"
+                                >Avg skill: {{ teamAvgSkill.get(ti) }}</span>
+                            </template>
                             <button
                                 v-if="canUpdate && editingTeamIndex !== ti"
                                 type="button"
@@ -490,9 +612,16 @@ const showViolationPenalty = (v: Violation): boolean =>
                             />
                         </template>
                         <template v-else>
-                            <ul class="space-y-1 text-sm text-brand-blue/90">
-                                <li v-for="mid in teams[ti]?.member_ids || []" :key="mid">
-                                    {{ memberName(mid) }}
+                            <ul class="space-y-1">
+                                <li
+                                    v-for="mid in teams[ti]?.member_ids || []"
+                                    :key="mid"
+                                    class="rounded-lg bg-brand-blue/5 px-2.5 py-2"
+                                >
+                                    <template v-for="d in memberScreenDetails(mid)" :key="d.key">
+                                        <p v-if="d.isName" class="text-sm font-medium leading-snug text-brand-navy">{{ d.value }}</p>
+                                        <span v-else class="block text-xs text-brand-blue/60">{{ d.value }}</span>
+                                    </template>
                                 </li>
                             </ul>
                             <ul
@@ -536,9 +665,15 @@ const showViolationPenalty = (v: Violation): boolean =>
                         :placeholder="String(ti + 1)"
                         class="flex-1 text-sm font-semibold"
                     />
-                    <h4 v-else class="font-semibold text-brand-navy">
-                        {{ teamDisplayLabel(ti, teamNamesForm.team_names) }}
-                    </h4>
+                    <template v-else>
+                        <h4 class="font-semibold text-brand-navy">
+                            {{ teamDisplayLabel(ti, teamNamesForm.team_names) }}
+                        </h4>
+                        <span
+                            v-if="showSkillColumn && teamAvgSkill.get(ti) != null"
+                            class="text-xs text-brand-blue/50"
+                        >Avg skill: {{ teamAvgSkill.get(ti) }}</span>
+                    </template>
                     <button
                         v-if="canUpdate && editingTeamIndex !== ti"
                         type="button"
@@ -563,9 +698,16 @@ const showViolationPenalty = (v: Violation): boolean =>
                     />
                 </template>
                 <template v-else>
-                    <ul class="space-y-1 text-sm text-brand-blue/90">
-                        <li v-for="mid in team.member_ids || []" :key="mid">
-                            {{ memberName(mid) }}
+                    <ul class="space-y-1">
+                        <li
+                            v-for="mid in team.member_ids || []"
+                            :key="mid"
+                            class="rounded-lg bg-brand-blue/5 px-2.5 py-2"
+                        >
+                            <template v-for="d in memberScreenDetails(mid)" :key="d.key">
+                                <p v-if="d.isName" class="text-sm font-medium leading-snug text-brand-navy">{{ d.value }}</p>
+                                <span v-else class="block text-xs text-brand-blue/60">{{ d.value }}</span>
+                            </template>
                         </li>
                     </ul>
                     <ul
