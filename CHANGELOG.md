@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fix (migration 100012):** `DB::statement()` treated PostgreSQL's `?` (jsonb key-existence operator) as a PDO bind placeholder, producing `syntax error at or near "$1"`; replaced with `DB::unprepared()` for the two statements that use the `?` operator.
 - **Fix (EventRuleController):** `assertRepeatPairUnique` now includes `scope` in the duplicate check, allowing one team-scoped and one group-scoped "avoid same members" rule per prior event (previously any second rule for the same prior event was rejected regardless of scope).
 - **Fix (EventRuleController):** `repeat_pair` validation plucked bare `'id'` from the `previousEvents()` BelongsToMany query, which joins `events` with `event_previous_event`; PostgreSQL raised `column reference "id" is ambiguous`; fixed by qualifying to `'events.id'`.
 - **UX (rules):** Renamed `repeat_pair` rule display label from "Repeat pair (prior event)" to "Avoid same members (prior event)" — the old name implied the rule *favoured* repeating pairs; updated related hint text in Events/Index and Events/Show.

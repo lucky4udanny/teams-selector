@@ -64,6 +64,7 @@ const ruleTypeLabels = {
     preferred_pair: 'Preferred pair',
     repeat_pair: 'Avoid same members (prior event)',
     skill_leveling: 'Skill leveling',
+    member_attribute: 'Member attribute',
 };
 
 const scopeLabels = {
@@ -460,6 +461,8 @@ const defaultConfigForType = (type) => {
             return { event_id: (props.finalizedEvents || [])[0]?.id ?? null };
         case 'skill_leveling':
             return { min_avg: 35, max_avg: 65 };
+        case 'member_attribute':
+            return { attribute: 'sector_id', match: 'same' };
         default:
             return {};
     }
@@ -720,6 +723,11 @@ const ruleConfigSummary = (rule) => {
         }
         case 'skill_leveling':
             return `Avg skill ${cfg.min_avg ?? '?'} – ${cfg.max_avg ?? '?'}`;
+        case 'member_attribute': {
+            const attrLabel = cfg.attribute === 'sector_id' ? 'sector' : 'company';
+            const matchLabel = cfg.match === 'same' ? 'Avoid same' : 'Avoid different';
+            return `${matchLabel} ${attrLabel}`;
+        }
         default:
             return null;
     }
@@ -1471,6 +1479,26 @@ const groupDisplayLabel = (gi, names) => {
                             <span class="mb-2 block text-sm text-brand-navy">Max average skill</span>
                             <RangeSlider v-model="ruleForm.config.max_avg" :min="0" :max="100" />
                         </div>
+                    </template>
+                    <template v-else-if="ruleForm.type === 'member_attribute'">
+                        <FormField label="Attribute" name="cfg_attribute" :error="ruleForm.errors['config.attribute']">
+                            <ListboxInput
+                                v-model="ruleForm.config.attribute"
+                                :options="[
+                                    { value: 'sector_id', label: 'Sector' },
+                                    { value: 'company', label: 'Company' },
+                                ]"
+                            />
+                        </FormField>
+                        <FormField label="Constraint" name="cfg_match" :error="ruleForm.errors['config.match']">
+                            <ListboxInput
+                                v-model="ruleForm.config.match"
+                                :options="[
+                                    { value: 'same', label: 'Avoid same value (e.g. don\'t group same sector)' },
+                                    { value: 'different', label: 'Avoid different values (e.g. keep same sector together)' },
+                                ]"
+                            />
+                        </FormField>
                     </template>
                 </div>
 

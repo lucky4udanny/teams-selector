@@ -211,14 +211,36 @@ class TeamSolverService
     }
 
     /**
+     * @param  list<int>  $memberIds
+     * @return array<int, array{sector_id: int|null, company: string|null}>
+     */
+    private function memberAttributesForIds(array $memberIds): array
+    {
+        if ($memberIds === []) {
+            return [];
+        }
+
+        return Member::query()
+            ->whereIn('id', $memberIds)
+            ->get(['id', 'sector_id', 'company'])
+            ->keyBy('id')
+            ->map(fn (Member $m) => [
+                'sector_id' => $m->sector_id,
+                'company'   => ($m->company !== null && $m->company !== '') ? $m->company : null,
+            ])
+            ->all();
+    }
+
+    /**
      * @param  list<array{member_ids: list<int>}>  $teams
      * @param  list<array{team_indices: list<int>}>  $groups
      * @param  Collection<int, Rule>  $rules
      * @param  array<string, array<string, true>>  $historyCache
      * @param  array<int, int>  $skillByMember
+     * @param  array<int, array{sector_id: int|null, company: string|null}>  $memberAttributes
      * @return array{0: int, 1: list<array<string, mixed>>}
      */
-    private function score(array $teams, array $groups, Collection $rules, Event $event, array &$historyCache, array $skillByMember): array
+    private function score(array $teams, array $groups, Collection $rules, Event $event, array &$historyCache, array $skillByMember, array $memberAttributes = []): array
     {
         $violations = [];
         $penalty = 0;
@@ -405,6 +427,74 @@ class TeamSolverService
                                 ];
                                 $penalty += $rule->weight;
                             }
+                        }
+                    }
+                }
+            }
+
+            if ($rule->type === RuleType::MemberAttribute) {
+                $attr = $rule->config['attribute'] ?? '';
+                $match = $rule->config['match'] ?? 'same';
+                $attrLabel = $attr === 'sector_id' ? 'sector' : 'company';
+
+                $unitSets = $rule->scope === RuleScope::Team
+                    ? array_map(fn (array $t) => $t['member_ids'], $teams)
+                    : $this->membersByGroup($teams, $groups);
+
+                foreach ($unitSets as $idx => $ids) {
+                    $scopeLabel = $rule->scope === RuleScope::Team
+                        ? 'team #'.($idx + 1)
+                        : 'group #'.($idx + 1);
+
+                    if ($match === 'same') {
+                        // Penalise each pair of members that share the same non-null attribute value
+                        $byValue = [];
+                        foreach ($ids as $mid) {
+                            $val = $memberAttributes[$mid][$attr] ?? null;
+                            if ($val === null || $val === '') {
+                                continue;
+                            }
+                            $byValue[(string) $val][] = $mid;
+                        }
+                        foreach ($byValue as $val => $mids) {
+                            $count = count($mids);
+                            if ($count < 2) {
+                                continue;
+                            }
+                            $pairs = (int) ($count * ($count - 1) / 2);
+                            $add = $rule->weight * $pairs;
+                            $violations[] = [
+                                'rule_id' => $rule->id,
+                                'type' => 'member_attribute',
+                                'scope' => $rule->scope->value,
+                                'weight' => $rule->weight,
+                                'detail' => ucfirst($scopeLabel).' has '.$count.' members sharing the same '.$attrLabel,
+                                'penalty' => $add,
+                            ];
+                            $penalty += $add;
+                        }
+                    } else {
+                        // match === 'different': penalise when more than one distinct non-null value appears
+                        $distinctValues = [];
+                        foreach ($ids as $mid) {
+                            $val = $memberAttributes[$mid][$attr] ?? null;
+                            if ($val === null || $val === '') {
+                                continue;
+                            }
+                            $distinctValues[(string) $val] = true;
+                        }
+                        $distinctCount = count($distinctValues);
+                        if ($distinctCount > 1) {
+                            $add = $rule->weight * ($distinctCount - 1);
+                            $violations[] = [
+                                'rule_id' => $rule->id,
+                                'type' => 'member_attribute',
+                                'scope' => $rule->scope->value,
+                                'weight' => $rule->weight,
+                                'detail' => ucfirst($scopeLabel).' has '.$distinctCount.' different '.$attrLabel.' values',
+                                'penalty' => $add,
+                            ];
+                            $penalty += $add;
                         }
                     }
                 }

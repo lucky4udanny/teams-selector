@@ -11,7 +11,9 @@ return new class extends Migration
         DB::statement("UPDATE rules SET type = 'size' WHERE type = 'team_size'");
 
         // group_size rules: rename config key 'teams_per_group' → 'size', then rename the type
-        DB::statement("
+        // DB::unprepared() is required here because PDO treats '?' as a bind placeholder,
+        // but '?' is also PostgreSQL's jsonb key-existence operator.
+        DB::unprepared("
             UPDATE rules
             SET
                 config = (config::jsonb - 'teams_per_group')
@@ -31,7 +33,7 @@ return new class extends Migration
         DB::statement("UPDATE rules SET type = 'team_size' WHERE type = 'size' AND scope = 'team'");
 
         // Restore group-scoped size rules and rename config key back
-        DB::statement("
+        DB::unprepared("
             UPDATE rules
             SET
                 config = (config::jsonb - 'size')
