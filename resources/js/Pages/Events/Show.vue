@@ -844,7 +844,7 @@ const finalGroups = computed(() => (Array.isArray(finalState.value?.groups) ? fi
 const finalGroupNames = computed(() => finalState.value?.group_names || []);
 
 const nonFinalDrafts = computed(() => props.team_drafts || []);
-const finalDraftSummary = computed(() => (props.team_drafts || []).find((d) => d.is_final) ?? null);
+const finalDraftSummary = computed(() => props.final_draft ?? null);
 const finalViolationCount = computed(() =>
     Array.isArray(finalState.value?.violations) ? finalState.value.violations.length : 0,
 );

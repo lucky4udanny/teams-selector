@@ -204,9 +204,13 @@ class EventController extends Controller
                 });
 
             if ($event->finalTeamDraft) {
+                $event->finalTeamDraft->load('createdBy:id,name');
                 $payload['final_draft'] = [
-                    'id' => $event->finalTeamDraft->id,
-                    'state' => $event->finalTeamDraft->state,
+                    'id'           => $event->finalTeamDraft->id,
+                    'name'         => $event->finalTeamDraft->name,
+                    'creator_name' => $event->finalTeamDraft->createdBy?->name,
+                    'created_at'   => $event->finalTeamDraft->created_at?->toIso8601String(),
+                    'state'        => $event->finalTeamDraft->state,
                 ];
             }
         }
