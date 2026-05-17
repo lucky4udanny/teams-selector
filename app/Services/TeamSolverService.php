@@ -194,12 +194,21 @@ class TeamSolverService
             return [];
         }
 
-        return MemberEventTypeSkill::query()
+        $recorded = MemberEventTypeSkill::query()
             ->where('event_type_id', $event->event_type_id)
             ->whereIn('member_id', $memberIds)
             ->pluck('skill_level', 'member_id')
             ->map(fn ($v) => (int) $v)
             ->all();
+
+        // Members with no skill record get 50 as a neutral default.
+        // 0 is a valid assigned skill level and must not be overridden.
+        $result = [];
+        foreach ($memberIds as $id) {
+            $result[(int) $id] = $recorded[(int) $id] ?? 50;
+        }
+
+        return $result;
     }
 
     /**
@@ -548,7 +557,7 @@ class TeamSolverService
 
         $sum = 0;
         foreach ($memberIds as $id) {
-            $sum += $skillByMember[(int) $id] ?? 0;
+            $sum += $skillByMember[(int) $id] ?? 50;
         }
 
         return $sum / count($memberIds);

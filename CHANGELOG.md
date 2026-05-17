@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix (TeamSolver/Skills):** Members with no skill record for the event type now receive a default skill level of 50 (neutral midpoint) instead of 0; 0 remains a valid assigned skill level and is not affected; the default is applied in `skillLevelsForEvent()` so the skill map is always complete, with `averageSkill()` carrying a matching `?? 50` fallback.
+
 - **Feat (Drafts/Violations):** Violations are now displayed inline per team and group in the draft view; `TeamSolverService` enriches each violation with structured fields (`team_index`, `group_index`, `member_ids`, `avg_skill`/`min_avg`/`max_avg` for skill levelling, `offending_member_ids`/`attribute_value_label` for attribute rules); the frontend renders human-readable English bullets under each team panel and group heading (e.g. "Alice and Bob share sector Finance") with a score shown for variable-penalty violations; event-level violations (preferred pair separated) appear in the summary alert at the top; sector names are resolved server-side via a single Sector lookup.
 
 - **Fix (TeamSolver):** Removed hard-blocking group-size divisibility check in `TeamSolverService::solve()`; when team count does not divide evenly by teams-per-group, `buildGroups()` already produces a smaller last group gracefully, so the solver now runs and treats the uneven grouping as a soft constraint rather than refusing to generate.
