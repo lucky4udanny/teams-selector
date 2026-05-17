@@ -1,27 +1,28 @@
 <script setup>
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import DangerButton from '@/Components/DangerButton.vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 
 const props = defineProps({
     organization: Object,
     users: Array,
     roles: Array,
+    pendingInvitations: Array,
 });
 
-const addForm = useForm({
+const inviteForm = useForm({
     email: '',
     role: 'organizer',
 });
 
-const submitAdd = () => {
-    addForm.post(
-        route('organizations.users.store', props.organization.slug),
-        { preserveScroll: true, onSuccess: () => addForm.reset() },
+const submitInvite = () => {
+    inviteForm.post(
+        route('organizations.invitations.store', props.organization.slug),
+        { preserveScroll: true, onSuccess: () => inviteForm.reset() },
     );
 };
 
@@ -36,10 +37,15 @@ const updateRole = (userId, role) => {
 const remove = (userId) => {
     if (!confirm('Remove user from organization?')) return;
     router.delete(
-        route('organizations.users.destroy', [
-            props.organization.slug,
-            userId,
-        ]),
+        route('organizations.users.destroy', [props.organization.slug, userId]),
+    );
+};
+
+const revokeInvitation = (invitationId) => {
+    if (!confirm('Revoke this invitation?')) return;
+    router.delete(
+        route('organizations.invitations.destroy', [props.organization.slug, invitationId]),
+        { preserveScroll: true },
     );
 };
 </script>
@@ -52,31 +58,32 @@ const remove = (userId) => {
             <h1 class="text-2xl font-bold text-brand-navy">Organization users</h1>
         </template>
 
+        <!-- Invite user form -->
         <form
             class="mb-8 rounded-2xl border border-brand-mist bg-white p-6 shadow-sm"
-            @submit.prevent="submitAdd"
+            @submit.prevent="submitInvite"
         >
-            <h2 class="mb-4 text-sm font-semibold text-brand-navy">Add user</h2>
+            <h2 class="mb-1 text-sm font-semibold text-brand-navy">Invite user</h2>
             <p class="mb-4 text-xs text-brand-blue/70">
-                User must already have an account (registered email).
+                An email invitation will be sent. The link expires in 7 days.
             </p>
             <div class="flex flex-wrap items-end gap-4">
                 <div class="min-w-[200px] flex-1">
                     <InputLabel for="email" value="Email" />
                     <TextInput
                         id="email"
-                        v-model="addForm.email"
+                        v-model="inviteForm.email"
                         type="email"
                         class="mt-1 block w-full"
                         required
                     />
-                    <InputError :message="addForm.errors.email" />
+                    <InputError :message="inviteForm.errors.email" />
                 </div>
                 <div>
                     <InputLabel for="role" value="Role" />
                     <select
                         id="role"
-                        v-model="addForm.role"
+                        v-model="inviteForm.role"
                         class="mt-1 block rounded-md border-brand-mist shadow-sm"
                     >
                         <option v-for="r in roles" :key="r" :value="r">
@@ -84,26 +91,56 @@ const remove = (userId) => {
                         </option>
                     </select>
                 </div>
-                <PrimaryButton :disabled="addForm.processing">Add</PrimaryButton>
+                <PrimaryButton :disabled="inviteForm.processing">Send invitation</PrimaryButton>
             </div>
         </form>
 
-        <div class="overflow-hidden rounded-2xl border border-brand-mist bg-white shadow-sm">
+        <!-- Pending invitations -->
+        <div
+            v-if="pendingInvitations.length"
+            class="mb-8 overflow-hidden rounded-2xl border border-brand-mist bg-white shadow-sm"
+        >
+            <div class="border-b border-brand-mist px-4 py-3">
+                <h2 class="text-sm font-semibold text-brand-navy">Pending invitations</h2>
+            </div>
             <table class="min-w-full divide-y divide-brand-mist text-sm">
                 <thead class="bg-brand-cream">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">
-                            Name
-                        </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">
-                            Email
-                        </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">
-                            Role
-                        </th>
-                        <th class="px-4 py-3 text-right text-xs font-medium uppercase text-brand-blue/70">
-                            Actions
-                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">Email</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">Role</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">Invited by</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">Expires</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium uppercase text-brand-blue/70">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-brand-mist">
+                    <tr v-for="inv in pendingInvitations" :key="inv.id">
+                        <td class="px-4 py-3 text-brand-navy">{{ inv.email }}</td>
+                        <td class="px-4 py-3 capitalize text-brand-blue/80">{{ inv.role }}</td>
+                        <td class="px-4 py-3 text-brand-blue/80">{{ inv.invited_by_name }}</td>
+                        <td class="px-4 py-3 text-brand-blue/60">{{ inv.expires_at }}</td>
+                        <td class="px-4 py-3 text-right">
+                            <DangerButton type="button" @click="revokeInvitation(inv.id)">
+                                Revoke
+                            </DangerButton>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Active users -->
+        <div class="overflow-hidden rounded-2xl border border-brand-mist bg-white shadow-sm">
+            <div class="border-b border-brand-mist px-4 py-3">
+                <h2 class="text-sm font-semibold text-brand-navy">Active users</h2>
+            </div>
+            <table class="min-w-full divide-y divide-brand-mist text-sm">
+                <thead class="bg-brand-cream">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">Email</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase text-brand-blue/70">Role</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium uppercase text-brand-blue/70">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-brand-mist">
@@ -114,9 +151,7 @@ const remove = (userId) => {
                             <select
                                 :value="u.role"
                                 class="rounded border-brand-mist text-sm"
-                                @change="
-                                    updateRole(u.id, $event.target.value)
-                                "
+                                @change="updateRole(u.id, $event.target.value)"
                             >
                                 <option v-for="r in roles" :key="r" :value="r">
                                     {{ r }}

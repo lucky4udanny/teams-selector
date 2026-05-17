@@ -9,6 +9,7 @@ import { BuildingOffice2Icon } from '@heroicons/vue/24/outline';
 
 defineProps({
     organizations: Array,
+    canCreate: Boolean,
 });
 
 const form = useForm({
@@ -32,7 +33,7 @@ const submit = () => {
 
         <div class="py-8">
             <div class="mx-auto max-w-3xl sm:px-6 lg:px-8">
-                <form class="ts-card-padded mb-10" @submit.prevent="submit">
+                <form v-if="canCreate" class="ts-card-padded mb-10" @submit.prevent="submit">
                     <h3 class="ts-heading-section mb-4 flex items-center gap-2">
                         <BuildingOffice2Icon class="h-5 w-5 text-brand-orange" />
                         New organization

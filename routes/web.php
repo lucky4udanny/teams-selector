@@ -5,6 +5,7 @@ use App\Http\Controllers\EventExportController;
 use App\Http\Controllers\EventMemberController;
 use App\Http\Controllers\EventRuleController;
 use App\Http\Controllers\EventTypeController;
+use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationSettingsController;
@@ -36,9 +37,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/organizations/{organization}/settings', [OrganizationSettingsController::class, 'update'])->name('organizations.settings.update');
 
     Route::get('/organizations/{organization}/users', [OrganizationUserController::class, 'index'])->name('organizations.users.index');
-    Route::post('/organizations/{organization}/users', [OrganizationUserController::class, 'store'])->name('organizations.users.store');
     Route::patch('/organizations/{organization}/users/{user}', [OrganizationUserController::class, 'update'])->name('organizations.users.update');
     Route::delete('/organizations/{organization}/users/{user}', [OrganizationUserController::class, 'destroy'])->name('organizations.users.destroy');
+
+    // Invitations (org-scoped, admin only)
+    Route::post('/organizations/{organization}/invitations', [InvitationController::class, 'store'])->name('organizations.invitations.store');
+    Route::delete('/organizations/{organization}/invitations/{invitation}', [InvitationController::class, 'destroy'])->name('organizations.invitations.destroy');
 
     Route::get('/organizations/{organization}/members', [MemberController::class, 'index'])->name('organizations.members.index');
     Route::post('/organizations/{organization}/members', [MemberController::class, 'store'])->name('organizations.members.store');
@@ -92,5 +96,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// Invitation accept — accessible by guests and authenticated users
+Route::get('/invitations/{token}', [InvitationController::class, 'show'])->name('invitations.show');
+Route::post('/invitations/{token}', [InvitationController::class, 'accept'])->name('invitations.accept');
 
 require __DIR__.'/auth.php';

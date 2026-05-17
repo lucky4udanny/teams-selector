@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Event;
 use App\Models\Organization;
+use App\Models\User;
 use App\Policies\EventPolicy;
 use App\Policies\OrganizationPolicy;
 use Illuminate\Support\Facades\Gate;
@@ -29,5 +30,8 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(Event::class, EventPolicy::class);
         Gate::policy(Organization::class, OrganizationPolicy::class);
+
+        // Super admins bypass all policy checks
+        Gate::before(fn (User $user, string $ability) => $user->is_super_admin ? true : null);
     }
 }

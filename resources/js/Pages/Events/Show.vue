@@ -291,8 +291,11 @@ const openAddMembersModal = () => {
     showAddMembersModal.value = true;
 };
 
+const copyModalNotice = ref(null);
+
 const openCopyModal = () => {
     copyFromId.value = null;
+    copyModalNotice.value = null;
     showCopyModal.value = true;
 };
 
@@ -324,9 +327,10 @@ const postAddMembers = () => {
 };
 
 const postCopy = () => {
+    copyModalNotice.value = null;
     rosterNotice.value = null;
     if (!copyFromId.value) {
-        rosterNotice.value = {
+        copyModalNotice.value = {
             variant: 'warning',
             message: 'Choose an event to copy members from.',
         };
@@ -1177,10 +1181,13 @@ const groupDisplayLabel = (gi, names) => {
                     <p class="mb-4 text-sm text-brand-blue/60">
                         Copy the full roster from another event in this organization.
                     </p>
+                    <Alert v-if="copyModalNotice" :variant="copyModalNotice.variant" role="alert" class="mb-4">
+                        {{ copyModalNotice.message }}
+                    </Alert>
                     <ComboboxInput v-model="copyFromId" :options="copyEventOptions" placeholder="Pick event…" />
                     <div class="mt-6 flex justify-end gap-3">
                         <SecondaryButton type="button" @click="showCopyModal = false">Cancel</SecondaryButton>
-                        <PrimaryButton type="button" @click="postCopy">
+                        <PrimaryButton type="button" :disabled="!copyFromId" @click="postCopy">
                             Copy roster
                         </PrimaryButton>
                     </div>

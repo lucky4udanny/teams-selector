@@ -15,25 +15,30 @@ class OrganizationController extends Controller
 {
     public function index(Request $request): Response
     {
-        $orgs = $request->user()
-            ->organizations()
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Organization $o) => [
-                'id' => $o->id,
-                'name' => $o->name,
-                'slug' => $o->slug,
-                'role' => $o->roleFor($request->user())?->value,
-                'logo_url' => $o->logoPublicUrl(),
-            ]);
+        $user = $request->user();
+
+        $query = $user->is_super_admin
+            ? Organization::query()->orderBy('name')
+            : $user->organizations()->orderBy('name')->getQuery();
+
+        $orgs = $query->get()->map(fn (Organization $o) => [
+            'id' => $o->id,
+            'name' => $o->name,
+            'slug' => $o->slug,
+            'role' => $o->roleFor($user)?->value,
+            'logo_url' => $o->logoPublicUrl(),
+        ]);
 
         return Inertia::render('Organizations/Index', [
             'organizations' => $orgs,
+            'canCreate' => $user->is_super_admin,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->is_super_admin, 403);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
         ]);

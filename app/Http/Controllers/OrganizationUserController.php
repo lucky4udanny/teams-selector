@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OrganizationRole;
+use App\Models\Invitation;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -26,34 +27,27 @@ class OrganizationUserController extends Controller
                 'role' => $u->pivot->role,
             ]);
 
+        $pendingInvitations = Invitation::query()
+            ->with('invitedBy')
+            ->where('organization_id', $organization->id)
+            ->whereNull('accepted_at')
+            ->where('expires_at', '>', now())
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn (Invitation $i) => [
+                'id' => $i->id,
+                'email' => $i->email,
+                'role' => $i->role,
+                'invited_by_name' => $i->invitedBy->name,
+                'expires_at' => $i->expires_at->format('M j, Y'),
+            ]);
+
         return Inertia::render('OrganizationUsers/Index', [
             'organization' => $this->orgProps($request, $organization),
             'users' => $users,
             'roles' => array_map(fn (OrganizationRole $r) => $r->value, OrganizationRole::cases()),
+            'pendingInvitations' => $pendingInvitations,
         ]);
-    }
-
-    public function store(Request $request, Organization $organization): RedirectResponse
-    {
-        $this->authorize('manageSettings', $organization);
-
-        $validated = $request->validate([
-            'email' => ['required', 'email'],
-            'role' => ['required', 'in:'.implode(',', array_column(OrganizationRole::cases(), 'value'))],
-        ]);
-
-        $user = User::query()->where('email', $validated['email'])->first();
-        if (! $user) {
-            return redirect()->back()->withErrors(['email' => 'No user with that email. They must register first.']);
-        }
-
-        if ($organization->users()->where('user_id', $user->id)->exists()) {
-            return redirect()->back()->withErrors(['email' => 'User is already in this organization.']);
-        }
-
-        $organization->users()->attach($user->id, ['role' => $validated['role']]);
-
-        return redirect()->back();
     }
 
     public function update(Request $request, Organization $organization, User $user): RedirectResponse
