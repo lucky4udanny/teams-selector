@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix (TeamSolver):** Removed hard-blocking group-size divisibility check in `TeamSolverService::solve()`; when team count does not divide evenly by teams-per-group, `buildGroups()` already produces a smaller last group gracefully, so the solver now runs and treats the uneven grouping as a soft constraint rather than refusing to generate.
+
 - **Fix (Assets/Preload):** Suppressed `modulepreload` hint for the JS entry point in `AppServiceProvider` via `Vite::usePreloadTagAttributes()`; `Vite::prefetch(concurrency: 3)` fires its waterfall prefetch on `window.load`, creating network pressure that delays Chrome's confirmation of module consumption past the preload timeout, producing spurious "preloaded but not used" console warnings; the entry-point `<script type="module">` tag is emitted immediately after in `<head>` so the modulepreload provides no measurable benefit. Also removed the now-unnecessary page-component entry from `@vite()` in `app.blade.php`.
 
 - **Feat (Organizations/Branding):** SVG files are now accepted for organization logo uploads; SVGs are sanitized server-side via `enshrined/svg-sanitize` (strips scripts, event handlers, and external references) before being stored, preventing XSS attacks.

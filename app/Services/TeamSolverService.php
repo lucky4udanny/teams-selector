@@ -82,15 +82,6 @@ class TeamSolverService
         }
 
         $teamCount = (int) ($n / $teamSize);
-        if ($groupRule && $teamCount % $teamsPerGroup !== 0) {
-            return [
-                'teams' => [],
-                'groups' => [],
-                'violations' => [],
-                'total_penalty' => 0,
-                'blocking_errors' => ['Team count ('.$teamCount.') must divide evenly by teams per group ('.$teamsPerGroup.').'],
-            ];
-        }
 
         $historyCache = [];
         $skillByMember = $this->skillLevelsForEvent($event, $memberIds);

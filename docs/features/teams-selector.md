@@ -10,7 +10,7 @@
 - Organizations are identified by `slug` in URLs (`/organizations/{slug}/...`).
 - **Members import:** `MemberCsvImportParser` tries multiple encodings and delimiters and picks the parse that finds name columns; also reads `.xlsx`/`.xls`. `MemberController@import` — header row with `first_name` / `last_name` (or spaced labels); extra columns ignored. Inertia `useForm` + `forceFormData: true`; submit via `PrimaryButton type="submit"`.
 - Approved selections store an immutable `snapshot` including `branding` (logo URL and colors) for consistent print/export.
-- Team generation uses `TeamSolverService` with weighted penalties; blocking roster issues (e.g. member count vs team size) surface as `blocking_errors` on the draft state.
+- Team generation uses `TeamSolverService` with weighted penalties; blocking roster issues (e.g. member count vs team size) surface as `blocking_errors` on the draft state. The group-size (teams-per-group) rule is structurally soft — `buildGroups()` creates a smaller last group when the count does not divide evenly; no hard block is thrown for uneven groups.
 - **Event roster tab:** `EventController@show` with `?tab=roster` passes `roster` as a list of event-member rows; `rsvp_counts` lives on `event` only (`rosterPayloadPublic()` is split when building Inertia props).
 - **Repeat-pair history:** `PairHistoryService` and `TeamSolverService::membersByGroup` merge group members via `team_indices` and ignore missing team slots (`($teams[$ti] ?? [])['member_ids']`).
 - **Event rules sort_order:** `Event::recalculateRuleSortOrders()` sets `0..n` by descending `weight` (then `id`); called after rule CRUD and event duplicate.
