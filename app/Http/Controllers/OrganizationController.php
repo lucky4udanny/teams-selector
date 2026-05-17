@@ -25,7 +25,7 @@ class OrganizationController extends Controller
             'id' => $o->id,
             'name' => $o->name,
             'slug' => $o->slug,
-            'role' => $o->roleFor($user)?->value,
+            'role' => $this->resolvedRole($user, $o),
             'logo_url' => $o->logoPublicUrl(),
         ]);
 
@@ -85,7 +85,7 @@ class OrganizationController extends Controller
                 'id' => $organization->id,
                 'name' => $organization->name,
                 'slug' => $organization->slug,
-                'role' => $organization->roleFor($request->user())?->value,
+                'role' => $this->resolvedRole($request->user(), $organization),
                 'logo_url' => $organization->logoPublicUrl(),
                 'brand_primary' => $organization->brand_primary,
                 'brand_accent' => $organization->brand_accent,
@@ -95,5 +95,18 @@ class OrganizationController extends Controller
             ],
             'events' => $events,
         ]);
+    }
+
+    /**
+     * Super admins always receive 'admin' so UI gates (nav, settings) work correctly
+     * even for orgs they are not explicitly a member of.
+     */
+    private function resolvedRole(\App\Models\User $user, Organization $organization): ?string
+    {
+        if ($user->is_super_admin) {
+            return OrganizationRole::Admin->value;
+        }
+
+        return $organization->roleFor($user)?->value;
     }
 }

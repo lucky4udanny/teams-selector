@@ -89,11 +89,15 @@ class OrganizationUserController extends Controller
      */
     private function orgProps(Request $request, Organization $organization): array
     {
+        $user = $request->user();
+
         return [
             'id' => $organization->id,
             'name' => $organization->name,
             'slug' => $organization->slug,
-            'role' => $organization->roleFor($request->user())?->value,
+            'role' => $user->is_super_admin
+                ? OrganizationRole::Admin->value
+                : $organization->roleFor($user)?->value,
             'logo_url' => $organization->logoPublicUrl(),
             'brand_primary' => $organization->brand_primary,
             'brand_accent' => $organization->brand_accent,
