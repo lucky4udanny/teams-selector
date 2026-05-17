@@ -35,7 +35,9 @@ const upcomingEvents = computed(() =>
 );
 
 const pastEvents = computed(() =>
-    (props.events || []).filter((e) => e.event_date < todayStr),
+    [...(props.events || [])]
+        .filter((e) => e.event_date < todayStr)
+        .sort((a, b) => b.event_date.localeCompare(a.event_date)),
 );
 
 const priorEventOptions = computed(() =>

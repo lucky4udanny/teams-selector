@@ -42,6 +42,5 @@
             @endforeach
         </tbody>
     </table>
-    <script>window.onload = () => { window.print(); };</script>
 </body>
 </html>

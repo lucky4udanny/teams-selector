@@ -19,6 +19,7 @@ import Toggle from '@/Components/Toggle.vue';
 import WeightSlider from '@/Components/WeightSlider.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
+import { Bars3Icon, PlusIcon, XMarkIcon } from '@heroicons/vue/20/solid';
 import {
     applyFormErrors,
     validateEventDetails,
@@ -87,14 +88,106 @@ const exportColumnOptions = [
     { value: 'notes', label: 'Notes' },
 ];
 
-const selectedExportColumns = ref(exportColumnOptions.map((c) => c.value));
+const EXPORT_COLUMNS_STORAGE_KEY = 'ts:exportColumns';
+
+const loadStoredExportColumns = () => {
+    try {
+        const stored = localStorage.getItem(EXPORT_COLUMNS_STORAGE_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) {
+                const valid = parsed.filter((v) =>
+                    exportColumnOptions.some((o) => o.value === v),
+                );
+                if (valid.length) return valid;
+            }
+        }
+    } catch {
+        // ignore parse/storage errors
+    }
+    return exportColumnOptions.map((c) => c.value);
+};
+
+const selectedExportColumns = ref(loadStoredExportColumns());
+
+watch(
+    selectedExportColumns,
+    (cols) => {
+        try {
+            localStorage.setItem(EXPORT_COLUMNS_STORAGE_KEY, JSON.stringify(cols));
+        } catch {
+            // ignore storage errors
+        }
+    },
+);
+
+const dragColIdx = ref(null);
+
+const exportColumnLabel = (value) =>
+    exportColumnOptions.find((o) => o.value === value)?.label ?? value;
+
+const availableExportColumns = computed(() =>
+    exportColumnOptions.filter((o) => !selectedExportColumns.value.includes(o.value)),
+);
+
+const removeExportColumn = (value) => {
+    selectedExportColumns.value = selectedExportColumns.value.filter((v) => v !== value);
+};
+
+const addExportColumn = (value) => {
+    if (!selectedExportColumns.value.includes(value)) {
+        selectedExportColumns.value = [...selectedExportColumns.value, value];
+    }
+};
+
+const onColDragStart = (idx) => {
+    dragColIdx.value = idx;
+};
+
+const onColDragOver = (idx) => {
+    if (dragColIdx.value === null || dragColIdx.value === idx) return;
+    const cols = [...selectedExportColumns.value];
+    const [item] = cols.splice(dragColIdx.value, 1);
+    cols.splice(idx, 0, item);
+    selectedExportColumns.value = cols;
+    dragColIdx.value = idx;
+};
+
+const onColDragEnd = () => {
+    dragColIdx.value = null;
+};
+
+const handlePrint = async () => {
+    let html;
+    try {
+        const res = await fetch(printExportUrl.value, { credentials: 'same-origin' });
+        if (!res.ok) return;
+        html = await res.text();
+    } catch {
+        return;
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:0;';
+    document.body.appendChild(iframe);
+
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(html);
+    iframe.contentDocument.close();
+
+    // Small delay so inline styles are applied before the print dialog opens
+    setTimeout(() => {
+        iframe.contentWindow.print();
+        setTimeout(() => {
+            if (document.body.contains(iframe)) document.body.removeChild(iframe);
+        }, 500);
+    }, 100);
+};
 
 const exportQuery = computed(() => {
     const cols = selectedExportColumns.value;
-    if (!cols.length || cols.length === exportColumnOptions.length) {
-        return '';
-    }
-
+    if (!cols.length) return '';
     return `?columns=${encodeURIComponent(cols.join(','))}`;
 });
 
@@ -1378,24 +1471,63 @@ const groupDisplayLabel = (gi, names) => {
             <template v-if="final_draft && finalState">
                 <div class="ts-card-padded">
                     <h2 class="ts-heading-section mb-4">Export</h2>
-                    <div class="mb-4 max-w-xl">
+
+                    <!-- Column selection and ordering -->
+                    <div class="mb-5">
                         <span class="mb-2 block text-sm font-medium text-brand-navy">Columns</span>
-                        <ComboboxInput
-                            v-model="selectedExportColumns"
-                            :options="exportColumnOptions"
-                            label-key="label"
-                            value-key="value"
-                            multiple
-                            placeholder="Columns…"
-                        />
+
+                        <!-- Selected columns — drag to reorder -->
+                        <div class="flex min-h-[48px] flex-wrap gap-2 rounded-lg border border-brand-mist bg-white p-3">
+                            <p v-if="!selectedExportColumns.length" class="text-sm italic text-brand-blue/50">
+                                No columns selected — nothing will export.
+                            </p>
+                            <div
+                                v-for="(col, idx) in selectedExportColumns"
+                                :key="col"
+                                draggable="true"
+                                class="inline-flex cursor-grab select-none items-center gap-1 rounded-md bg-brand-blue/10 px-2 py-1 text-xs font-medium text-brand-navy transition-opacity"
+                                :class="{ 'opacity-40': dragColIdx === idx }"
+                                @dragstart="onColDragStart(idx)"
+                                @dragover.prevent="onColDragOver(idx)"
+                                @dragend="onColDragEnd"
+                            >
+                                <Bars3Icon class="h-3.5 w-3.5 shrink-0 text-brand-blue/40" />
+                                {{ exportColumnLabel(col) }}
+                                <button
+                                    type="button"
+                                    class="ml-1 text-brand-blue/50 hover:text-brand-navy"
+                                    @click.stop="removeExportColumn(col)"
+                                >
+                                    <XMarkIcon class="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Available columns to add -->
+                        <div v-if="availableExportColumns.length" class="mt-3">
+                            <span class="mb-1.5 block text-xs text-brand-blue/60">Add columns</span>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button
+                                    v-for="col in availableExportColumns"
+                                    :key="col.value"
+                                    type="button"
+                                    class="inline-flex items-center gap-1 rounded-md border border-brand-mist bg-white px-2 py-1 text-xs font-medium text-brand-blue/70 transition-colors hover:border-brand-blue/30 hover:text-brand-navy"
+                                    @click="addExportColumn(col.value)"
+                                >
+                                    <PlusIcon class="h-3 w-3" />
+                                    {{ col.label }}
+                                </button>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Export actions -->
                     <div class="flex flex-wrap gap-3">
-                        <a
-                            :href="printExportUrl"
-                            target="_blank"
-                            rel="noreferrer"
+                        <button
+                            type="button"
                             class="font-medium text-brand-blue hover:underline"
-                        >Print view</a>
+                            @click="handlePrint"
+                        >Print</button>
                         <a
                             :href="csvExportUrl"
                             class="font-medium text-brand-blue hover:underline"
