@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\EventTeamsExport;
 use App\Models\Event;
 use App\Models\Member;
+use App\Models\MemberEventTypeSkill;
 use App\Models\Organization;
 use App\Models\TeamDraft;
 use Illuminate\Http\Request;
@@ -23,11 +24,20 @@ class EventExportController extends Controller
         'display_name',
         'first_name',
         'last_name',
+        'gender',
         'email',
         'phone',
         'company',
         'sector',
+        'skill',
         'notes',
+    ];
+
+    private const GENDER_LABELS = [
+        'male'             => 'Male',
+        'female'           => 'Female',
+        'non_binary'       => 'Non-binary',
+        'prefer_not_to_say' => 'Prefer not to say',
     ];
 
     public function print(Request $request, Organization $organization, Event $event): Response
@@ -36,12 +46,18 @@ class EventExportController extends Controller
 
         $draft = $this->finalDraftOrAbort($event);
         $columns = $this->parseColumns($request);
+        $showViolations = $request->query('violations', '1') !== '0';
 
         $state = is_array($draft->state) ? $draft->state : [];
         $teams = $state['teams'] ?? [];
         $groups = $state['groups'] ?? [];
         $teamNames = $state['team_names'] ?? [];
         $groupNames = $state['group_names'] ?? [];
+        $violations = is_array($state['violations'] ?? null) ? $state['violations'] : [];
+
+        $memberIds = array_values(array_unique(
+            array_merge(...array_map(fn ($t) => $t['member_ids'] ?? [], $teams))
+        ));
 
         $members = Member::query()
             ->where('organization_id', $event->organization_id)
@@ -49,29 +65,40 @@ class EventExportController extends Controller
             ->get()
             ->keyBy('id');
 
-        $teamLabels = [];
-        foreach (array_keys($teams) as $ti) {
-            $num = (string) ($ti + 1);
-            $name = trim((string) ($teamNames[$ti] ?? ''));
-            $teamLabels[$ti] = ($name && $name !== $num) ? "$num · $name" : ($name ?: $num);
+        $skillByMember = [];
+        if (in_array('skill', $columns, true) && $event->event_type_id) {
+            $skillByMember = MemberEventTypeSkill::query()
+                ->where('event_type_id', $event->event_type_id)
+                ->whereIn('member_id', $memberIds)
+                ->pluck('skill_level', 'member_id')
+                ->all();
         }
 
-        $groupLabels = [];
-        foreach (array_keys($groups) as $gi) {
-            $letter = chr(65 + $gi);
-            $name = trim((string) ($groupNames[$gi] ?? ''));
-            $groupLabels[$gi] = ($name && $name !== $letter) ? "$letter · $name" : ($name ?: $letter);
+        // Index violations by team and group for easy lookup in the template
+        $teamViolations = [];
+        $groupViolations = [];
+        foreach ($violations as $v) {
+            if (isset($v['team_index']) && is_int($v['team_index'])) {
+                $teamViolations[$v['team_index']][] = $v;
+            } elseif (isset($v['group_index']) && is_int($v['group_index'])) {
+                $groupViolations[$v['group_index']][] = $v;
+            }
         }
 
         return response()->view('exports.event-teams-print', [
-            'event' => $event->loadMissing('eventType'),
-            'teams' => $teams,
-            'groups' => $groups,
-            'teamNames' => $teamNames,
-            'groupNames' => $groupNames,
-            'members' => $members,
-            'columns' => $columns,
-            'hasGroups' => ! empty($groups),
+            'event'           => $event->loadMissing('eventType'),
+            'teams'           => $teams,
+            'groups'          => $groups,
+            'teamNames'       => $teamNames,
+            'groupNames'      => $groupNames,
+            'members'         => $members,
+            'columns'         => $columns,
+            'hasGroups'       => ! empty($groups),
+            'skillByMember'   => $skillByMember,
+            'genderLabels'    => self::GENDER_LABELS,
+            'showViolations'  => $showViolations,
+            'teamViolations'  => $teamViolations,
+            'groupViolations' => $groupViolations,
         ]);
     }
 
@@ -156,6 +183,19 @@ class EventExportController extends Controller
             ->get()
             ->keyBy('id');
 
+        $allMemberIds = array_values(array_unique(
+            array_merge(...array_map(fn ($t) => $t['member_ids'] ?? [], $teams))
+        ));
+
+        $skillByMember = [];
+        if (in_array('skill', $columns, true) && $event->event_type_id) {
+            $skillByMember = MemberEventTypeSkill::query()
+                ->where('event_type_id', $event->event_type_id)
+                ->whereIn('member_id', $allMemberIds)
+                ->pluck('skill_level', 'member_id')
+                ->all();
+        }
+
         $groupMetaForTeam = [];
         foreach ($groups as $gi => $group) {
             foreach (($group['team_indices'] ?? []) as $ti) {
@@ -175,10 +215,12 @@ class EventExportController extends Controller
             'display_name' => 'Name',
             'first_name' => 'First name',
             'last_name' => 'Last name',
+            'gender' => 'Gender',
             'email' => 'Email',
             'phone' => 'Phone',
             'company' => 'Company',
             'sector' => 'Sector',
+            'skill' => 'Skill',
             'notes' => 'Notes',
             default => $c,
         }, $columns);
@@ -201,10 +243,12 @@ class EventExportController extends Controller
                         'display_name' => $m ? $m->displayName() : "#$mid",
                         'first_name' => $m?->first_name,
                         'last_name' => $m?->last_name,
+                        'gender' => self::GENDER_LABELS[$m?->gender ?? ''] ?? $m?->gender,
                         'email' => $m?->email,
                         'phone' => $m?->phone,
                         'company' => $m?->company,
                         'sector' => $m?->sector?->name,
+                        'skill' => isset($skillByMember[$mid]) ? (int) $skillByMember[$mid] : 50,
                         'notes' => $m?->notes,
                         default => null,
                     };

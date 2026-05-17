@@ -120,9 +120,12 @@ const handlePrint = async () => {
 };
 
 const exportQuery = computed(() => {
-    const cols = selectedExportColumns.value;
-    if (!cols.length) return '';
-    return `?columns=${encodeURIComponent(cols.join(','))}`;
+    const params = new URLSearchParams();
+    if (selectedExportColumns.value.length) {
+        params.set('columns', selectedExportColumns.value.join(','));
+    }
+    params.set('violations', showViolations.value ? '1' : '0');
+    return `?${params.toString()}`;
 });
 
 const printExportUrl = computed(

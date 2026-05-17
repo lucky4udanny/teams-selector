@@ -77,6 +77,13 @@
         .member-name { font-size: 8pt; font-weight: 600; color: #0f172a; }
         .member-detail { font-size: 7pt; color: #64748b; margin-top: 0.5pt; }
 
+        /* ── Violations ── */
+        .violations { margin-top: 4pt; padding-top: 3pt; border-top: 0.5pt solid #fde68a; }
+        .violation { font-size: 6.5pt; color: #92400e; display: flex; gap: 3pt; margin-top: 1pt; }
+        .violation-icon { flex-shrink: 0; }
+        .group-violations { margin-bottom: 4pt; }
+        .group-violation { font-size: 7pt; color: #92400e; display: flex; gap: 3pt; margin-bottom: 1pt; }
+
         @media print {
             body { padding: 0.3cm; }
             .group { page-break-inside: avoid; }
@@ -96,6 +103,29 @@
 @php
     function memberGridCols(int $count): int {
         return max(1, min(4, (int) ceil(sqrt($count))));
+    }
+
+    function formatViolationText(array $v, $members): string {
+        $type = $v['type'] ?? '';
+        if ($type === 'skill_leveling') {
+            $avg    = isset($v['avg_skill']) ? round((float) $v['avg_skill'], 1) : '?';
+            $min    = $v['min_avg'] ?? '?';
+            $max    = $v['max_avg'] ?? '?';
+            return "Skill levelling: avg {$avg} is outside {$min}–{$max}.";
+        }
+        if ($type === 'member_attribute') {
+            $attr  = $v['attribute_label'] ?? ($v['attribute'] ?? 'attribute');
+            $match = $v['attribute'] === null ? 'same' : ($v['attribute_value_label'] ?? '');
+            $offIds = $v['offending_member_ids'] ?? [];
+            $names = array_map(fn ($id) => $members[(int)$id]?->displayName() ?? "#$id", array_slice((array)$offIds, 0, 3));
+            $nameStr = implode(' and ', $names);
+            $val = $v['attribute_value_label'] ?? '';
+            if ($nameStr && $val) return "{$nameStr} share {$attr}: {$val}.";
+            if ($nameStr) return "{$nameStr} share the same {$attr}.";
+            $distinct = $v['distinct_count'] ?? '';
+            return $distinct ? "{$distinct} different {$attr} values on this team." : ($v['detail'] ?? '');
+        }
+        return $v['detail'] ?? '';
     }
 
     /**
@@ -156,15 +186,29 @@
 
 @if($hasGroups)
     @foreach($groups as $gi => $group)
-        @php $groupLabel = resolveGroupLabel($gi, $groupNames, $columns); @endphp
+        @php
+            $groupLabel = resolveGroupLabel($gi, $groupNames, $columns);
+            $gvs = $groupViolations[$gi] ?? [];
+        @endphp
         <div class="group">
             @if($groupLabel)<div class="group-label">{{ $groupLabel }}</div>@endif
+            @if($showViolations && count($gvs))
+                <div class="group-violations">
+                    @foreach($gvs as $v)
+                        <div class="group-violation">
+                            <span class="violation-icon">⚠</span>
+                            <span>{{ formatViolationText($v, $members) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
             <div class="team-grid">
                     @foreach($group['team_indices'] as $ti)
                     @php
                         $memberIds = $teams[$ti]['member_ids'] ?? [];
                         $cols      = memberGridCols(count($memberIds));
                         $teamLabel = resolveTeamLabel($ti, $teamNames, $columns);
+                        $tvs       = $teamViolations[$ti] ?? [];
                     @endphp
                     <div class="team-card">
                         @if($teamLabel)<div class="team-name">{{ $teamLabel }}</div>@endif
@@ -182,10 +226,16 @@
                                             $memberFields[] = ['type' => 'name', 'key' => 'last_name', 'value' => $m->last_name];
                                         } elseif ($col === 'member_id') {
                                             $memberFields[] = ['type' => 'detail', 'key' => 'member_id', 'value' => "#$mid"];
+                                        } elseif ($col === 'gender' && $m?->gender) {
+                                            $memberFields[] = ['type' => 'detail', 'key' => 'gender', 'value' => $genderLabels[$m->gender] ?? $m->gender];
                                         } elseif ($col === 'email'   && $m?->email)   { $memberFields[] = ['type' => 'detail', 'key' => 'email',   'value' => $m->email]; }
                                         elseif ($col === 'phone'   && $m?->phone)   { $memberFields[] = ['type' => 'detail', 'key' => 'phone',   'value' => $m->phone]; }
                                         elseif ($col === 'company' && $m?->company) { $memberFields[] = ['type' => 'detail', 'key' => 'company', 'value' => $m->company]; }
                                         elseif ($col === 'sector'  && $m?->sector)  { $memberFields[] = ['type' => 'detail', 'key' => 'sector',  'value' => $m->sector->name]; }
+                                        elseif ($col === 'skill') {
+                                            $lvl = isset($skillByMember[(int)$mid]) ? (int)$skillByMember[(int)$mid] : 50;
+                                            $memberFields[] = ['type' => 'detail', 'key' => 'skill', 'value' => "Skill: $lvl"];
+                                        }
                                         elseif ($col === 'notes'   && $m?->notes)   { $memberFields[] = ['type' => 'detail', 'key' => 'notes',   'value' => $m->notes]; }
                                     }
                                     $memberFields = mergeAdjacentNames($memberFields);
@@ -201,6 +251,16 @@
                                 </div>
                             @endforeach
                         </div>
+                        @if($showViolations && count($tvs))
+                            <div class="violations">
+                                @foreach($tvs as $v)
+                                    <div class="violation">
+                                        <span class="violation-icon">⚠</span>
+                                        <span>{{ formatViolationText($v, $members) }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                 @endforeach
             </div>
@@ -213,6 +273,7 @@
                 $memberIds = $team['member_ids'] ?? [];
                 $cols      = memberGridCols(count($memberIds));
                 $teamLabel = resolveTeamLabel($ti, $teamNames, $columns);
+                $tvs       = $teamViolations[$ti] ?? [];
             @endphp
             <div class="team-card">
                 @if($teamLabel)<div class="team-name">{{ $teamLabel }}</div>@endif
@@ -230,10 +291,16 @@
                                     $memberFields[] = ['type' => 'name', 'key' => 'last_name', 'value' => $m->last_name];
                                 } elseif ($col === 'member_id') {
                                     $memberFields[] = ['type' => 'detail', 'key' => 'member_id', 'value' => "#$mid"];
+                                } elseif ($col === 'gender' && $m?->gender) {
+                                    $memberFields[] = ['type' => 'detail', 'key' => 'gender', 'value' => $genderLabels[$m->gender] ?? $m->gender];
                                 } elseif ($col === 'email'   && $m?->email)   { $memberFields[] = ['type' => 'detail', 'key' => 'email',   'value' => $m->email]; }
                                 elseif ($col === 'phone'   && $m?->phone)   { $memberFields[] = ['type' => 'detail', 'key' => 'phone',   'value' => $m->phone]; }
                                 elseif ($col === 'company' && $m?->company) { $memberFields[] = ['type' => 'detail', 'key' => 'company', 'value' => $m->company]; }
                                 elseif ($col === 'sector'  && $m?->sector)  { $memberFields[] = ['type' => 'detail', 'key' => 'sector',  'value' => $m->sector->name]; }
+                                elseif ($col === 'skill') {
+                                    $lvl = isset($skillByMember[(int)$mid]) ? (int)$skillByMember[(int)$mid] : 50;
+                                    $memberFields[] = ['type' => 'detail', 'key' => 'skill', 'value' => "Skill: $lvl"];
+                                }
                                 elseif ($col === 'notes'   && $m?->notes)   { $memberFields[] = ['type' => 'detail', 'key' => 'notes',   'value' => $m->notes]; }
                             }
                             $memberFields = mergeAdjacentNames($memberFields);
@@ -249,6 +316,16 @@
                         </div>
                     @endforeach
                 </div>
+                @if($showViolations && count($tvs))
+                    <div class="violations">
+                        @foreach($tvs as $v)
+                            <div class="violation">
+                                <span class="violation-icon">⚠</span>
+                                <span>{{ formatViolationText($v, $members) }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
         @endforeach
     </div>
