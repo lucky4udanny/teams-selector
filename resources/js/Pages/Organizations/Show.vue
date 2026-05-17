@@ -22,6 +22,21 @@ const props = defineProps({
 
 const isAdmin = computed(() => props.organization.role === 'admin');
 
+const today = new Date();
+const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+const upcomingEvents = computed(() =>
+    [...(props.events || [])]
+        .filter((e) => e.event_date >= todayStr)
+        .sort((a, b) => a.event_date.localeCompare(b.event_date)),
+);
+
+const pastEvents = computed(() =>
+    (props.events || [])
+        .filter((e) => e.event_date < todayStr)
+        .slice(0, 5),
+);
+
 const settingsForm = useForm({
     brand_primary: props.organization.brand_primary || '#1a6893',
     brand_accent: props.organization.brand_accent || '#f7941c',
@@ -77,7 +92,7 @@ const saveSettings = () => {
                 <div>
                     <p class="font-semibold text-brand-navy">Events</p>
                     <p class="text-sm text-brand-blue/70">
-                        {{ events.length }} scheduled
+                        {{ upcomingEvents.length }} upcoming
                     </p>
                 </div>
             </Link>
@@ -100,44 +115,72 @@ const saveSettings = () => {
             </Link>
         </p>
 
-        <section
-            v-if="events.length"
-            class="ts-card-padded mt-8"
-        >
-            <h2 class="ts-heading-section mb-4">Upcoming &amp; recent</h2>
-            <ul class="divide-y divide-brand-mist">
-                <li
-                    v-for="ev in events"
-                    :key="ev.id"
-                    class="py-3 first:pt-0"
-                >
+        <template v-if="events.length">
+            <!-- Upcoming events -->
+            <section class="ts-card-padded mt-8">
+                <h2 class="ts-heading-section mb-4">Upcoming</h2>
+                <p v-if="!upcomingEvents.length" class="text-sm text-brand-blue/60">
+                    No upcoming events.
                     <Link
-                        class="flex flex-wrap items-baseline justify-between gap-2 hover:text-brand-navy"
-                        :href="
-                            route('organizations.events.show', {
-                                organization: organization.slug,
-                                event: ev.id,
-                            })
-                        "
+                        :href="route('organizations.events.index', organization.slug)"
+                        class="font-medium text-brand-blue hover:text-brand-navy"
+                    >View all events →</Link>
+                </p>
+                <ul v-else class="divide-y divide-brand-mist">
+                    <li
+                        v-for="ev in upcomingEvents"
+                        :key="ev.id"
+                        class="py-3 first:pt-0"
                     >
-                        <span class="font-medium text-brand-navy">{{
-                            ev.name
-                        }}</span>
-                        <span class="text-sm text-brand-blue/70">
-                            {{ ev.event_type_name }} · {{ ev.event_date }}
-                            <span v-if="ev.finalized" class="ml-2 text-emerald-700"
-                                >Finalized</span
-                            >
-                        </span>
-                    </Link>
-                    <p class="mt-1 text-xs text-brand-blue/60">
-                        RSVP: {{ ev.rsvp_counts.accepted }} accepted,
-                        {{ ev.rsvp_counts.pending }} pending,
-                        {{ ev.rsvp_counts.declined }} declined
-                    </p>
-                </li>
-            </ul>
-        </section>
+                        <Link
+                            class="flex flex-wrap items-baseline justify-between gap-2 hover:text-brand-navy"
+                            :href="route('organizations.events.show', { organization: organization.slug, event: ev.id })"
+                        >
+                            <span class="font-medium text-brand-navy">{{ ev.name }}</span>
+                            <span class="text-sm text-brand-blue/70">
+                                {{ ev.event_type_name }} · {{ ev.event_date }}
+                                <span v-if="ev.finalized" class="ml-2 text-emerald-700">Finalized</span>
+                            </span>
+                        </Link>
+                        <p class="mt-1 text-xs text-brand-blue/60">
+                            RSVP: {{ ev.rsvp_counts.accepted }} accepted,
+                            {{ ev.rsvp_counts.pending }} pending,
+                            {{ ev.rsvp_counts.declined }} declined
+                        </p>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Recent past events -->
+            <section v-if="pastEvents.length" class="ts-card-padded mt-4">
+                <h2 class="ts-heading-section mb-4 text-brand-blue/70">Past events</h2>
+                <ul class="divide-y divide-brand-mist">
+                    <li
+                        v-for="ev in pastEvents"
+                        :key="ev.id"
+                        class="py-3 first:pt-0"
+                    >
+                        <Link
+                            class="flex flex-wrap items-baseline justify-between gap-2 hover:text-brand-navy"
+                            :href="route('organizations.events.show', { organization: organization.slug, event: ev.id })"
+                        >
+                            <span class="font-medium text-brand-navy/70">{{ ev.name }}</span>
+                            <span class="text-sm text-brand-blue/60">
+                                {{ ev.event_type_name }} · {{ ev.event_date }}
+                                <span v-if="ev.finalized" class="ml-2 text-emerald-600">Finalized</span>
+                            </span>
+                        </Link>
+                    </li>
+                </ul>
+                <Link
+                    v-if="events.length > upcomingEvents.length + 5"
+                    :href="route('organizations.events.index', organization.slug)"
+                    class="mt-3 block text-xs font-medium text-brand-blue hover:text-brand-navy"
+                >
+                    View all past events →
+                </Link>
+            </section>
+        </template>
 
         <section
             v-if="isAdmin"

@@ -16,6 +16,9 @@ import { applyFormErrors, validateEventDetails } from '@/utils/formValidation';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 
+const today = new Date();
+const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
 const props = defineProps({
     organization: Object,
     events: Array,
@@ -24,6 +27,16 @@ const props = defineProps({
 });
 
 const showCreate = ref(false);
+
+const upcomingEvents = computed(() =>
+    [...(props.events || [])]
+        .filter((e) => e.event_date >= todayStr)
+        .sort((a, b) => a.event_date.localeCompare(b.event_date)),
+);
+
+const pastEvents = computed(() =>
+    (props.events || []).filter((e) => e.event_date < todayStr),
+);
 
 const priorEventOptions = computed(() =>
     (props.events || [])
@@ -142,34 +155,70 @@ const submitCreate = () => {
             </PrimaryButton>
         </EmptyState>
 
-        <div v-else class="space-y-3">
-            <Link
-                v-for="ev in events"
-                :key="ev.id"
-                class="block rounded-xl border border-brand-mist bg-white px-4 py-4 shadow-sm transition hover:border-brand-blue/30"
-                :href="
-                    route('organizations.events.show', {
-                        organization: organization.slug,
-                        event: ev.id,
-                    })
-                "
-            >
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div class="min-w-0">
-                        <span class="font-semibold text-brand-navy">{{ ev.name }}</span>
-                        <p class="mt-1 text-sm text-brand-blue/70">
-                            {{ ev.event_type_name }} · {{ ev.event_date }}
-                        </p>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <Badge v-if="ev.finalized" variant="success">Finalized</Badge>
-                        <Badge variant="success">{{ ev.rsvp_counts?.accepted ?? 0 }} accepted</Badge>
-                        <Badge variant="warning">{{ ev.rsvp_counts?.pending ?? 0 }} pending</Badge>
-                        <Badge variant="danger">{{ ev.rsvp_counts?.declined ?? 0 }} declined</Badge>
-                    </div>
+        <template v-else>
+            <!-- Upcoming -->
+            <section>
+                <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-blue/60">
+                    Upcoming
+                </h2>
+                <p v-if="!upcomingEvents.length" class="rounded-xl border border-brand-mist bg-white px-4 py-4 text-sm text-brand-blue/60">
+                    No upcoming events.
+                </p>
+                <div v-else class="space-y-3">
+                    <Link
+                        v-for="ev in upcomingEvents"
+                        :key="ev.id"
+                        class="block rounded-xl border border-brand-mist bg-white px-4 py-4 shadow-sm transition hover:border-brand-blue/30"
+                        :href="route('organizations.events.show', { organization: organization.slug, event: ev.id })"
+                    >
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <span class="font-semibold text-brand-navy">{{ ev.name }}</span>
+                                <p class="mt-1 text-sm text-brand-blue/70">
+                                    {{ ev.event_type_name }} · {{ ev.event_date }}
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <Badge v-if="ev.finalized" variant="success">Finalized</Badge>
+                                <Badge variant="success">{{ ev.rsvp_counts?.accepted ?? 0 }} accepted</Badge>
+                                <Badge variant="warning">{{ ev.rsvp_counts?.pending ?? 0 }} pending</Badge>
+                                <Badge variant="danger">{{ ev.rsvp_counts?.declined ?? 0 }} declined</Badge>
+                            </div>
+                        </div>
+                    </Link>
                 </div>
-            </Link>
-        </div>
+            </section>
+
+            <!-- Past -->
+            <section v-if="pastEvents.length" class="mt-8">
+                <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-blue/60">
+                    Past events
+                </h2>
+                <div class="space-y-3">
+                    <Link
+                        v-for="ev in pastEvents"
+                        :key="ev.id"
+                        class="block rounded-xl border border-brand-mist bg-white px-4 py-4 shadow-sm transition hover:border-brand-blue/30 opacity-75"
+                        :href="route('organizations.events.show', { organization: organization.slug, event: ev.id })"
+                    >
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <span class="font-semibold text-brand-navy">{{ ev.name }}</span>
+                                <p class="mt-1 text-sm text-brand-blue/70">
+                                    {{ ev.event_type_name }} · {{ ev.event_date }}
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <Badge v-if="ev.finalized" variant="success">Finalized</Badge>
+                                <Badge variant="success">{{ ev.rsvp_counts?.accepted ?? 0 }} accepted</Badge>
+                                <Badge variant="warning">{{ ev.rsvp_counts?.pending ?? 0 }} pending</Badge>
+                                <Badge variant="danger">{{ ev.rsvp_counts?.declined ?? 0 }} declined</Badge>
+                            </div>
+                        </div>
+                    </Link>
+                </div>
+            </section>
+        </template>
 
         <p v-if="!canManage" class="mt-8 text-sm text-brand-blue/70">
             Only organizers can create or duplicate events.
