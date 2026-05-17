@@ -283,6 +283,19 @@ const copyFromId = ref(null);
 const rosterNotice = ref(null);
 const draftsNotice = ref(null);
 
+const showAddMembersModal = ref(false);
+const showCopyModal = ref(false);
+
+const openAddMembersModal = () => {
+    selectedMemberIdsToAdd.value = [];
+    showAddMembersModal.value = true;
+};
+
+const openCopyModal = () => {
+    copyFromId.value = null;
+    showCopyModal.value = true;
+};
+
 const postAddMembers = () => {
     rosterNotice.value = null;
     if (!selectedMemberIdsToAdd.value?.length) {
@@ -301,6 +314,7 @@ const postAddMembers = () => {
             preserveScroll: true,
             onSuccess: () => {
                 selectedMemberIdsToAdd.value = [];
+                showAddMembersModal.value = false;
             },
             onFinish: () => {
                 addMembersProcessing.value = false;
@@ -322,7 +336,13 @@ const postCopy = () => {
     router.post(
         route('organizations.events.members.copy-from-event', [slug.value, eventId.value]),
         { source_event_id: copyFromId.value },
-        { preserveScroll: true, onSuccess: () => (copyFromId.value = null) },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                copyFromId.value = null;
+                showCopyModal.value = false;
+            },
+        },
     );
 };
 
@@ -877,42 +897,53 @@ const groupDisplayLabel = (gi, names) => {
                 {{ rosterNotice.message }}
             </Alert>
 
-            <div v-if="canManage" class="grid gap-6 lg:grid-cols-2">
-                <div class="ts-card-padded lg:col-span-2 xl:col-span-1">
-                    <h3 class="mb-1 text-sm font-semibold text-brand-navy">Add members from organization</h3>
-                    <p class="mb-4 text-xs text-brand-blue/60">
-                        Select one or more members, then add them to the roster in one step.
-                    </p>
-                    <RosterMemberPicker
-                        v-model="selectedMemberIdsToAdd"
-                        :members="availableMembersToAdd"
-                    />
-                    <PrimaryButton
-                        class="mt-4"
-                        type="button"
-                        :disabled="addMembersProcessing || selectedMemberIdsToAdd.length === 0"
-                        @click="postAddMembers"
-                    >
-                        {{
-                            addMembersProcessing
-                                ? 'Adding…'
-                                : selectedMemberIdsToAdd.length === 1
-                                  ? 'Add 1 member to roster'
-                                  : `Add ${selectedMemberIdsToAdd.length} members to roster`
-                        }}
-                    </PrimaryButton>
+            <!-- Inline panels when roster is empty; buttons → modals once members exist -->
+            <template v-if="canManage">
+                <div v-if="rosterRows.length === 0" class="grid gap-6 lg:grid-cols-2">
+                    <div class="ts-card-padded lg:col-span-2 xl:col-span-1">
+                        <h3 class="mb-1 text-sm font-semibold text-brand-navy">Add members from organization</h3>
+                        <p class="mb-4 text-xs text-brand-blue/60">
+                            Select one or more members, then add them to the roster in one step.
+                        </p>
+                        <RosterMemberPicker
+                            v-model="selectedMemberIdsToAdd"
+                            :members="availableMembersToAdd"
+                        />
+                        <PrimaryButton
+                            class="mt-4"
+                            type="button"
+                            :disabled="addMembersProcessing || selectedMemberIdsToAdd.length === 0"
+                            @click="postAddMembers"
+                        >
+                            {{
+                                addMembersProcessing
+                                    ? 'Adding…'
+                                    : selectedMemberIdsToAdd.length === 1
+                                      ? 'Add 1 member to roster'
+                                      : `Add ${selectedMemberIdsToAdd.length} members to roster`
+                            }}
+                        </PrimaryButton>
+                    </div>
+                    <div class="ts-card-padded">
+                        <h3 class="mb-2 text-sm font-semibold text-brand-navy">Copy from event</h3>
+                        <p class="mb-3 text-xs text-brand-blue/60">
+                            Copy the full roster from another event in this organization.
+                        </p>
+                        <ComboboxInput v-model="copyFromId" :options="copyEventOptions" placeholder="Pick event…" />
+                        <SecondaryButton class="mt-3" type="button" @click="postCopy">
+                            Copy roster
+                        </SecondaryButton>
+                    </div>
                 </div>
-                <div class="ts-card-padded">
-                    <h3 class="mb-2 text-sm font-semibold text-brand-navy">Copy from event</h3>
-                    <p class="mb-3 text-xs text-brand-blue/60">
-                        Copy the full roster from another event in this organization.
-                    </p>
-                    <ComboboxInput v-model="copyFromId" :options="copyEventOptions" placeholder="Pick event…" />
-                    <SecondaryButton class="mt-3" type="button" @click="postCopy">
-                        Copy roster
+                <div v-else class="flex flex-wrap gap-3">
+                    <SecondaryButton type="button" @click="openAddMembersModal">
+                        Add members
+                    </SecondaryButton>
+                    <SecondaryButton type="button" @click="openCopyModal">
+                        Copy from event
                     </SecondaryButton>
                 </div>
-            </div>
+            </template>
 
             <div v-if="canManage && selectedEmIds.size" class="ts-card-padded flex flex-wrap items-center gap-2">
                 <span class="text-sm text-brand-navy">{{ selectedEmIds.size }} selected</span>
@@ -1109,6 +1140,52 @@ const groupDisplayLabel = (gi, names) => {
                     </table>
                 </div>
             </div>
+
+            <!-- Roster modals -->
+            <Modal v-if="canManage" :show="showAddMembersModal" max-width="xl" @close="showAddMembersModal = false">
+                <div class="p-6">
+                    <h3 class="mb-1 text-lg font-semibold text-brand-navy">Add members from organization</h3>
+                    <p class="mb-4 text-sm text-brand-blue/60">
+                        Select one or more members, then add them to the roster in one step.
+                    </p>
+                    <RosterMemberPicker
+                        v-model="selectedMemberIdsToAdd"
+                        :members="availableMembersToAdd"
+                    />
+                    <div class="mt-6 flex justify-end gap-3">
+                        <SecondaryButton type="button" @click="showAddMembersModal = false">Cancel</SecondaryButton>
+                        <PrimaryButton
+                            type="button"
+                            :disabled="addMembersProcessing || selectedMemberIdsToAdd.length === 0"
+                            @click="postAddMembers"
+                        >
+                            {{
+                                addMembersProcessing
+                                    ? 'Adding…'
+                                    : selectedMemberIdsToAdd.length === 1
+                                      ? 'Add 1 member to roster'
+                                      : `Add ${selectedMemberIdsToAdd.length} members to roster`
+                            }}
+                        </PrimaryButton>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal v-if="canManage" :show="showCopyModal" max-width="md" @close="showCopyModal = false">
+                <div class="p-6">
+                    <h3 class="mb-2 text-lg font-semibold text-brand-navy">Copy from event</h3>
+                    <p class="mb-4 text-sm text-brand-blue/60">
+                        Copy the full roster from another event in this organization.
+                    </p>
+                    <ComboboxInput v-model="copyFromId" :options="copyEventOptions" placeholder="Pick event…" />
+                    <div class="mt-6 flex justify-end gap-3">
+                        <SecondaryButton type="button" @click="showCopyModal = false">Cancel</SecondaryButton>
+                        <PrimaryButton type="button" @click="postCopy">
+                            Copy roster
+                        </PrimaryButton>
+                    </div>
+                </div>
+            </Modal>
         </section>
 
         <!-- Rules -->
