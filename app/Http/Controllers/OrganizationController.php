@@ -19,7 +19,7 @@ class OrganizationController extends Controller
 
         $query = $user->is_super_admin
             ? Organization::query()->orderBy('name')
-            : $user->organizations()->orderBy('name')->getQuery();
+            : $user->organizations()->orderBy('name');
 
         $orgs = $query->get()->map(fn (Organization $o) => [
             'id' => $o->id,

@@ -41,10 +41,11 @@ class InvitationController extends Controller
             return redirect()->back()->withErrors(['email' => 'This person is already a member of the organization.']);
         }
 
-        // Replace any prior pending invite for this email in this org
+        // Replace any prior pending invite for this email in this org (preserve accepted records)
         Invitation::query()
             ->where('organization_id', $organization->id)
             ->where('email', $email)
+            ->whereNull('accepted_at')
             ->delete();
 
         $invitation = Invitation::query()->create([
