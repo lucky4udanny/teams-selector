@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Refactor (rules):** Merged `team_size` and `group_size` rule types into a single `size` type — scope (`team`/`group`) already distinguishes the two cases; config key unified to `size` (was `teams_per_group` for group rules); singleton uniqueness is now enforced per type+scope; migration `100012` renames existing DB rows and migrates the config JSON key; solver, controller, frontend labels, config form, and validation all updated.
 - **UX (EmptyState):** Entire empty-state card is now clickable when `href` or `@click` is bound — renders as Inertia `<Link>` when `href` is set, or as an interactive `<div>` when a click handler is bound; hover styles (`border-brand-blue/40 bg-brand-cream/30`) activate automatically via `$attrs.onClick` detection.
 - **UX (empty states):** Events/Index — whole card triggers create-event modal; Events/Show rules tab — whole card triggers add-rule modal; Events/Show final tab — whole card links to the drafts tab; Members/Index, Sectors/Index, EventTypes/Index — whole card scrolls to and focuses the inline add-form's first input, with a hint text slot describing the action.
 - **Feat (team draft):** Admin "Edit members" button on each team card (grouped and flat views); clicking opens an inline editor with remove-member buttons and a live search-to-add field; saves via new `PATCH .../team-members` endpoint which rebuilds the global `member_ids` from all teams and validates members belong to the org.

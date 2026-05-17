@@ -59,8 +59,7 @@ const eventHref = (t) =>
     `${route('organizations.events.show', { organization: slug.value, event: eventId.value })}?tab=${t}`;
 
 const ruleTypeLabels = {
-    team_size: 'Team size',
-    group_size: 'Group size',
+    size: 'Size',
     banned_pair: 'Banned pair',
     preferred_pair: 'Preferred pair',
     repeat_pair: 'Repeat pair (prior event)',
@@ -446,18 +445,15 @@ const typeOptions = computed(() =>
     })),
 );
 
-const hasRuleType = (type) => (props.rules || []).some((r) => r.type === type);
-const singletonTypes = ['team_size', 'group_size'];
+const hasRuleTypeAndScope = (type, scope) => (props.rules || []).some((r) => r.type === type && r.scope === scope);
 
 const ruleModalOpen = ref(false);
 const editingRuleId = ref(null);
 
 const defaultConfigForType = (type) => {
     switch (type) {
-        case 'team_size':
+        case 'size':
             return { size: 4 };
-        case 'group_size':
-            return { teams_per_group: 2 };
         case 'banned_pair':
         case 'preferred_pair':
             return { member_a_id: null, member_b_id: null };
@@ -471,10 +467,10 @@ const defaultConfigForType = (type) => {
 };
 
 const ruleForm = useForm({
-    type: 'team_size',
+    type: 'size',
     scope: 'team',
     weight: 50,
-    config: defaultConfigForType('team_size'),
+    config: defaultConfigForType('size'),
 });
 
 const memberPairOptions = computed(() =>
@@ -494,10 +490,10 @@ const repeatPriorOptions = computed(() =>
 const openAddRule = () => {
     editingRuleId.value = null;
     ruleForm.clearErrors();
-    ruleForm.type = 'team_size';
+    ruleForm.type = 'size';
     ruleForm.scope = 'team';
     ruleForm.weight = 50;
-    ruleForm.config = defaultConfigForType('team_size');
+    ruleForm.config = defaultConfigForType('size');
     ruleModalOpen.value = true;
 };
 
@@ -1085,11 +1081,11 @@ const groupDisplayLabel = (gi, names) => {
                 <PrimaryButton v-if="canManage" type="button" @click="openAddRule">Add rule</PrimaryButton>
             </div>
 
-            <Alert v-if="hasRuleType('team_size')" variant="warning">
-                A <strong>team size</strong> rule already exists — only one is allowed.
+            <Alert v-if="hasRuleTypeAndScope('size', 'team')" variant="warning">
+                A <strong>size (team)</strong> rule already exists — only one per scope is allowed.
             </Alert>
-            <Alert v-if="hasRuleType('group_size')" variant="warning">
-                A <strong>group size</strong> rule already exists — only one is allowed.
+            <Alert v-if="hasRuleTypeAndScope('size', 'group')" variant="warning">
+                A <strong>size (group)</strong> rule already exists — only one per scope is allowed.
             </Alert>
 
             <TransitionGroup
@@ -1409,24 +1405,15 @@ const groupDisplayLabel = (gi, names) => {
                 </div>
 
                 <div class="mt-6 space-y-4 border-t border-brand-mist pt-4">
-                    <template v-if="ruleForm.type === 'team_size'">
-                        <FormField label="Players per team" name="cfg_size" :error="ruleForm.errors['config.size']">
+                    <template v-if="ruleForm.type === 'size'">
+                        <FormField
+                            :label="ruleForm.scope === 'group' ? 'Teams per group' : 'Members per team'"
+                            name="cfg_size"
+                            :error="ruleForm.errors['config.size']"
+                        >
                             <TextInput
                                 id="cfg_size"
                                 v-model.number="ruleForm.config.size"
-                                inputmode="numeric"
-                            />
-                        </FormField>
-                    </template>
-                    <template v-else-if="ruleForm.type === 'group_size'">
-                        <FormField
-                            label="Teams per group"
-                            name="cfg_tpg"
-                            :error="ruleForm.errors['config.teams_per_group']"
-                        >
-                            <TextInput
-                                id="cfg_tpg"
-                                v-model.number="ruleForm.config.teams_per_group"
                                 inputmode="numeric"
                             />
                         </FormField>

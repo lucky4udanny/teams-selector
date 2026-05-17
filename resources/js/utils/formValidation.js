@@ -161,17 +161,10 @@ export function validateRuleForm(rule) {
     const cfg = rule.config || {};
 
     switch (rule.type) {
-        case 'team_size': {
+        case 'size': {
             const size = Number(cfg.size);
             if (!Number.isInteger(size) || size < 1) {
-                errors.config = 'Team size must be at least 1.';
-            }
-            break;
-        }
-        case 'group_size': {
-            const tpg = Number(cfg.teams_per_group);
-            if (!Number.isInteger(tpg) || tpg < 1) {
-                errors.config = 'Teams per group must be at least 1.';
+                errors.config = 'Size must be at least 1.';
             }
             break;
         }

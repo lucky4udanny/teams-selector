@@ -31,14 +31,14 @@ class TeamSolverService
             ->orderByDesc('weight')
             ->get();
 
-        $teamSizeRule = $rules->first(fn (Rule $r) => $r->type === RuleType::TeamSize);
+        $teamSizeRule = $rules->first(fn (Rule $r) => $r->type === RuleType::Size && $r->scope === RuleScope::Team);
         if (! $teamSizeRule) {
             return [
                 'teams' => [],
                 'groups' => [],
                 'violations' => [],
                 'total_penalty' => 0,
-                'blocking_errors' => ['Add a team size rule before generating.'],
+                'blocking_errors' => ['Add a size rule (team scope) before generating.'],
             ];
         }
 
@@ -49,7 +49,7 @@ class TeamSolverService
                 'groups' => [],
                 'violations' => [],
                 'total_penalty' => 0,
-                'blocking_errors' => ['Team size rule must set a positive "size".'],
+                'blocking_errors' => ['The size rule (team scope) must set a positive "size".'],
             ];
         }
 
@@ -74,8 +74,8 @@ class TeamSolverService
             ];
         }
 
-        $groupRule = $rules->first(fn (Rule $r) => $r->type === RuleType::GroupSize);
-        $teamsPerGroup = $groupRule ? (int) ($groupRule->config['teams_per_group'] ?? 1) : 1;
+        $groupRule = $rules->first(fn (Rule $r) => $r->type === RuleType::Size && $r->scope === RuleScope::Group);
+        $teamsPerGroup = $groupRule ? (int) ($groupRule->config['size'] ?? 1) : 1;
         if ($teamsPerGroup < 1) {
             $teamsPerGroup = 1;
         }
@@ -221,7 +221,7 @@ class TeamSolverService
         $penalty = 0;
 
         foreach ($rules as $rule) {
-            if ($rule->type === RuleType::TeamSize || $rule->type === RuleType::GroupSize) {
+            if ($rule->type === RuleType::Size) {
                 continue;
             }
 

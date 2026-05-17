@@ -30,7 +30,7 @@ class EventRuleController extends Controller
 
         $this->assertGroupScopeAllowed($event, $scope);
         $this->assertConfigValid($type, $validated['config'], $event);
-        $this->assertSingletonNotDuplicated($event, $type);
+        $this->assertSingletonNotDuplicated($event, $type, $scope);
         $this->assertRepeatPairUnique($event, $type, $validated['config']);
 
         $rule = $event->rules()->create([
@@ -63,7 +63,7 @@ class EventRuleController extends Controller
 
         $this->assertGroupScopeAllowed($event, $scope);
         $this->assertConfigValid($type, $validated['config'], $event);
-        $this->assertSingletonNotDuplicated($event, $type, $rule->id);
+        $this->assertSingletonNotDuplicated($event, $type, $scope, $rule->id);
         $this->assertRepeatPairUnique($event, $type, $validated['config'], $rule->id);
 
         $rule->update([
@@ -97,19 +97,24 @@ class EventRuleController extends Controller
         }
     }
 
-    private function assertSingletonNotDuplicated(Event $event, RuleType $type, ?int $exceptRuleId = null): void
+    private function assertSingletonNotDuplicated(Event $event, RuleType $type, RuleScope $scope, ?int $exceptRuleId = null): void
     {
-        if (! in_array($type, [RuleType::TeamSize, RuleType::GroupSize], true)) {
+        if ($type !== RuleType::Size) {
             return;
         }
 
-        $q = Rule::query()->where('event_id', $event->id)->where('type', $type);
+        $q = Rule::query()
+            ->where('event_id', $event->id)
+            ->where('type', $type)
+            ->where('scope', $scope);
+
         if ($exceptRuleId) {
             $q->where('id', '!=', $exceptRuleId);
         }
+
         if ($q->exists()) {
             throw ValidationException::withMessages([
-                'type' => 'Only one '.$type->value.' rule is allowed per event.',
+                'type' => 'Only one size rule per scope ('.$scope->value.') is allowed per event.',
             ]);
         }
     }
@@ -152,14 +157,9 @@ class EventRuleController extends Controller
         $e = fn (string $msg) => ValidationException::withMessages(['config' => $msg]);
 
         switch ($type) {
-            case RuleType::TeamSize:
+            case RuleType::Size:
                 if (! isset($config['size']) || (int) $config['size'] < 1) {
-                    throw $e('Team size requires positive "size".');
-                }
-                break;
-            case RuleType::GroupSize:
-                if (! isset($config['teams_per_group']) || (int) $config['teams_per_group'] < 1) {
-                    throw $e('Group size requires positive "teams_per_group".');
+                    throw $e('Size rule requires a positive "size".');
                 }
                 break;
             case RuleType::BannedPair:
