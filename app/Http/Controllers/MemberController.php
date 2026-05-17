@@ -32,6 +32,7 @@ class MemberController extends Controller
                 'id' => $m->id,
                 'first_name' => $m->first_name,
                 'last_name' => $m->last_name,
+                'gender' => $m->gender,
                 'name' => $m->displayName(),
                 'email' => $m->email,
                 'phone' => $m->phone,
@@ -66,6 +67,7 @@ class MemberController extends Controller
             $member = $organization->members()->create([
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'] ?? null,
+                'gender' => $validated['gender'] ?? null,
                 'email' => $validated['email'] ?? null,
                 'phone' => $validated['phone'] ?? null,
                 'company' => $validated['company'] ?? null,
@@ -91,6 +93,7 @@ class MemberController extends Controller
             $member->update([
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'] ?? null,
+                'gender' => $validated['gender'] ?? null,
                 'email' => $validated['email'] ?? null,
                 'phone' => $validated['phone'] ?? null,
                 'company' => $validated['company'] ?? null,
@@ -223,6 +226,7 @@ class MemberController extends Controller
         $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['nullable', 'string', 'max:255'],
+            'gender' => ['nullable', 'string', 'in:male,female,non_binary,prefer_not_to_say'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'company' => ['nullable', 'string', 'max:255'],

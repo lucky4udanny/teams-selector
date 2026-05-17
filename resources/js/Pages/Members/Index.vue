@@ -3,6 +3,7 @@ import ComboboxInput from '@/Components/ComboboxInput.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import FormField from '@/Components/FormField.vue';
+import ListboxInput from '@/Components/ListboxInput.vue';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
@@ -27,6 +28,14 @@ const sectorOptions = computed(() =>
         label: s.name,
     })),
 );
+
+const genderOptions = [
+    { value: null, label: '— Not specified —' },
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+    { value: 'non_binary', label: 'Non-binary' },
+    { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
 
 // ── Add modal ──────────────────────────────────────────────────────────────
 const showAdd = ref(false);
@@ -112,6 +121,7 @@ const defaultSkillsPayload = () =>
 const addForm = useForm({
     first_name: '',
     last_name: '',
+    gender: null,
     email: '',
     phone: '',
     company: '',
@@ -166,6 +176,7 @@ const showEdit = ref(false);
 const editForm = useForm({
     first_name: '',
     last_name: '',
+    gender: null,
     email: '',
     phone: '',
     company: '',
@@ -178,6 +189,7 @@ const openEdit = (m) => {
     editingId.value = m.id;
     editForm.first_name = m.first_name || '';
     editForm.last_name = m.last_name || '';
+    editForm.gender = m.gender ?? null;
     editForm.email = m.email || '';
     editForm.phone = m.phone || '';
     editForm.company = m.company || '';
@@ -471,6 +483,9 @@ const sortedMembers = computed(() => {
                         <TextInput id="add_ln" v-model="addForm.last_name" :error="!!addForm.errors.last_name" />
                     </FormField>
                 </div>
+                <FormField label="Gender" name="add_gender" :error="addForm.errors.gender" class="mt-4">
+                    <ListboxInput v-model="addForm.gender" :options="genderOptions" />
+                </FormField>
                 <div class="mt-4 grid gap-4 sm:grid-cols-2">
                     <FormField label="Email" name="add_email" :error="addForm.errors.email">
                         <TextInput id="add_email" v-model="addForm.email" :error="!!addForm.errors.email" />
@@ -616,6 +631,9 @@ const sortedMembers = computed(() => {
                         <TextInput id="edit_ln" v-model="editForm.last_name" :error="!!editForm.errors.last_name" />
                     </FormField>
                 </div>
+                <FormField label="Gender" name="edit_gender" :error="editForm.errors.gender" class="mt-4">
+                    <ListboxInput v-model="editForm.gender" :options="genderOptions" />
+                </FormField>
                 <div class="mt-4 grid gap-4 sm:grid-cols-2">
                     <FormField label="Email" name="edit_email" :error="editForm.errors.email">
                         <TextInput id="edit_email" v-model="editForm.email" :error="!!editForm.errors.email" />

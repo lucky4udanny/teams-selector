@@ -112,6 +112,7 @@ class EventController extends Controller
                 'display_name' => $m->displayName(),
                 'first_name' => $m->first_name,
                 'last_name' => $m->last_name,
+                'gender' => $m->gender,
                 'email' => $m->email,
                 'phone' => $m->phone,
                 'company' => $m->company,

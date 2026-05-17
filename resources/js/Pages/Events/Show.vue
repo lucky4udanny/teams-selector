@@ -809,6 +809,27 @@ const eventNameById = computed(() => {
     return m;
 });
 
+const memberAttributeMatchOptions = computed(() => {
+    const attr = ruleForm.config?.attribute;
+    if (attr === 'gender') {
+        return [
+            { value: 'same', label: 'Avoid same gender (e.g. encourage mixed teams)' },
+            { value: 'different', label: 'Avoid different genders (e.g. keep single-gender teams)' },
+        ];
+    }
+    if (attr === 'company') {
+        return [
+            { value: 'same', label: 'Avoid same company (e.g. mix companies on each team)' },
+            { value: 'different', label: 'Avoid different companies (e.g. keep same company together)' },
+        ];
+    }
+    // default: sector_id
+    return [
+        { value: 'same', label: 'Avoid same sector (e.g. don\'t group same sector)' },
+        { value: 'different', label: 'Avoid different sectors (e.g. keep same sector together)' },
+    ];
+});
+
 const ruleConfigSummary = (rule) => {
     const cfg = rule.config ?? {};
     switch (rule.type) {
@@ -829,7 +850,8 @@ const ruleConfigSummary = (rule) => {
         case 'skill_leveling':
             return `Avg skill ${cfg.min_avg ?? '?'} – ${cfg.max_avg ?? '?'}`;
         case 'member_attribute': {
-            const attrLabel = cfg.attribute === 'sector_id' ? 'sector' : 'company';
+            const attrLabels = { sector_id: 'sector', company: 'company', gender: 'gender' };
+            const attrLabel = attrLabels[cfg.attribute] ?? cfg.attribute ?? 'attribute';
             const matchLabel = cfg.match === 'same' ? 'Avoid same' : 'Avoid different';
             return `${matchLabel} ${attrLabel}`;
         }
@@ -1810,16 +1832,14 @@ const groupDisplayLabel = (gi, names) => {
                                 :options="[
                                     { value: 'sector_id', label: 'Sector' },
                                     { value: 'company', label: 'Company' },
+                                    { value: 'gender', label: 'Gender' },
                                 ]"
                             />
                         </FormField>
                         <FormField label="Constraint" name="cfg_match" :error="ruleForm.errors['config.match']">
                             <ListboxInput
                                 v-model="ruleForm.config.match"
-                                :options="[
-                                    { value: 'same', label: 'Avoid same value (e.g. don\'t group same sector)' },
-                                    { value: 'different', label: 'Avoid different values (e.g. keep same sector together)' },
-                                ]"
+                                :options="memberAttributeMatchOptions"
                             />
                         </FormField>
                     </template>

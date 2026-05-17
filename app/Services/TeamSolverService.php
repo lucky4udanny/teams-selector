@@ -213,7 +213,7 @@ class TeamSolverService
 
     /**
      * @param  list<int>  $memberIds
-     * @return array<int, array{sector_id: int|null, company: string|null}>
+     * @return array<int, array{sector_id: int|null, sector_name: string|null, company: string|null, gender: string|null}>
      */
     private function memberAttributesForIds(array $memberIds): array
     {
@@ -223,7 +223,7 @@ class TeamSolverService
 
         $members = Member::query()
             ->whereIn('id', $memberIds)
-            ->get(['id', 'sector_id', 'company']);
+            ->get(['id', 'sector_id', 'company', 'gender']);
 
         $sectorIds = $members->pluck('sector_id')->filter()->unique()->values()->all();
         $sectorNames = $sectorIds !== []
@@ -236,6 +236,7 @@ class TeamSolverService
                 'sector_id'   => $m->sector_id,
                 'sector_name' => $m->sector_id !== null ? ($sectorNames[$m->sector_id] ?? null) : null,
                 'company'     => ($m->company !== null && $m->company !== '') ? $m->company : null,
+                'gender'      => ($m->gender !== null && $m->gender !== '') ? $m->gender : null,
             ])
             ->all();
     }
@@ -246,7 +247,7 @@ class TeamSolverService
      * @param  Collection<int, Rule>  $rules
      * @param  array<string, array<string, true>>  $historyCache
      * @param  array<int, int>  $skillByMember
-     * @param  array<int, array{sector_id: int|null, sector_name: string|null, company: string|null}>  $memberAttributes
+     * @param  array<int, array{sector_id: int|null, sector_name: string|null, company: string|null, gender: string|null}>  $memberAttributes
      * @return array{0: int, 1: list<array<string, mixed>>}
      */
     private function score(array $teams, array $groups, Collection $rules, Event $event, array &$historyCache, array $skillByMember, array $memberAttributes = []): array
@@ -462,7 +463,11 @@ class TeamSolverService
             if ($rule->type === RuleType::MemberAttribute) {
                 $attr = $rule->config['attribute'] ?? '';
                 $match = $rule->config['match'] ?? 'same';
-                $attrLabel = $attr === 'sector_id' ? 'sector' : 'company';
+                $attrLabel = match ($attr) {
+                    'sector_id' => 'sector',
+                    'gender'    => 'gender',
+                    default     => $attr, // 'company' or any future attribute
+                };
 
                 $unitSets = $rule->scope === RuleScope::Team
                     ? array_map(fn (array $t) => $t['member_ids'], $teams)
@@ -492,7 +497,7 @@ class TeamSolverService
                             $add = $rule->weight * $pairs;
                             $valueLabel = $attr === 'sector_id'
                                 ? ($memberAttributes[$mids[0]]['sector_name'] ?? null)
-                                : $val;
+                                : $val; // gender / company: use the raw value as label
                             $violations[] = [
                                 'rule_id'               => $rule->id,
                                 'type'                  => 'member_attribute',

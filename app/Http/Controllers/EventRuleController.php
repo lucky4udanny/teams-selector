@@ -198,7 +198,7 @@ class EventRuleController extends Controller
                 }
                 break;
             case RuleType::MemberAttribute:
-                $validAttributes = ['sector_id', 'company'];
+                $validAttributes = ['sector_id', 'company', 'gender'];
                 $validMatches = ['same', 'different'];
                 if (! isset($config['attribute']) || ! in_array($config['attribute'], $validAttributes, true)) {
                     throw $e('Member attribute rule requires "attribute" to be one of: '.implode(', ', $validAttributes).'.');

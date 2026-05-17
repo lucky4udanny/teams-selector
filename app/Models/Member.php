@@ -19,6 +19,7 @@ class Member extends Model
         'organization_id',
         'first_name',
         'last_name',
+        'gender',
         'phone',
         'company',
         'sector_id',

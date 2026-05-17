@@ -15,6 +15,7 @@ export const exportColumnOptions = [
     { value: 'phone', label: 'Phone' },
     { value: 'company', label: 'Company' },
     { value: 'sector', label: 'Sector' },
+    { value: 'gender', label: 'Gender' },
     { value: 'skill', label: 'Skill' },
     { value: 'notes', label: 'Notes' },
 ] as const;
@@ -27,11 +28,21 @@ export interface MemberDetail {
     isName?: boolean;
 }
 
+export type GenderValue = 'male' | 'female' | 'non_binary' | 'prefer_not_to_say';
+
+export const GENDER_LABELS: Record<GenderValue, string> = {
+    male: 'Male',
+    female: 'Female',
+    non_binary: 'Non-binary',
+    prefer_not_to_say: 'Prefer not to say',
+};
+
 export interface OrgMember {
     id: number;
     display_name?: string;
     first_name?: string;
     last_name?: string;
+    gender?: GenderValue | null;
     email?: string;
     phone?: string;
     company?: string;
@@ -78,6 +89,8 @@ export function buildMemberDetails(
             raw.push({ key: 'company', value: member.company });
         } else if (col === 'sector' && member?.sector?.name) {
             raw.push({ key: 'sector', value: member.sector.name });
+        } else if (col === 'gender' && member?.gender) {
+            raw.push({ key: 'gender', value: GENDER_LABELS[member.gender] ?? member.gender });
         } else if (col === 'skill') {
             raw.push({ key: 'skill', value: `Skill: ${member?.skill_level ?? 50}` });
         } else if (col === 'notes' && member?.notes) {

@@ -203,10 +203,10 @@ export function validateRuleForm(rule) {
             break;
         }
         case 'member_attribute': {
-            const validAttributes = ['sector_id', 'company'];
+            const validAttributes = ['sector_id', 'company', 'gender'];
             const validMatches = ['same', 'different'];
             if (!validAttributes.includes(cfg.attribute)) {
-                errors.config = 'Choose an attribute (Sector or Company).';
+                errors.config = 'Choose an attribute (Sector, Company, or Gender).';
             } else if (!validMatches.includes(cfg.match)) {
                 errors.config = 'Choose a constraint (same or different).';
             }
