@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Fix (Assets/Preload):** Removed the page-component entry from the `@vite()` directive in `app.blade.php`; passing the current page `.vue` file alongside `app.js` caused spurious `link rel=modulepreload` tags whose modules were never directly consumed by the browser (Inertia resolves pages via dynamic `import.meta.glob`), producing console warnings on production; `app.js` alone is the correct entry point for client-side-only Inertia apps.
+- **Fix (Assets/Preload):** Suppressed `modulepreload` hint for the JS entry point in `AppServiceProvider` via `Vite::usePreloadTagAttributes()`; `Vite::prefetch(concurrency: 3)` fires its waterfall prefetch on `window.load`, creating network pressure that delays Chrome's confirmation of module consumption past the preload timeout, producing spurious "preloaded but not used" console warnings; the entry-point `<script type="module">` tag is emitted immediately after in `<head>` so the modulepreload provides no measurable benefit. Also removed the now-unnecessary page-component entry from `@vite()` in `app.blade.php`.
 
 - **Feat (Organizations/Branding):** SVG files are now accepted for organization logo uploads; SVGs are sanitized server-side via `enshrined/svg-sanitize` (strips scripts, event handlers, and external references) before being stored, preventing XSS attacks.
 
