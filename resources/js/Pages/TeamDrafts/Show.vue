@@ -274,7 +274,11 @@ const formatViolation = (v: Violation): string => {
 
     switch (v.type) {
         case 'skill_leveling':
-            return `Skill levelling: avg skill ${v.avg_skill} is outside ${v.min_avg}–${v.max_avg}`;
+            if (v.avg_skill != null && v.min_avg != null && v.max_avg != null) {
+                return `Skill levelling: avg skill ${v.avg_skill} is outside ${v.min_avg}–${v.max_avg}`;
+            }
+
+            return String(v.detail ?? 'Skill levelling violation');
 
         case 'banned_pair':
             if (Array.isArray(v.member_ids) && v.member_ids.length === 2) {
