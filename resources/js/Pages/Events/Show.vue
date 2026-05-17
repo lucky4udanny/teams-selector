@@ -79,6 +79,7 @@ const exportColumnOptions = [
     { value: 'group_index', label: 'Group #' },
     { value: 'group_name', label: 'Group name' },
     { value: 'member_id', label: 'Member ID' },
+    { value: 'display_name', label: 'Display name' },
     { value: 'first_name', label: 'First name' },
     { value: 'last_name', label: 'Last name' },
     { value: 'email', label: 'Email' },
