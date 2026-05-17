@@ -135,8 +135,9 @@ const submitCreate = () => {
             v-if="!events?.length"
             title="No events yet"
             description="Create an event to invite members, attach rules, and generate team drafts."
+            v-bind="canManage ? { onClick: openCreate } : {}"
         >
-            <PrimaryButton v-if="canManage" type="button" @click="openCreate">
+            <PrimaryButton v-if="canManage" type="button" @click.stop="openCreate">
                 Create event
             </PrimaryButton>
         </EmptyState>

@@ -1120,7 +1120,12 @@ const groupDisplayLabel = (gi, names) => {
                     </div>
                 </li>
             </TransitionGroup>
-            <EmptyState v-else title="No rules yet" description="Add constraints for the team solver." />
+            <EmptyState
+                v-else
+                title="No rules yet"
+                description="Add constraints for the team solver."
+                v-bind="canManage ? { onClick: openAddRule } : {}"
+            />
         </section>
 
         <!-- Drafts -->
@@ -1339,6 +1344,7 @@ const groupDisplayLabel = (gi, names) => {
                 v-else
                 title="No finalized assignment"
                 description="Finalize a team draft to see groups and export links here."
+                :href="tabUrl('drafts')"
             />
         </section>
 

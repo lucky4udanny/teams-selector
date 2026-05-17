@@ -208,6 +208,11 @@ const runRemove = () => {
 const restore = (id) => {
     router.post(route('organizations.members.restore', [props.organization.slug, id]), {}, { preserveScroll: true });
 };
+
+const focusAddForm = () => {
+    document.getElementById('add_fn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('add_fn')?.focus();
+};
 </script>
 
 <template>
@@ -369,7 +374,10 @@ const restore = (id) => {
             v-if="!members?.length"
             title="No members"
             description="Add people to your organization or import a CSV."
-        />
+            @click="focusAddForm"
+        >
+            <span class="text-sm font-medium text-brand-blue/60">Fill in the form above to add your first member</span>
+        </EmptyState>
 
         <div v-else class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm">
             <table class="min-w-full divide-y divide-brand-mist">

@@ -44,6 +44,11 @@ const submit = () => {
         onError: () => nextTick(() => document.getElementById('sector_name')?.focus()),
     });
 };
+
+const focusAddForm = () => {
+    document.getElementById('sector_name')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('sector_name')?.focus();
+};
 </script>
 
 <template>
@@ -104,7 +109,10 @@ const submit = () => {
             v-if="!sectors?.length"
             title="No sectors yet"
             description="Add sectors to classify members for imports and reporting."
-        />
+            @click="focusAddForm"
+        >
+            <span class="text-sm font-medium text-brand-blue/60">Fill in the form above to add your first sector</span>
+        </EmptyState>
 
         <ul
             v-else

@@ -184,6 +184,11 @@ const runDestroy = () => {
 const addFormHasErrors = computed(
     () => Object.keys(addForm.errors).length > 0 && !addForm.processing,
 );
+
+const focusAddForm = () => {
+    document.getElementById('new_name')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('new_name')?.focus();
+};
 </script>
 
 <template>
@@ -262,7 +267,10 @@ const addFormHasErrors = computed(
             v-if="!eventTypes?.length"
             title="No event types"
             description="Create at least one event type before scheduling events."
-        />
+            @click="focusAddForm"
+        >
+            <span class="text-sm font-medium text-brand-blue/60">Fill in the form above to add your first event type</span>
+        </EmptyState>
 
         <ul
             v-else
