@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **UX (Members/Index):** "Add member" and "Import members" are now header buttons that open modals — table is the hero of the view; clicking the empty state opens the add modal; sortable columns (Name, Org/Company, Sector) with ▲/▼/⇅ indicators.
 - **Fix (TeamSolverService):** `$memberAttributes[$mid][$attr] ?? null` would throw a `TypeError` if `$mid` was absent from the map (e.g. member deleted between queries) because `??` only suppresses undefined-offset notices, not subscript-on-null type errors; fixed with `($memberAttributes[$mid] ?? [])[$attr] ?? null` in both the `same` and `different` match branches.
 - **Fix (migration 100012):** `DB::statement()` treated PostgreSQL's `?` (jsonb key-existence operator) as a PDO bind placeholder, producing `syntax error at or near "$1"`; replaced with `DB::unprepared()` for the two statements that use the `?` operator.
 - **Feat (rules):** New `member_attribute` rule type — "Member attribute"; config: `attribute` (`sector_id`|`company`) + `match` (`same`|`different`); soft-penalised like `banned_pair`; `same` penalises each pair of members on the same team/group sharing the same attribute value; `different` penalises each extra distinct value beyond the first; solver loads member attributes once per generation via `memberAttributesForIds()`; null/empty attribute values are ignored in both directions.

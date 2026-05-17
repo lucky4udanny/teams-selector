@@ -27,6 +27,39 @@ const sectorOptions = computed(() =>
     })),
 );
 
+// ── Add modal ──────────────────────────────────────────────────────────────
+const showAdd = ref(false);
+
+const openAdd = () => {
+    addForm.reset();
+    addForm.skills = defaultSkillsPayload();
+    addForm.clearErrors();
+    showAdd.value = true;
+};
+
+const closeAdd = () => {
+    showAdd.value = false;
+    addForm.clearErrors();
+};
+
+// ── Import modal ───────────────────────────────────────────────────────────
+const showImport = ref(false);
+
+const openImport = () => {
+    importForm.reset('file');
+    importForm.clearErrors();
+    if (fileInputRef.value) {
+        fileInputRef.value.value = '';
+    }
+    showImport.value = true;
+};
+
+const closeImport = () => {
+    showImport.value = false;
+    importForm.clearErrors();
+};
+
+// ── Quick sector form (inside Add modal) ───────────────────────────────────
 const quickSectorForm = useForm({
     name: '',
 });
@@ -38,6 +71,7 @@ const submitQuickSector = () => {
     });
 };
 
+// ── Import form ────────────────────────────────────────────────────────────
 const importForm = useForm({
     file: null,
 });
@@ -62,10 +96,12 @@ const submitImport = () => {
             if (fileInputRef.value) {
                 fileInputRef.value.value = '';
             }
+            closeImport();
         },
     });
 };
 
+// ── Add form ───────────────────────────────────────────────────────────────
 const defaultSkillsPayload = () =>
     (props.eventTypes || []).map((t) => ({
         event_type_id: t.id,
@@ -117,10 +153,12 @@ const submitAdd = () => {
         onSuccess: () => {
             addForm.reset();
             addForm.skills = defaultSkillsPayload();
+            closeAdd();
         },
     });
 };
 
+// ── Edit modal ─────────────────────────────────────────────────────────────
 const editingId = ref(null);
 const showEdit = ref(false);
 
@@ -177,6 +215,7 @@ const saveEdit = () => {
     );
 };
 
+// ── Remove confirm ─────────────────────────────────────────────────────────
 const destroyId = ref(null);
 const destroyProcessing = ref(false);
 
@@ -209,10 +248,44 @@ const restore = (id) => {
     router.post(route('organizations.members.restore', [props.organization.slug, id]), {}, { preserveScroll: true });
 };
 
-const focusAddForm = () => {
-    document.getElementById('add_fn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    document.getElementById('add_fn')?.focus();
+// ── Table sorting ──────────────────────────────────────────────────────────
+const sortKey = ref('name');
+const sortDir = ref('asc');
+
+const toggleSort = (key) => {
+    if (sortKey.value === key) {
+        sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortKey.value = key;
+        sortDir.value = 'asc';
+    }
 };
+
+const getSortValue = (m, key) => {
+    switch (key) {
+        case 'name':
+            return `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim().toLowerCase();
+        case 'company':
+            return (m.company ?? '').toLowerCase();
+        case 'sector':
+            return (m.sector?.name ?? '').toLowerCase();
+        default:
+            return '';
+    }
+};
+
+const sortedMembers = computed(() => {
+    const list = [...(props.members || [])];
+    const dir = sortDir.value === 'asc' ? 1 : -1;
+
+    return list.sort((a, b) => {
+        const va = getSortValue(a, sortKey.value);
+        const vb = getSortValue(b, sortKey.value);
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+    });
+});
 </script>
 
 <template>
@@ -220,163 +293,37 @@ const focusAddForm = () => {
 
     <OrganizationLayout :organization="organization">
         <template #header>
-            <div class="flex flex-wrap items-end justify-between gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-4">
                 <h1 class="ts-heading-page">Members</h1>
-                <div class="flex flex-wrap gap-3 text-sm">
+                <div class="flex flex-wrap items-center gap-3">
                     <Link
                         :href="route('organizations.sectors.index', organization.slug)"
-                        class="font-medium text-brand-blue hover:text-brand-navy"
+                        class="text-sm font-medium text-brand-blue hover:text-brand-navy"
                     >
                         Manage sectors
                     </Link>
+                    <template v-if="canManage">
+                        <SecondaryButton type="button" @click="openImport">
+                            Import members
+                        </SecondaryButton>
+                        <PrimaryButton type="button" @click="openAdd">
+                            Add member
+                        </PrimaryButton>
+                    </template>
                 </div>
             </div>
         </template>
 
-        <div v-if="canManage" class="mb-10 grid gap-8 lg:grid-cols-2">
-            <form class="ts-card-padded space-y-4" @submit.prevent="submitAdd">
-                <h2 class="ts-heading-section">Add member</h2>
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <FormField label="First name" name="add_fn" :error="addForm.errors.first_name" required>
-                        <TextInput id="add_fn" v-model="addForm.first_name" :error="!!addForm.errors.first_name" />
-                    </FormField>
-                    <FormField label="Last name" name="add_ln" :error="addForm.errors.last_name">
-                        <TextInput id="add_ln" v-model="addForm.last_name" :error="!!addForm.errors.last_name" />
-                    </FormField>
-                </div>
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <FormField label="Email" name="add_email" :error="addForm.errors.email">
-                        <TextInput id="add_email" v-model="addForm.email" :error="!!addForm.errors.email" />
-                    </FormField>
-                    <FormField label="Phone" name="add_phone" :error="addForm.errors.phone">
-                        <TextInput id="add_phone" v-model="addForm.phone" :error="!!addForm.errors.phone" />
-                    </FormField>
-                </div>
-                <FormField label="Organization / Company" name="add_co" :error="addForm.errors.company">
-                    <TextInput id="add_co" v-model="addForm.company" :error="!!addForm.errors.company" />
-                </FormField>
-                <div>
-                    <span class="block text-sm font-medium text-brand-navy">Sector</span>
-                    <ComboboxInput
-                        v-model="addForm.sector_id"
-                        :options="sectorOptions"
-                        placeholder="Search sector…"
-                        :error="!!addForm.errors.sector_id"
-                    />
-                    <p v-if="addForm.errors.sector_id" class="mt-1 text-sm text-red-600">
-                        {{ addForm.errors.sector_id }}
-                    </p>
-                </div>
-
-                <div class="rounded-lg border border-brand-mist bg-brand-cream/40 p-4">
-                    <p class="text-sm font-medium text-brand-navy">Quick add sector</p>
-                    <p class="mb-3 text-xs text-brand-blue/65">
-                        Name must be unique for this org (or add via the sectors page).
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                        <TextInput
-                            v-model="quickSectorForm.name"
-                            class="min-w-[12rem] flex-1"
-                            :error="!!quickSectorForm.errors.name"
-                            placeholder="New sector…"
-                            @keyup.enter.prevent="submitQuickSector"
-                        />
-                        <SecondaryButton
-                            type="button"
-                            :disabled="quickSectorForm.processing || !quickSectorForm.name?.trim()"
-                            @click="submitQuickSector"
-                        >
-                            Add sector
-                        </SecondaryButton>
-                    </div>
-                    <p v-if="quickSectorForm.errors.name" class="mt-2 text-sm text-red-600">
-                        {{ quickSectorForm.errors.name }}
-                    </p>
-                </div>
-
-                <FormField label="Notes" name="add_notes" :error="addForm.errors.notes">
-                    <textarea
-                        id="add_notes"
-                        v-model="addForm.notes"
-                        rows="2"
-                        class="ts-input w-full resize-y rounded-lg py-2 text-sm"
-                        :class="addForm.errors.notes ? 'ts-input-error' : ''"
-                    />
-                </FormField>
-
-                <div v-if="eventTypes?.length" class="space-y-4 border-t border-brand-mist pt-4">
-                    <p class="text-sm font-medium text-brand-navy">Skills by event type</p>
-                    <div
-                        v-for="t in eventTypes"
-                        :key="t.id"
-                        class="rounded-lg border border-brand-mist/80 bg-white px-3 py-3"
-                    >
-                        <div class="mb-2 flex items-center justify-between gap-2">
-                            <span class="text-sm font-medium text-brand-navy">{{ t.name }}</span>
-                            <span class="text-xs text-brand-blue/60">
-                                {{ skillLevelFor(addForm.skills, t.id) }}
-                            </span>
-                        </div>
-                        <SkillSlider
-                            :id="`add_skill_${t.id}`"
-                            :model-value="skillLevelFor(addForm.skills, t.id)"
-                            @update:model-value="
-                                (v) => {
-                                    addForm.skills = setSkillLevel(addForm.skills, t.id, v);
-                                }
-                            "
-                        />
-                    </div>
-                </div>
-
-                <PrimaryButton :disabled="addForm.processing">Save member</PrimaryButton>
-            </form>
-
-            <form class="ts-card-padded" @submit.prevent="submitImport">
-                <h2 class="ts-heading-section mb-2">Import members</h2>
-                <p class="mb-4 text-sm text-brand-blue/70">
-                    Upload a spreadsheet from Excel (<code class="rounded bg-brand-mist px-1">.csv</code> or
-                    <code class="rounded bg-brand-mist px-1">.xlsx</code>). Use a header row with
-                    <code class="rounded bg-brand-mist px-1">first_name</code> and/or
-                    <code class="rounded bg-brand-mist px-1">last_name</code> (any column order; extra
-                    columns are ignored). Optional:
-                    <code class="rounded bg-brand-mist px-1">email</code>,
-                    <code class="rounded bg-brand-mist px-1">phone</code>,
-                    <code class="rounded bg-brand-mist px-1">company</code>,
-                    <code class="rounded bg-brand-mist px-1">sector</code>,
-                    <code class="rounded bg-brand-mist px-1">notes</code>.
-                </p>
-                <label class="block">
-                    <span class="text-sm font-medium text-brand-navy">File</span>
-                    <input
-                        ref="fileInputRef"
-                        type="file"
-                        accept=".csv,.txt,.xlsx,.xls"
-                        class="mt-2 block w-full text-sm text-brand-navy file:mr-3 file:rounded-lg file:border-0 file:bg-brand-mist file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-brand-blue/10"
-                        @change="pickFile"
-                    />
-                </label>
-                <p v-if="importForm.errors.file" class="mt-2 text-sm text-red-600">
-                    {{ importForm.errors.file }}
-                </p>
-                <div class="mt-4">
-                    <PrimaryButton
-                        type="submit"
-                        :disabled="importForm.processing || !importForm.file"
-                    >
-                        Import
-                    </PrimaryButton>
-                </div>
-            </form>
-        </div>
-
+        <!-- Members table (hero) -->
         <EmptyState
             v-if="!members?.length"
             title="No members"
             description="Add people to your organization or import a CSV."
-            @click="focusAddForm"
+            @click="canManage ? openAdd() : undefined"
         >
-            <span class="text-sm font-medium text-brand-blue/60">Fill in the form above to add your first member</span>
+            <span v-if="canManage" class="text-sm font-medium text-brand-blue/60">
+                Click "Add member" to get started
+            </span>
         </EmptyState>
 
         <div v-else class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm">
@@ -384,16 +331,52 @@ const focusAddForm = () => {
                 <thead class="bg-brand-cream">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
-                            Name
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-1 hover:text-brand-navy"
+                                @click="toggleSort('name')"
+                            >
+                                Name
+                                <span class="text-[10px]" aria-hidden="true">
+                                    <template v-if="sortKey === 'name'">
+                                        {{ sortDir === 'asc' ? '▲' : '▼' }}
+                                    </template>
+                                    <template v-else>⇅</template>
+                                </span>
+                            </button>
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
                             Contact
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
-                            Org / Company
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-1 hover:text-brand-navy"
+                                @click="toggleSort('company')"
+                            >
+                                Org / Company
+                                <span class="text-[10px]" aria-hidden="true">
+                                    <template v-if="sortKey === 'company'">
+                                        {{ sortDir === 'asc' ? '▲' : '▼' }}
+                                    </template>
+                                    <template v-else>⇅</template>
+                                </span>
+                            </button>
                         </th>
                         <th class="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70 md:table-cell">
-                            Sector
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-1 hover:text-brand-navy"
+                                @click="toggleSort('sector')"
+                            >
+                                Sector
+                                <span class="text-[10px]" aria-hidden="true">
+                                    <template v-if="sortKey === 'sector'">
+                                        {{ sortDir === 'asc' ? '▲' : '▼' }}
+                                    </template>
+                                    <template v-else>⇅</template>
+                                </span>
+                            </button>
                         </th>
                         <th
                             v-if="canManage"
@@ -405,7 +388,7 @@ const focusAddForm = () => {
                 </thead>
                 <tbody class="divide-y divide-brand-mist">
                     <tr
-                        v-for="m in members"
+                        v-for="m in sortedMembers"
                         :key="m.id"
                         :class="m.deleted_at ? 'bg-brand-cream/80 opacity-80' : ''"
                     >
@@ -454,6 +437,152 @@ const focusAddForm = () => {
             </table>
         </div>
 
+        <!-- Add member modal -->
+        <Modal :show="showAdd && canManage" max-width="xl" @close="closeAdd">
+            <form class="max-h-[80vh] overflow-y-auto p-6" @submit.prevent="submitAdd">
+                <h2 class="text-lg font-semibold text-brand-navy">Add member</h2>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                    <FormField label="First name" name="add_fn" :error="addForm.errors.first_name" required>
+                        <TextInput id="add_fn" v-model="addForm.first_name" :error="!!addForm.errors.first_name" />
+                    </FormField>
+                    <FormField label="Last name" name="add_ln" :error="addForm.errors.last_name">
+                        <TextInput id="add_ln" v-model="addForm.last_name" :error="!!addForm.errors.last_name" />
+                    </FormField>
+                </div>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                    <FormField label="Email" name="add_email" :error="addForm.errors.email">
+                        <TextInput id="add_email" v-model="addForm.email" :error="!!addForm.errors.email" />
+                    </FormField>
+                    <FormField label="Phone" name="add_phone" :error="addForm.errors.phone">
+                        <TextInput id="add_phone" v-model="addForm.phone" :error="!!addForm.errors.phone" />
+                    </FormField>
+                </div>
+                <FormField label="Organization / Company" name="add_co" :error="addForm.errors.company" class="mt-4">
+                    <TextInput id="add_co" v-model="addForm.company" :error="!!addForm.errors.company" />
+                </FormField>
+                <div class="mt-4">
+                    <span class="block text-sm font-medium text-brand-navy">Sector</span>
+                    <ComboboxInput
+                        v-model="addForm.sector_id"
+                        :options="sectorOptions"
+                        placeholder="Search sector…"
+                        :error="!!addForm.errors.sector_id"
+                    />
+                    <p v-if="addForm.errors.sector_id" class="mt-1 text-sm text-red-600">
+                        {{ addForm.errors.sector_id }}
+                    </p>
+                </div>
+
+                <div class="mt-4 rounded-lg border border-brand-mist bg-brand-cream/40 p-4">
+                    <p class="text-sm font-medium text-brand-navy">Quick add sector</p>
+                    <p class="mb-3 text-xs text-brand-blue/65">
+                        Name must be unique for this org (or add via the sectors page).
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <TextInput
+                            v-model="quickSectorForm.name"
+                            class="min-w-48 flex-1"
+                            :error="!!quickSectorForm.errors.name"
+                            placeholder="New sector…"
+                            @keyup.enter.prevent="submitQuickSector"
+                        />
+                        <SecondaryButton
+                            type="button"
+                            :disabled="quickSectorForm.processing || !quickSectorForm.name?.trim()"
+                            @click="submitQuickSector"
+                        >
+                            Add sector
+                        </SecondaryButton>
+                    </div>
+                    <p v-if="quickSectorForm.errors.name" class="mt-2 text-sm text-red-600">
+                        {{ quickSectorForm.errors.name }}
+                    </p>
+                </div>
+
+                <FormField label="Notes" name="add_notes" :error="addForm.errors.notes" class="mt-4">
+                    <textarea
+                        id="add_notes"
+                        v-model="addForm.notes"
+                        rows="2"
+                        class="ts-input w-full resize-y rounded-lg py-2 text-sm"
+                        :class="addForm.errors.notes ? 'ts-input-error' : ''"
+                    />
+                </FormField>
+
+                <div v-if="eventTypes?.length" class="mt-6 space-y-4 border-t border-brand-mist pt-4">
+                    <p class="text-sm font-medium text-brand-navy">Skills by event type</p>
+                    <div
+                        v-for="t in eventTypes"
+                        :key="t.id"
+                        class="rounded-lg border border-brand-mist/80 bg-white px-3 py-3"
+                    >
+                        <div class="mb-2 flex items-center justify-between gap-2">
+                            <span class="text-sm font-medium text-brand-navy">{{ t.name }}</span>
+                            <span class="text-xs text-brand-blue/60">
+                                {{ skillLevelFor(addForm.skills, t.id) }}
+                            </span>
+                        </div>
+                        <SkillSlider
+                            :id="`add_skill_${t.id}`"
+                            :model-value="skillLevelFor(addForm.skills, t.id)"
+                            @update:model-value="
+                                (v) => {
+                                    addForm.skills = setSkillLevel(addForm.skills, t.id, v);
+                                }
+                            "
+                        />
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-end gap-3">
+                    <SecondaryButton type="button" @click="closeAdd">Cancel</SecondaryButton>
+                    <PrimaryButton type="submit" :disabled="addForm.processing">Save member</PrimaryButton>
+                </div>
+            </form>
+        </Modal>
+
+        <!-- Import members modal -->
+        <Modal :show="showImport && canManage" max-width="lg" @close="closeImport">
+            <form class="p-6" @submit.prevent="submitImport">
+                <h2 class="text-lg font-semibold text-brand-navy">Import members</h2>
+                <p class="mt-2 mb-4 text-sm text-brand-blue/70">
+                    Upload a spreadsheet from Excel (<code class="rounded bg-brand-mist px-1">.csv</code> or
+                    <code class="rounded bg-brand-mist px-1">.xlsx</code>). Use a header row with
+                    <code class="rounded bg-brand-mist px-1">first_name</code> and/or
+                    <code class="rounded bg-brand-mist px-1">last_name</code> (any column order; extra
+                    columns are ignored). Optional:
+                    <code class="rounded bg-brand-mist px-1">email</code>,
+                    <code class="rounded bg-brand-mist px-1">phone</code>,
+                    <code class="rounded bg-brand-mist px-1">company</code>,
+                    <code class="rounded bg-brand-mist px-1">sector</code>,
+                    <code class="rounded bg-brand-mist px-1">notes</code>.
+                </p>
+                <label class="block">
+                    <span class="text-sm font-medium text-brand-navy">File</span>
+                    <input
+                        ref="fileInputRef"
+                        type="file"
+                        accept=".csv,.txt,.xlsx,.xls"
+                        class="mt-2 block w-full text-sm text-brand-navy file:mr-3 file:rounded-lg file:border-0 file:bg-brand-mist file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-brand-blue/10"
+                        @change="pickFile"
+                    />
+                </label>
+                <p v-if="importForm.errors.file" class="mt-2 text-sm text-red-600">
+                    {{ importForm.errors.file }}
+                </p>
+                <div class="mt-6 flex justify-end gap-3">
+                    <SecondaryButton type="button" @click="closeImport">Cancel</SecondaryButton>
+                    <PrimaryButton
+                        type="submit"
+                        :disabled="importForm.processing || !importForm.file"
+                    >
+                        Import
+                    </PrimaryButton>
+                </div>
+            </form>
+        </Modal>
+
+        <!-- Edit member modal -->
         <Modal :show="showEdit && canManage" max-width="xl" @close="closeEdit">
             <form class="max-h-[80vh] overflow-y-auto p-6" @submit.prevent="saveEdit">
                 <h3 class="text-lg font-semibold text-brand-navy">Edit member</h3>
