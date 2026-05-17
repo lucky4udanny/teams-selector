@@ -179,7 +179,7 @@ class EventRuleController extends Controller
                 if ($priorId < 1) {
                     throw $e('Repeat pair requires a prior "event_id".');
                 }
-                $allowed = $event->previousEvents()->pluck('id')->all();
+                $allowed = $event->previousEvents()->pluck('events.id')->all();
                 if (! in_array($priorId, $allowed, true)) {
                     throw $e('Repeat pair prior event_id must be one of this event\'s previous events.');
                 }

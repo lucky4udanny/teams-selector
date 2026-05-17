@@ -179,7 +179,7 @@ const submitCreate = () => {
             <form class="p-6" @submit.prevent="submitCreate">
                 <h2 class="text-lg font-semibold text-brand-navy">Create event</h2>
                 <p class="mt-1 text-sm text-brand-blue/70">
-                    Prior events are optional; pick finalized events to link history (e.g. repeat pairs).
+                    Prior events are optional; pick finalized events to link history for "avoid same members" rules.
                 </p>
 
                 <Alert v-if="createFormHasErrors" variant="error" class="mt-4" role="alert">

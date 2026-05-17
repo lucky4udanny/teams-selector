@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix (EventRuleController):** `repeat_pair` validation plucked bare `'id'` from the `previousEvents()` BelongsToMany query, which joins `events` with `event_previous_event`; PostgreSQL raised `column reference "id" is ambiguous`; fixed by qualifying to `'events.id'`.
+- **UX (rules):** Renamed `repeat_pair` rule display label from "Repeat pair (prior event)" to "Avoid same members (prior event)" — the old name implied the rule *favoured* repeating pairs; updated related hint text in Events/Index and Events/Show.
 - **Fix (Events/Show):** Final tab empty state used `tabUrl('drafts')` which is undefined — replaced with the correct `eventHref('drafts')` (defined on line 58); prevented `ReferenceError` when no finalized assignment exists.
 - **Refactor (rules):** Merged `team_size` and `group_size` rule types into a single `size` type — scope (`team`/`group`) already distinguishes the two cases; config key unified to `size` (was `teams_per_group` for group rules); singleton uniqueness is now enforced per type+scope; migration `100012` renames existing DB rows and migrates the config JSON key; solver, controller, frontend labels, config form, and validation all updated.
 - **UX (EmptyState):** Entire empty-state card is now clickable when `href` or `@click` is bound — renders as Inertia `<Link>` when `href` is set, or as an interactive `<div>` when a click handler is bound; hover styles (`border-brand-blue/40 bg-brand-cream/30`) activate automatically via `$attrs.onClick` detection.

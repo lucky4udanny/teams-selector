@@ -62,7 +62,7 @@ const ruleTypeLabels = {
     size: 'Size',
     banned_pair: 'Banned pair',
     preferred_pair: 'Preferred pair',
-    repeat_pair: 'Repeat pair (prior event)',
+    repeat_pair: 'Avoid same members (prior event)',
     skill_leveling: 'Skill leveling',
 };
 
@@ -827,7 +827,7 @@ const groupDisplayLabel = (gi, names) => {
                 </div>
                 <div>
                     <span class="block text-sm font-medium text-brand-navy">Previous events</span>
-                    <p class="mb-2 text-xs text-brand-blue/60">Link finalized events for repeat-pair rules.</p>
+                    <p class="mb-2 text-xs text-brand-blue/60">Link finalized events for "avoid same members" rules.</p>
                     <ComboboxInput
                         v-model="detailsForm.previous_event_ids"
                         :options="priorEventCombobox"
