@@ -445,7 +445,6 @@ const typeOptions = computed(() =>
     })),
 );
 
-const hasRuleTypeAndScope = (type, scope) => (props.rules || []).some((r) => r.type === type && r.scope === scope);
 
 const ruleModalOpen = ref(false);
 const editingRuleId = ref(null);
@@ -695,6 +694,36 @@ const memberById = computed(() => {
 });
 
 const displayMember = (id) => memberById.value.get(id) ?? `#${id}`;
+
+const eventNameById = computed(() => {
+    const m = new Map();
+    (props.finalizedEvents || []).forEach((e) => m.set(e.id, e.name));
+    return m;
+});
+
+const ruleConfigSummary = (rule) => {
+    const cfg = rule.config ?? {};
+    switch (rule.type) {
+        case 'size':
+            return rule.scope === 'group'
+                ? `${cfg.size ?? '?'} teams per group`
+                : `${cfg.size ?? '?'} members per team`;
+        case 'banned_pair':
+        case 'preferred_pair': {
+            const a = displayMember(cfg.member_a_id);
+            const b = displayMember(cfg.member_b_id);
+            return `${a} & ${b}`;
+        }
+        case 'repeat_pair': {
+            const name = eventNameById.value.get(cfg.event_id) ?? `Event #${cfg.event_id}`;
+            return `Avoid repeating pairs from: ${name}`;
+        }
+        case 'skill_leveling':
+            return `Avg skill ${cfg.min_avg ?? '?'} – ${cfg.max_avg ?? '?'}`;
+        default:
+            return null;
+    }
+};
 
 const finalTeams = computed(() => (Array.isArray(finalState.value?.teams) ? finalState.value.teams : []));
 const finalTeamNames = computed(() => finalState.value?.team_names || []);
@@ -1081,13 +1110,6 @@ const groupDisplayLabel = (gi, names) => {
                 <PrimaryButton v-if="canManage" type="button" @click="openAddRule">Add rule</PrimaryButton>
             </div>
 
-            <Alert v-if="hasRuleTypeAndScope('size', 'team')" variant="warning">
-                A <strong>size (team)</strong> rule already exists — only one per scope is allowed.
-            </Alert>
-            <Alert v-if="hasRuleTypeAndScope('size', 'group')" variant="warning">
-                A <strong>size (group)</strong> rule already exists — only one per scope is allowed.
-            </Alert>
-
             <TransitionGroup
                 v-if="rules.length"
                 name="ts-rule"
@@ -1107,7 +1129,9 @@ const groupDisplayLabel = (gi, names) => {
                                     · {{ scopeLabels[r.scope] || r.scope }} · weight {{ r.weight }}
                                 </span>
                             </p>
-                            <pre class="mt-2 max-w-full overflow-x-auto text-xs text-brand-blue/80">{{ JSON.stringify(r.config, null, 2) }}</pre>
+                            <p v-if="ruleConfigSummary(r)" class="mt-1 text-sm text-brand-blue/70">
+                                {{ ruleConfigSummary(r) }}
+                            </p>
                         </div>
                         <div v-if="canManage" class="flex gap-2">
                             <SecondaryButton type="button" @click="openEditRule(r)">Edit</SecondaryButton>
