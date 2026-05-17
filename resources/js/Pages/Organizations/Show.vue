@@ -5,6 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import { useToday } from '@/composables/useToday';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     CalendarDaysIcon,
@@ -22,8 +23,7 @@ const props = defineProps({
 
 const isAdmin = computed(() => props.organization.role === 'admin');
 
-const today = new Date();
-const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+const { todayStr } = useToday();
 
 const upcomingEvents = computed(() =>
     [...(props.events || [])]

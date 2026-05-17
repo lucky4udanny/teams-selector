@@ -817,6 +817,98 @@ const memberById = computed(() => {
 
 const displayMember = (id) => memberById.value.get(id) ?? `#${id}`;
 
+const memberFullById = computed(() => {
+    const m = new Map();
+    (props.orgMembers || []).forEach((mem) => m.set(mem.id, mem));
+    return m;
+});
+
+const memberScreenDetails = (mid) => {
+    const m = memberFullById.value.get(mid);
+    const raw = selectedExportColumns.value.reduce((acc, col) => {
+        if (col === 'display_name') {
+            acc.push({ key: 'display_name', value: m?.display_name || displayMember(mid), isName: true });
+        } else if (col === 'first_name' && m?.first_name) {
+            acc.push({ key: 'first_name', value: m.first_name, isName: true });
+        } else if (col === 'last_name' && m?.last_name) {
+            acc.push({ key: 'last_name', value: m.last_name, isName: true });
+        } else if (col === 'member_id') {
+            acc.push({ key: 'id', value: `#${mid}` });
+        } else if (col === 'email' && m?.email) {
+            acc.push({ key: 'email', value: m.email });
+        } else if (col === 'phone' && m?.phone) {
+            acc.push({ key: 'phone', value: m.phone });
+        } else if (col === 'company' && m?.company) {
+            acc.push({ key: 'company', value: m.company });
+        } else if (col === 'sector' && m?.sector?.name) {
+            acc.push({ key: 'sector', value: m.sector.name });
+        } else if (col === 'notes' && m?.notes) {
+            acc.push({ key: 'notes', value: m.notes });
+        }
+        return acc;
+    }, []);
+
+    // Merge adjacent first_name + last_name (in either order) onto one line
+    const result = [];
+    for (let i = 0; i < raw.length; i++) {
+        const curr = raw[i];
+        const next = raw[i + 1];
+        const adjacent =
+            (curr.key === 'first_name' && next?.key === 'last_name') ||
+            (curr.key === 'last_name' && next?.key === 'first_name');
+        if (adjacent) {
+            result.push({ key: 'full_name', value: `${curr.value} ${next.value}`, isName: true });
+            i++;
+        } else {
+            result.push(curr);
+        }
+    }
+    return result;
+};
+
+// Arrange members in a roughly square grid — ceil(√n), max 4 columns
+const memberCardColumns = (count) => Math.min(4, Math.ceil(Math.sqrt(count || 1)));
+
+const showGroupLabel = computed(() =>
+    selectedExportColumns.value.includes('group_index') ||
+    selectedExportColumns.value.includes('group_name'),
+);
+
+const showTeamLabel = computed(() =>
+    selectedExportColumns.value.includes('team_index') ||
+    selectedExportColumns.value.includes('team_name'),
+);
+
+// Build a label showing only the parts whose columns are selected, in column order
+const groupLabelForDisplay = (gi) => {
+    const cols = selectedExportColumns.value;
+    const letter = indexToLetter(gi);
+    const name = String(finalGroupNames.value?.[gi] ?? '').trim();
+    const parts = cols.reduce((acc, col) => {
+        if (col === 'group_index') acc.push(letter);
+        else if (col === 'group_name' && name) acc.push(name);
+        return acc;
+    }, []);
+    if (parts.length) return parts.join(' · ');
+    // Fallback when only group_name is selected but name is empty
+    return cols.includes('group_name') ? (name || letter) : letter;
+};
+
+const teamLabelForDisplay = (ti) => {
+    const cols = selectedExportColumns.value;
+    const num = String(ti + 1);
+    const name = String(finalTeamNames.value?.[ti] ?? '').trim();
+    const parts = cols.reduce((acc, col) => {
+        if (col === 'team_index') acc.push(num);
+        else if (col === 'team_name' && name && name !== num) acc.push(name);
+        return acc;
+    }, []);
+    if (parts.length) return parts.join(' · ');
+    // Fallback when only team_name is selected but name is same as num or empty
+    if (cols.includes('team_name')) return name || num;
+    return '';
+};
+
 const eventNameById = computed(() => {
     const m = new Map();
     (props.finalizedEvents || []).forEach((e) => m.set(e.id, e.name));
@@ -1540,14 +1632,14 @@ const groupDisplayLabel = (gi, names) => {
                 </div>
 
                 <div v-if="canRevertFinal" class="flex flex-wrap gap-3">
-                    <DangerButton type="button" @click="showRevert = true">Revert final (admin)</DangerButton>
+                    <DangerButton type="button" @click="showRevert = true">Revert to draft</DangerButton>
                 </div>
 
                 <!-- Grouped view -->
                 <div v-if="finalGroups.length" class="space-y-8">
                     <section v-for="(group, gi) in finalGroups" :key="`fg${gi}`">
-                        <h3 class="mb-4 text-sm font-semibold uppercase tracking-wide text-brand-blue/60">
-                            Group {{ groupDisplayLabel(gi, finalGroupNames) }}
+                        <h3 v-if="showGroupLabel" class="mb-4 text-sm font-semibold uppercase tracking-wide text-brand-blue/60">
+                            {{ groupLabelForDisplay(gi) }}
                         </h3>
                         <div class="grid gap-4 lg:grid-cols-2">
                             <div
@@ -1555,12 +1647,22 @@ const groupDisplayLabel = (gi, names) => {
                                 :key="`ft${ti}`"
                                 class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
                             >
-                                <h4 class="mb-2 font-semibold text-brand-navy">
-                                    Team {{ teamDisplayLabel(ti, finalTeamNames) }}
+                                <h4 v-if="showTeamLabel" class="mb-3 font-semibold text-brand-navy">
+                                    {{ teamLabelForDisplay(ti) }}
                                 </h4>
-                                <ul class="space-y-1 text-sm">
-                                    <li v-for="mid in finalTeams[ti]?.member_ids || []" :key="mid">
-                                        {{ displayMember(mid) }}
+                                <ul
+                                    class="grid gap-2"
+                                    :style="{ gridTemplateColumns: `repeat(${memberCardColumns(finalTeams[ti]?.member_ids?.length ?? 0)}, 1fr)` }"
+                                >
+                                    <li
+                                        v-for="mid in finalTeams[ti]?.member_ids || []"
+                                        :key="mid"
+                                        class="rounded-lg bg-brand-blue/5 px-2.5 py-2"
+                                    >
+                                        <template v-for="d in memberScreenDetails(mid)" :key="d.key">
+                                            <p v-if="d.isName" class="text-sm font-medium leading-snug text-brand-navy">{{ d.value }}</p>
+                                            <span v-else class="block text-xs text-brand-blue/60">{{ d.value }}</span>
+                                        </template>
                                     </li>
                                 </ul>
                             </div>
@@ -1575,12 +1677,22 @@ const groupDisplayLabel = (gi, names) => {
                         :key="`ft${ti}`"
                         class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
                     >
-                        <h4 class="mb-2 font-semibold text-brand-navy">
-                            Team {{ teamDisplayLabel(ti, finalTeamNames) }}
+                        <h4 v-if="showTeamLabel" class="mb-3 font-semibold text-brand-navy">
+                            {{ teamLabelForDisplay(ti) }}
                         </h4>
-                        <ul class="space-y-1 text-sm">
-                            <li v-for="mid in t.member_ids || []" :key="mid">
-                                {{ displayMember(mid) }}
+                        <ul
+                            class="grid gap-2"
+                            :style="{ gridTemplateColumns: `repeat(${memberCardColumns(t.member_ids?.length ?? 0)}, 1fr)` }"
+                        >
+                            <li
+                                v-for="mid in t.member_ids || []"
+                                :key="mid"
+                                class="rounded-lg bg-brand-blue/5 px-2.5 py-2"
+                            >
+                                <template v-for="d in memberScreenDetails(mid)" :key="d.key">
+                                    <p v-if="d.isName" class="text-sm font-medium leading-snug text-brand-navy">{{ d.value }}</p>
+                                    <span v-else class="block text-xs text-brand-blue/60">{{ d.value }}</span>
+                                </template>
                             </li>
                         </ul>
                     </section>

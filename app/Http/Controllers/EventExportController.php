@@ -36,12 +36,41 @@ class EventExportController extends Controller
         $draft = $this->finalDraftOrAbort($event);
         $columns = $this->parseColumns($request);
 
-        $table = $this->buildTable($event, $draft, $columns);
+        $state = is_array($draft->state) ? $draft->state : [];
+        $teams = $state['teams'] ?? [];
+        $groups = $state['groups'] ?? [];
+        $teamNames = $state['team_names'] ?? [];
+        $groupNames = $state['group_names'] ?? [];
+
+        $members = Member::query()
+            ->where('organization_id', $event->organization_id)
+            ->with('sector')
+            ->get()
+            ->keyBy('id');
+
+        $teamLabels = [];
+        foreach (array_keys($teams) as $ti) {
+            $num = (string) ($ti + 1);
+            $name = trim((string) ($teamNames[$ti] ?? ''));
+            $teamLabels[$ti] = ($name && $name !== $num) ? "$num · $name" : ($name ?: $num);
+        }
+
+        $groupLabels = [];
+        foreach (array_keys($groups) as $gi) {
+            $letter = chr(65 + $gi);
+            $name = trim((string) ($groupNames[$gi] ?? ''));
+            $groupLabels[$gi] = ($name && $name !== $letter) ? "$letter · $name" : ($name ?: $letter);
+        }
 
         return response()->view('exports.event-teams-print', [
-            'event' => $event->loadMissing('eventType', 'organization'),
-            'columns' => $table['headings'],
-            'rows' => $table['rows'],
+            'event' => $event->loadMissing('eventType'),
+            'teams' => $teams,
+            'groups' => $groups,
+            'teamNames' => $teamNames,
+            'groupNames' => $groupNames,
+            'members' => $members,
+            'columns' => $columns,
+            'hasGroups' => ! empty($groups),
         ]);
     }
 

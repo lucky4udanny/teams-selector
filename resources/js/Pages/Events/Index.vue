@@ -12,12 +12,12 @@ import TextInput from '@/Components/TextInput.vue';
 import Toggle from '@/Components/Toggle.vue';
 import Alert from '@/Components/Alert.vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
+import { useToday } from '@/composables/useToday';
 import { applyFormErrors, validateEventDetails } from '@/utils/formValidation';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 
-const today = new Date();
-const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+const { todayStr } = useToday();
 
 const props = defineProps({
     organization: Object,

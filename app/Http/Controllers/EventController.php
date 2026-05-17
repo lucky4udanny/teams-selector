@@ -96,8 +96,13 @@ class EventController extends Controller
             ->map(fn (Member $m) => [
                 'id' => $m->id,
                 'display_name' => $m->displayName(),
+                'first_name' => $m->first_name,
+                'last_name' => $m->last_name,
                 'email' => $m->email,
+                'phone' => $m->phone,
+                'company' => $m->company,
                 'sector' => $m->sector?->only(['id', 'name']),
+                'notes' => $m->notes,
             ]);
 
         $payload = [
