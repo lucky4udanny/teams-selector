@@ -1340,7 +1340,7 @@ const groupDisplayLabel = (gi, names) => {
                 v-else
                 title="No finalized assignment"
                 description="Finalize a team draft to see groups and export links here."
-                :href="tabUrl('drafts')"
+                :href="eventHref('drafts')"
             />
         </section>
 
