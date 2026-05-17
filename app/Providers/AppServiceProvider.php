@@ -31,7 +31,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Event::class, EventPolicy::class);
         Gate::policy(Organization::class, OrganizationPolicy::class);
 
-        // Super admins bypass all policy checks
-        Gate::before(fn (User $user, string $ability) => $user->is_super_admin ? true : null);
+        // Super admins bypass all policy checks; null user = unauthenticated, skip
+        Gate::before(fn (?User $user, string $ability) => $user?->is_super_admin ? true : null);
     }
 }

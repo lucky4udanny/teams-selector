@@ -330,10 +330,12 @@ const postCopy = () => {
     copyModalNotice.value = null;
     rosterNotice.value = null;
     if (!copyFromId.value) {
-        copyModalNotice.value = {
-            variant: 'warning',
-            message: 'Choose an event to copy members from.',
-        };
+        const notice = { variant: 'warning', message: 'Choose an event to copy members from.' };
+        if (showCopyModal.value) {
+            copyModalNotice.value = notice;
+        } else {
+            rosterNotice.value = notice;
+        }
 
         return;
     }

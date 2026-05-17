@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix (AppServiceProvider):** `Gate::before` closure had a non-nullable `User` type hint; Laravel passes `null` for unauthenticated users, causing a PHP `TypeError`; fixed with `?User` and nullsafe `$user?->is_super_admin`.
+- **Fix (Events/Show):** `postCopy` validation error was always written to `copyModalNotice`, making the error invisible when using the inline copy panel (empty-roster state); `postCopy` now routes the notice to `copyModalNotice` when the modal is open and to `rosterNotice` when called from the inline panel.
 - **Feat (auth):** Invite-only registration — public self-registration is disabled; `RegisteredUserController` redirects to login with an "invitation only" message; `InvitationController` handles the full invite lifecycle (send email, accept/register, revoke).
 - **Feat (invitations):** New `invitations` table (`organization_id`, `invited_by_user_id`, `email`, `role`, `token` [unique 64-char], `expires_at`, `accepted_at`); `Invitation` model with `isPending()`/`isExpired()`/`isAccepted()` helpers; `InvitationMail` markdown email.
 - **Feat (auth):** `GET/POST /invitations/{token}` — accept-invitation page; auto-accepts if already logged in as the invited email; shows register form for new users; shows "log in to accept" prompt when an account with that email already exists.
