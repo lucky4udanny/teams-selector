@@ -2,7 +2,9 @@
 
 ## Unreleased
 
+- **Fix (TeamSolverService):** `$memberAttributes[$mid][$attr] ?? null` would throw a `TypeError` if `$mid` was absent from the map (e.g. member deleted between queries) because `??` only suppresses undefined-offset notices, not subscript-on-null type errors; fixed with `($memberAttributes[$mid] ?? [])[$attr] ?? null` in both the `same` and `different` match branches.
 - **Fix (migration 100012):** `DB::statement()` treated PostgreSQL's `?` (jsonb key-existence operator) as a PDO bind placeholder, producing `syntax error at or near "$1"`; replaced with `DB::unprepared()` for the two statements that use the `?` operator.
+- **Feat (rules):** New `member_attribute` rule type — "Member attribute"; config: `attribute` (`sector_id`|`company`) + `match` (`same`|`different`); soft-penalised like `banned_pair`; `same` penalises each pair of members on the same team/group sharing the same attribute value; `different` penalises each extra distinct value beyond the first; solver loads member attributes once per generation via `memberAttributesForIds()`; null/empty attribute values are ignored in both directions.
 - **Fix (EventRuleController):** `assertRepeatPairUnique` now includes `scope` in the duplicate check, allowing one team-scoped and one group-scoped "avoid same members" rule per prior event (previously any second rule for the same prior event was rejected regardless of scope).
 - **Fix (EventRuleController):** `repeat_pair` validation plucked bare `'id'` from the `previousEvents()` BelongsToMany query, which joins `events` with `event_previous_event`; PostgreSQL raised `column reference "id" is ambiguous`; fixed by qualifying to `'events.id'`.
 - **UX (rules):** Renamed `repeat_pair` rule display label from "Repeat pair (prior event)" to "Avoid same members (prior event)" — the old name implied the rule *favoured* repeating pairs; updated related hint text in Events/Index and Events/Show.

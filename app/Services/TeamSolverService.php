@@ -450,7 +450,7 @@ class TeamSolverService
                         // Penalise each pair of members that share the same non-null attribute value
                         $byValue = [];
                         foreach ($ids as $mid) {
-                            $val = $memberAttributes[$mid][$attr] ?? null;
+                            $val = ($memberAttributes[$mid] ?? [])[$attr] ?? null;
                             if ($val === null || $val === '') {
                                 continue;
                             }
@@ -477,7 +477,7 @@ class TeamSolverService
                         // match === 'different': penalise when more than one distinct non-null value appears
                         $distinctValues = [];
                         foreach ($ids as $mid) {
-                            $val = $memberAttributes[$mid][$attr] ?? null;
+                            $val = ($memberAttributes[$mid] ?? [])[$attr] ?? null;
                             if ($val === null || $val === '') {
                                 continue;
                             }
