@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Feat (Organizations/Branding):** SVG files are now accepted for organization logo uploads; SVGs are sanitized server-side via `enshrined/svg-sanitize` (strips scripts, event handlers, and external references) before being stored, preventing XSS attacks.
+
 - **UX (Events/Final Teams):** Adjacent `first_name` + `last_name` columns (with nothing between them in the selected column list) are merged onto a single line in both the on-screen cards and the print view; if any other column separates them they remain on individual lines.
 - **UX (Events/Final Teams):** Member card fields now fully follow column selection and order — display name, first name, last name, and all detail fields (email, phone, company, sector, notes, member ID) are shown only when their column is selected, in the exact order they appear in the column list; name-type fields render larger/bold, detail fields render smaller; no field is forced or shown as a fallback.
 - **Fix (Events/Export):** `display_name` was handled in `memberScreenDetails` (Show.vue) and the Blade print template but was absent from `exportColumnOptions` (Show.vue) and `ALL_COLUMNS` (EventExportController); the column was therefore un-selectable and its code paths unreachable; added to options list, whitelist, CSV heading map, and CSV row map so it is fully usable across screen, print, CSV, and Excel exports.

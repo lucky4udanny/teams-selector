@@ -242,7 +242,7 @@ const saveSettings = () => {
                     <input
                         id="logo"
                         type="file"
-                        accept="image/png,image/jpeg,image/gif,image/webp"
+                        accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
                         class="mt-1 block w-full text-sm text-brand-blue/80"
                         @change="pickLogo"
                     />
