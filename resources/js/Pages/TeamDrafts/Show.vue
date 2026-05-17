@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import Alert from '@/Components/Alert.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
