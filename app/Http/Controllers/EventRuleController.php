@@ -197,6 +197,16 @@ class EventRuleController extends Controller
                     throw $e('Skill leveling requires min_avg and max_avg between 0 and 100 with min_avg <= max_avg.');
                 }
                 break;
+            case RuleType::MemberAttribute:
+                $validAttributes = ['sector_id', 'company'];
+                $validMatches = ['same', 'different'];
+                if (! isset($config['attribute']) || ! in_array($config['attribute'], $validAttributes, true)) {
+                    throw $e('Member attribute rule requires "attribute" to be one of: '.implode(', ', $validAttributes).'.');
+                }
+                if (! isset($config['match']) || ! in_array($config['match'], $validMatches, true)) {
+                    throw $e('Member attribute rule requires "match" to be "same" or "different".');
+                }
+                break;
         }
     }
 

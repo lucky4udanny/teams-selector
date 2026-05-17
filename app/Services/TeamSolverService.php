@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\RuleScope;
 use App\Enums\RuleType;
 use App\Models\Event;
+use App\Models\Member;
 use App\Models\MemberEventTypeSkill;
 use App\Models\Rule;
 use Illuminate\Support\Collection;
@@ -93,15 +94,17 @@ class TeamSolverService
 
         $historyCache = [];
         $skillByMember = $this->skillLevelsForEvent($event, $memberIds);
+        $memberAttributes = $this->memberAttributesForIds($memberIds);
 
-        $scoreState = function (array $teams, array $groups) use ($rules, $event, &$historyCache, $skillByMember): array {
+        $scoreState = function (array $teams, array $groups) use ($rules, $event, &$historyCache, $skillByMember, $memberAttributes): array {
             return $this->score(
                 $teams,
                 $groups,
                 $rules,
                 $event,
                 $historyCache,
-                $skillByMember
+                $skillByMember,
+                $memberAttributes
             );
         };
 

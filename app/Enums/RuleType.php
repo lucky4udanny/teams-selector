@@ -9,4 +9,5 @@ enum RuleType: string
     case RepeatPair = 'repeat_pair';
     case PreferredPair = 'preferred_pair';
     case SkillLeveling = 'skill_leveling';
+    case MemberAttribute = 'member_attribute';
 }
