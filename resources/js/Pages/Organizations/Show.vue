@@ -27,13 +27,13 @@ const { todayStr } = useToday();
 
 const upcomingEvents = computed(() =>
     [...(props.events || [])]
-        .filter((e) => e.event_date >= todayStr)
+        .filter((e) => e.event_date >= todayStr.value)
         .sort((a, b) => a.event_date.localeCompare(b.event_date)),
 );
 
 const pastEvents = computed(() =>
     [...(props.events || [])]
-        .filter((e) => e.event_date < todayStr)
+        .filter((e) => e.event_date < todayStr.value)
         .sort((a, b) => b.event_date.localeCompare(a.event_date))
         .slice(0, 5),
 );
