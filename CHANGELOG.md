@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix (Assets/Preload):** Removed the page-component entry from the `@vite()` directive in `app.blade.php`; passing the current page `.vue` file alongside `app.js` caused spurious `link rel=modulepreload` tags whose modules were never directly consumed by the browser (Inertia resolves pages via dynamic `import.meta.glob`), producing console warnings on production; `app.js` alone is the correct entry point for client-side-only Inertia apps.
+
 - **Feat (Organizations/Branding):** SVG files are now accepted for organization logo uploads; SVGs are sanitized server-side via `enshrined/svg-sanitize` (strips scripts, event handlers, and external references) before being stored, preventing XSS attacks.
 
 - **UX (Events/Final Teams):** Adjacent `first_name` + `last_name` columns (with nothing between them in the selected column list) are merged onto a single line in both the on-screen cards and the print view; if any other column separates them they remain on individual lines.
