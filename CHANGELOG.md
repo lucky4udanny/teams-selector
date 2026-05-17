@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Feat (Drafts/Violations):** Violations are now displayed inline per team and group in the draft view; `TeamSolverService` enriches each violation with structured fields (`team_index`, `group_index`, `member_ids`, `avg_skill`/`min_avg`/`max_avg` for skill levelling, `offending_member_ids`/`attribute_value_label` for attribute rules); the frontend renders human-readable English bullets under each team panel and group heading (e.g. "Alice and Bob share sector Finance") with a score shown for variable-penalty violations; event-level violations (preferred pair separated) appear in the summary alert at the top; sector names are resolved server-side via a single Sector lookup.
+
 - **Fix (TeamSolver):** Removed hard-blocking group-size divisibility check in `TeamSolverService::solve()`; when team count does not divide evenly by teams-per-group, `buildGroups()` already produces a smaller last group gracefully, so the solver now runs and treats the uneven grouping as a soft constraint rather than refusing to generate.
 
 - **Fix (Assets/Preload):** Suppressed `modulepreload` hint for the JS entry point in `AppServiceProvider` via `Vite::usePreloadTagAttributes()`; `Vite::prefetch(concurrency: 3)` fires its waterfall prefetch on `window.load`, creating network pressure that delays Chrome's confirmation of module consumption past the preload timeout, producing spurious "preloaded but not used" console warnings; the entry-point `<script type="module">` tag is emitted immediately after in `<head>` so the modulepreload provides no measurable benefit. Also removed the now-unnecessary page-component entry from `@vite()` in `app.blade.php`.

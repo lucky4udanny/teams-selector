@@ -7,6 +7,7 @@ use App\Enums\RuleType;
 use App\Models\Event;
 use App\Models\Member;
 use App\Models\MemberEventTypeSkill;
+use App\Models\Sector;
 use App\Models\Rule;
 use Illuminate\Support\Collection;
 
@@ -211,13 +212,21 @@ class TeamSolverService
             return [];
         }
 
-        return Member::query()
+        $members = Member::query()
             ->whereIn('id', $memberIds)
-            ->get(['id', 'sector_id', 'company'])
+            ->get(['id', 'sector_id', 'company']);
+
+        $sectorIds = $members->pluck('sector_id')->filter()->unique()->values()->all();
+        $sectorNames = $sectorIds !== []
+            ? Sector::whereIn('id', $sectorIds)->pluck('name', 'id')->all()
+            : [];
+
+        return $members
             ->keyBy('id')
             ->map(fn (Member $m) => [
-                'sector_id' => $m->sector_id,
-                'company'   => ($m->company !== null && $m->company !== '') ? $m->company : null,
+                'sector_id'   => $m->sector_id,
+                'sector_name' => $m->sector_id !== null ? ($sectorNames[$m->sector_id] ?? null) : null,
+                'company'     => ($m->company !== null && $m->company !== '') ? $m->company : null,
             ])
             ->all();
     }
@@ -228,7 +237,7 @@ class TeamSolverService
      * @param  Collection<int, Rule>  $rules
      * @param  array<string, array<string, true>>  $historyCache
      * @param  array<int, int>  $skillByMember
-     * @param  array<int, array{sector_id: int|null, company: string|null}>  $memberAttributes
+     * @param  array<int, array{sector_id: int|null, sector_name: string|null, company: string|null}>  $memberAttributes
      * @return array{0: int, 1: list<array<string, mixed>>}
      */
     private function score(array $teams, array $groups, Collection $rules, Event $event, array &$historyCache, array $skillByMember, array $memberAttributes = []): array
@@ -254,12 +263,14 @@ class TeamSolverService
                         $set = array_flip($team['member_ids']);
                         if (isset($set[$a], $set[$b])) {
                             $violations[] = [
-                                'rule_id' => $rule->id,
-                                'type' => 'banned_pair',
-                                'scope' => 'team',
-                                'weight' => $rule->weight,
-                                'detail' => 'Banned pair on team #'.($idx + 1),
-                                'penalty' => $rule->weight,
+                                'rule_id'    => $rule->id,
+                                'type'       => 'banned_pair',
+                                'scope'      => 'team',
+                                'team_index' => $idx,
+                                'member_ids' => [$a, $b],
+                                'weight'     => $rule->weight,
+                                'detail'     => 'Banned pair on team #'.($idx + 1),
+                                'penalty'    => $rule->weight,
                             ];
                             $penalty += $rule->weight;
                         }
@@ -270,12 +281,14 @@ class TeamSolverService
                         $set = array_flip($ids);
                         if (isset($set[$a], $set[$b])) {
                             $violations[] = [
-                                'rule_id' => $rule->id,
-                                'type' => 'banned_pair',
-                                'scope' => 'group',
-                                'weight' => $rule->weight,
-                                'detail' => 'Banned pair in group #'.($gidx + 1),
-                                'penalty' => $rule->weight,
+                                'rule_id'     => $rule->id,
+                                'type'        => 'banned_pair',
+                                'scope'       => 'group',
+                                'group_index' => $gidx,
+                                'member_ids'  => [$a, $b],
+                                'weight'      => $rule->weight,
+                                'detail'      => 'Banned pair in group #'.($gidx + 1),
+                                'penalty'     => $rule->weight,
                             ];
                             $penalty += $rule->weight;
                         }
@@ -301,12 +314,13 @@ class TeamSolverService
                     }
                     if (! $together) {
                         $violations[] = [
-                            'rule_id' => $rule->id,
-                            'type' => 'preferred_pair',
-                            'scope' => 'team',
-                            'weight' => $rule->weight,
-                            'detail' => 'Preferred pair not on the same team',
-                            'penalty' => $rule->weight,
+                            'rule_id'    => $rule->id,
+                            'type'       => 'preferred_pair',
+                            'scope'      => 'team',
+                            'member_ids' => [$a, $b],
+                            'weight'     => $rule->weight,
+                            'detail'     => 'Preferred pair not on the same team',
+                            'penalty'    => $rule->weight,
                         ];
                         $penalty += $rule->weight;
                     }
@@ -322,12 +336,13 @@ class TeamSolverService
                     }
                     if (! $together) {
                         $violations[] = [
-                            'rule_id' => $rule->id,
-                            'type' => 'preferred_pair',
-                            'scope' => 'group',
-                            'weight' => $rule->weight,
-                            'detail' => 'Preferred pair not in the same group',
-                            'penalty' => $rule->weight,
+                            'rule_id'    => $rule->id,
+                            'type'       => 'preferred_pair',
+                            'scope'      => 'group',
+                            'member_ids' => [$a, $b],
+                            'weight'     => $rule->weight,
+                            'detail'     => 'Preferred pair not in the same group',
+                            'penalty'    => $rule->weight,
                         ];
                         $penalty += $rule->weight;
                     }
@@ -345,12 +360,16 @@ class TeamSolverService
                         if ($deviation > 0) {
                             $add = (int) round($rule->weight * $deviation);
                             $violations[] = [
-                                'rule_id' => $rule->id,
-                                'type' => 'skill_leveling',
-                                'scope' => 'team',
-                                'weight' => $rule->weight,
-                                'detail' => 'Team #'.($idx + 1).' avg skill '.$avg.' outside '.$minAvg.'–'.$maxAvg,
-                                'penalty' => $add,
+                                'rule_id'    => $rule->id,
+                                'type'       => 'skill_leveling',
+                                'scope'      => 'team',
+                                'team_index' => $idx,
+                                'avg_skill'  => $avg,
+                                'min_avg'    => $minAvg,
+                                'max_avg'    => $maxAvg,
+                                'weight'     => $rule->weight,
+                                'detail'     => 'Team #'.($idx + 1).' avg skill '.$avg.' outside '.$minAvg.'–'.$maxAvg,
+                                'penalty'    => $add,
                             ];
                             $penalty += $add;
                         }
@@ -363,12 +382,16 @@ class TeamSolverService
                         if ($deviation > 0) {
                             $add = (int) round($rule->weight * $deviation);
                             $violations[] = [
-                                'rule_id' => $rule->id,
-                                'type' => 'skill_leveling',
-                                'scope' => 'group',
-                                'weight' => $rule->weight,
-                                'detail' => 'Group #'.($gidx + 1).' avg skill '.$avg.' outside '.$minAvg.'–'.$maxAvg,
-                                'penalty' => $add,
+                                'rule_id'     => $rule->id,
+                                'type'        => 'skill_leveling',
+                                'scope'       => 'group',
+                                'group_index' => $gidx,
+                                'avg_skill'   => $avg,
+                                'min_avg'     => $minAvg,
+                                'max_avg'     => $maxAvg,
+                                'weight'      => $rule->weight,
+                                'detail'      => 'Group #'.($gidx + 1).' avg skill '.$avg.' outside '.$minAvg.'–'.$maxAvg,
+                                'penalty'     => $add,
                             ];
                             $penalty += $add;
                         }
@@ -392,12 +415,14 @@ class TeamSolverService
                         foreach ($this->pairsFromTeam($team['member_ids']) as $pk) {
                             if (isset($hist[$pk])) {
                                 $violations[] = [
-                                    'rule_id' => $rule->id,
-                                    'type' => 'repeat_pair',
-                                    'scope' => 'team',
-                                    'weight' => $rule->weight,
-                                    'detail' => 'Repeat pair on team #'.($idx + 1),
-                                    'penalty' => $rule->weight,
+                                    'rule_id'    => $rule->id,
+                                    'type'       => 'repeat_pair',
+                                    'scope'      => 'team',
+                                    'team_index' => $idx,
+                                    'member_ids' => array_map('intval', explode('-', $pk)),
+                                    'weight'     => $rule->weight,
+                                    'detail'     => 'Repeat pair on team #'.($idx + 1),
+                                    'penalty'    => $rule->weight,
                                 ];
                                 $penalty += $rule->weight;
                             }
@@ -409,12 +434,14 @@ class TeamSolverService
                         foreach ($this->pairsFromMemberList($ids) as $pk) {
                             if (isset($hist[$pk])) {
                                 $violations[] = [
-                                    'rule_id' => $rule->id,
-                                    'type' => 'repeat_pair',
-                                    'scope' => 'group',
-                                    'weight' => $rule->weight,
-                                    'detail' => 'Repeat pair in group #'.($gidx + 1),
-                                    'penalty' => $rule->weight,
+                                    'rule_id'     => $rule->id,
+                                    'type'        => 'repeat_pair',
+                                    'scope'       => 'group',
+                                    'group_index' => $gidx,
+                                    'member_ids'  => array_map('intval', explode('-', $pk)),
+                                    'weight'      => $rule->weight,
+                                    'detail'      => 'Repeat pair in group #'.($gidx + 1),
+                                    'penalty'     => $rule->weight,
                                 ];
                                 $penalty += $rule->weight;
                             }
@@ -454,13 +481,22 @@ class TeamSolverService
                             }
                             $pairs = (int) ($count * ($count - 1) / 2);
                             $add = $rule->weight * $pairs;
+                            $valueLabel = $attr === 'sector_id'
+                                ? ($memberAttributes[$mids[0]]['sector_name'] ?? null)
+                                : $val;
                             $violations[] = [
-                                'rule_id' => $rule->id,
-                                'type' => 'member_attribute',
-                                'scope' => $rule->scope->value,
-                                'weight' => $rule->weight,
-                                'detail' => ucfirst($scopeLabel).' has '.$count.' members sharing the same '.$attrLabel,
-                                'penalty' => $add,
+                                'rule_id'               => $rule->id,
+                                'type'                  => 'member_attribute',
+                                'scope'                 => $rule->scope->value,
+                                'team_index'            => $rule->scope === RuleScope::Team ? $idx : null,
+                                'group_index'           => $rule->scope === RuleScope::Group ? $idx : null,
+                                'attribute'             => $attr,
+                                'attribute_label'       => $attrLabel,
+                                'attribute_value_label' => $valueLabel,
+                                'offending_member_ids'  => array_values($mids),
+                                'weight'                => $rule->weight,
+                                'detail'                => ucfirst($scopeLabel).' has '.$count.' members sharing the same '.$attrLabel,
+                                'penalty'               => $add,
                             ];
                             $penalty += $add;
                         }
@@ -478,12 +514,17 @@ class TeamSolverService
                         if ($distinctCount > 1) {
                             $add = $rule->weight * ($distinctCount - 1);
                             $violations[] = [
-                                'rule_id' => $rule->id,
-                                'type' => 'member_attribute',
-                                'scope' => $rule->scope->value,
-                                'weight' => $rule->weight,
-                                'detail' => ucfirst($scopeLabel).' has '.$distinctCount.' different '.$attrLabel.' values',
-                                'penalty' => $add,
+                                'rule_id'         => $rule->id,
+                                'type'            => 'member_attribute',
+                                'scope'           => $rule->scope->value,
+                                'team_index'      => $rule->scope === RuleScope::Team ? $idx : null,
+                                'group_index'     => $rule->scope === RuleScope::Group ? $idx : null,
+                                'attribute'       => $attr,
+                                'attribute_label' => $attrLabel,
+                                'distinct_count'  => $distinctCount,
+                                'weight'          => $rule->weight,
+                                'detail'          => ucfirst($scopeLabel).' has '.$distinctCount.' different '.$attrLabel.' values',
+                                'penalty'         => $add,
                             ];
                             $penalty += $add;
                         }

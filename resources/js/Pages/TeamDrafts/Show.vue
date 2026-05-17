@@ -27,7 +27,11 @@ const state = computed(() =>
 
 const teams = computed(() => (Array.isArray(state.value.teams) ? state.value.teams : []));
 const groups = computed(() => (Array.isArray(state.value.groups) ? state.value.groups : []));
-const violations = computed(() => (Array.isArray(state.value.violations) ? state.value.violations : []));
+type Violation = Record<string, unknown>;
+
+const violations = computed<Violation[]>(() =>
+    Array.isArray(state.value.violations) ? (state.value.violations as Violation[]) : [],
+);
 const blockingErrors = computed(() =>
     Array.isArray(state.value.blocking_errors) ? state.value.blocking_errors : [],
 );
@@ -222,6 +226,100 @@ const penaltyHue = computed(() => {
 
     return 'border-red-200 bg-red-50/50';
 });
+
+// ── Violation helpers ────────────────────────────────────────────────────────
+
+const teamViolations = computed(() => {
+    const m = new Map<number, Violation[]>();
+    violations.value.forEach((v) => {
+        if (typeof v.team_index === 'number') {
+            const arr = m.get(v.team_index) ?? [];
+            arr.push(v);
+            m.set(v.team_index, arr);
+        }
+    });
+
+    return m;
+});
+
+const groupViolations = computed(() => {
+    const m = new Map<number, Violation[]>();
+    violations.value.forEach((v) => {
+        if (typeof v.group_index === 'number') {
+            const arr = m.get(v.group_index) ?? [];
+            arr.push(v);
+            m.set(v.group_index, arr);
+        }
+    });
+
+    return m;
+});
+
+const globalViolations = computed(() =>
+    violations.value.filter(
+        (v) => typeof v.team_index !== 'number' && typeof v.group_index !== 'number',
+    ),
+);
+
+const joinNames = (names: string[]): string => {
+    if (names.length === 0) return '';
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} and ${names[1]}`;
+
+    return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+};
+
+const formatViolation = (v: Violation): string => {
+    const mName = (id: unknown) => memberMap.value.get(Number(id)) ?? `Member #${id}`;
+
+    switch (v.type) {
+        case 'skill_leveling':
+            return `Skill levelling: avg skill ${v.avg_skill} is outside ${v.min_avg}–${v.max_avg}`;
+
+        case 'banned_pair':
+            if (Array.isArray(v.member_ids) && v.member_ids.length === 2) {
+                return `${mName(v.member_ids[0])} and ${mName(v.member_ids[1])} are a banned pair`;
+            }
+
+            return 'Banned pair';
+
+        case 'preferred_pair': {
+            const scope = v.scope === 'group' ? 'group' : 'team';
+            if (Array.isArray(v.member_ids) && v.member_ids.length === 2) {
+                return `${mName(v.member_ids[0])} and ${mName(v.member_ids[1])} should be in the same ${scope} but are separated`;
+            }
+
+            return `Preferred pair separated (${scope}-level)`;
+        }
+
+        case 'repeat_pair':
+            if (Array.isArray(v.member_ids) && v.member_ids.length === 2) {
+                return `${mName(v.member_ids[0])} and ${mName(v.member_ids[1])} were paired in a prior event`;
+            }
+
+            return 'Repeat pair from a prior event';
+
+        case 'member_attribute': {
+            const label = String(v.attribute_label ?? v.attribute ?? 'attribute');
+            const valueLabel = v.attribute_value_label ? ` "${v.attribute_value_label}"` : '';
+            if (Array.isArray(v.offending_member_ids) && v.offending_member_ids.length >= 2) {
+                return `${joinNames((v.offending_member_ids as unknown[]).map(mName))} share ${label}${valueLabel}`;
+            }
+            if (typeof v.distinct_count === 'number') {
+                return `Members have ${v.distinct_count} different ${label} values`;
+            }
+
+            return `Members share the same ${label}${valueLabel}`;
+        }
+
+        default:
+            return String(v.detail ?? v.type ?? 'Violation');
+    }
+};
+
+const showViolationPenalty = (v: Violation): boolean =>
+    v.type === 'skill_leveling' ||
+    (v.type === 'member_attribute' && Number(v.penalty) !== Number(v.weight));
 </script>
 
 <template>
@@ -286,12 +384,23 @@ const penaltyHue = computed(() => {
         </Alert>
 
         <Alert v-else-if="violations.length" variant="warning" class="mb-6">
-            <p class="font-semibold">{{ violations.length }} violation(s)</p>
-            <ul class="mt-2 max-h-48 overflow-auto text-xs">
-                <li v-for="(v, i) in violations" :key="`v${i}`" class="font-mono">
-                    {{ typeof v === 'string' ? v : JSON.stringify(v) }}
+            <p class="font-semibold">
+                {{ violations.length }} violation{{ violations.length === 1 ? '' : 's' }}
+            </p>
+            <ul v-if="globalViolations.length" class="mt-2 list-inside list-disc space-y-1 text-sm">
+                <li v-for="(v, i) in globalViolations" :key="`gv${i}`">
+                    {{ formatViolation(v) }}
+                    <span v-if="showViolationPenalty(v)" class="ml-1 text-xs text-amber-700/70"
+                        >(score: {{ v.penalty }})</span
+                    >
                 </li>
             </ul>
+            <p
+                v-if="violations.length > globalViolations.length"
+                class="mt-2 text-xs text-amber-700/70"
+            >
+                See individual team and group panels below for details.
+            </p>
         </Alert>
 
         <Alert v-if="conflicts?.length" variant="info" class="mb-6">
@@ -304,7 +413,7 @@ const penaltyHue = computed(() => {
         <!-- Grouped view -->
         <div v-if="groups.length" class="space-y-10">
             <section v-for="(group, gi) in groups" :key="`grp${gi}`">
-                <div class="mb-4 flex flex-wrap items-center gap-2">
+                <div class="mb-2 flex flex-wrap items-center gap-2">
                     <span class="text-xs font-semibold uppercase tracking-wide text-brand-blue/40">Group</span>
                     <TextInput
                         v-if="canUpdate"
@@ -316,6 +425,25 @@ const penaltyHue = computed(() => {
                         {{ groupDisplayLabel(gi, teamNamesForm.group_names) }}
                     </span>
                 </div>
+                <ul
+                    v-if="groupViolations.get(gi)?.length"
+                    class="mb-4 space-y-1"
+                >
+                    <li
+                        v-for="(v, i) in groupViolations.get(gi)"
+                        :key="`gv${gi}_${i}`"
+                        class="flex items-start gap-1.5 text-xs text-amber-700"
+                    >
+                        <span class="mt-0.5 shrink-0 select-none">⚠</span>
+                        <span>
+                            {{ formatViolation(v) }}<span
+                                v-if="showViolationPenalty(v)"
+                                class="ml-0.5 text-amber-600/70"
+                                > (score: {{ v.penalty }})</span
+                            >
+                        </span>
+                    </li>
+                </ul>
                 <div class="grid gap-4 lg:grid-cols-2">
                     <div
                         v-for="ti in group.team_indices || []"
@@ -357,11 +485,32 @@ const penaltyHue = computed(() => {
                                 @cancel="cancelEdit"
                             />
                         </template>
-                        <ul v-else class="space-y-1 text-sm text-brand-blue/90">
-                            <li v-for="mid in teams[ti]?.member_ids || []" :key="mid">
-                                {{ memberName(mid) }}
-                            </li>
-                        </ul>
+                        <template v-else>
+                            <ul class="space-y-1 text-sm text-brand-blue/90">
+                                <li v-for="mid in teams[ti]?.member_ids || []" :key="mid">
+                                    {{ memberName(mid) }}
+                                </li>
+                            </ul>
+                            <ul
+                                v-if="teamViolations.get(ti)?.length"
+                                class="mt-3 space-y-1 border-t border-amber-100 pt-3"
+                            >
+                                <li
+                                    v-for="(v, i) in teamViolations.get(ti)"
+                                    :key="`tv${ti}_${i}`"
+                                    class="flex items-start gap-1.5 text-xs text-amber-700"
+                                >
+                                    <span class="mt-0.5 shrink-0 select-none">⚠</span>
+                                    <span>
+                                        {{ formatViolation(v) }}<span
+                                            v-if="showViolationPenalty(v)"
+                                            class="ml-0.5 text-amber-600/70"
+                                            > (score: {{ v.penalty }})</span
+                                        >
+                                    </span>
+                                </li>
+                            </ul>
+                        </template>
                     </div>
                 </div>
             </section>
@@ -409,11 +558,32 @@ const penaltyHue = computed(() => {
                         @cancel="cancelEdit"
                     />
                 </template>
-                <ul v-else class="space-y-1 text-sm text-brand-blue/90">
-                    <li v-for="mid in team.member_ids || []" :key="mid">
-                        {{ memberName(mid) }}
-                    </li>
-                </ul>
+                <template v-else>
+                    <ul class="space-y-1 text-sm text-brand-blue/90">
+                        <li v-for="mid in team.member_ids || []" :key="mid">
+                            {{ memberName(mid) }}
+                        </li>
+                    </ul>
+                    <ul
+                        v-if="teamViolations.get(ti)?.length"
+                        class="mt-3 space-y-1 border-t border-amber-100 pt-3"
+                    >
+                        <li
+                            v-for="(v, i) in teamViolations.get(ti)"
+                            :key="`tv${ti}_${i}`"
+                            class="flex items-start gap-1.5 text-xs text-amber-700"
+                        >
+                            <span class="mt-0.5 shrink-0 select-none">⚠</span>
+                            <span>
+                                {{ formatViolation(v) }}<span
+                                    v-if="showViolationPenalty(v)"
+                                    class="ml-0.5 text-amber-600/70"
+                                    > (score: {{ v.penalty }})</span
+                                >
+                            </span>
+                        </li>
+                    </ul>
+                </template>
             </section>
         </div>
 
