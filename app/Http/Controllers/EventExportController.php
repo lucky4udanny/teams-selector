@@ -175,12 +175,12 @@ class EventExportController extends Controller
 
     private function resolveDraft(Request $request, Event $event): TeamDraft
     {
-        $draftId = $request->query('draft_id');
+        $draftId = (int) $request->query('draft_id', 0);
 
-        if ($draftId !== null) {
+        if ($draftId > 0) {
             $draft = TeamDraft::query()
                 ->where('event_id', $event->id)
-                ->find((int) $draftId);
+                ->find($draftId);
 
             if (! $draft instanceof TeamDraft) {
                 abort(404, 'Draft not found.');

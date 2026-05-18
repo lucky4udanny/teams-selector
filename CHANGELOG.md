@@ -28,6 +28,8 @@
 
 - **Fix (Print export):** Team and group name divs in `event-teams-print.blade.php` rendered a leading ` · ` separator when only the Skill column was selected and no team/group name column was active (producing ` · Avg skill: 50`); the separator is now conditional on the label being non-empty.
 
+- **Fix (EventExportController):** `resolveDraft()` treated an empty-string `draft_id` (e.g. `?draft_id=`) as a provided value; `(int) ''` evaluates to `0` and `find(0)` returns `null`, causing a spurious 404 instead of falling back to the final draft; changed to cast with a default of `0` and gate on `$draftId > 0`, so blank, zero, and missing values all fall through to `finalDraftOrAbort()`.
+
 - **Fix (EventExportController):** `$teams[$ti]['member_ids'] ?? []` in `computeAvgSkill()` caused a fatal "Cannot use offset access on null" in PHP 8 when a group's `team_indices` contained an out-of-bounds index; `$teams[$ti]` returns `null` and the `?? []` guard was on the wrong level — fixed to `($teams[$ti] ?? [])['member_ids'] ?? []`, matching the pattern used in `PairHistoryService`.
 
 - **Fix (EventExportController):** `array_merge(...array_map(...))` throws a `ValueError` in PHP 8 when the mapped array is empty (e.g. a group with no `team_indices`, or an event with no teams); fixed all three occurrences by prepending an explicit `[]` argument — `array_merge([], ...array_map(...))` — so at least one argument is always present.
