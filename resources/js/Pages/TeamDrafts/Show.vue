@@ -357,75 +357,8 @@ const globalViolations = computed(() =>
     ),
 );
 
-const joinNames = (names: string[]): string => {
-    if (names.length === 0) return '';
-    if (names.length === 1) return names[0];
-    if (names.length === 2) return `${names[0]} and ${names[1]}`;
-
-    return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
-};
-
-const formatViolation = (v: Violation): string => {
-    const mName = (id: unknown) => memberMap.value.get(Number(id)) ?? `Member #${id}`;
-
-    switch (v.type) {
-        case 'skill_leveling':
-            if (v.avg_skill != null && v.min_avg != null && v.max_avg != null) {
-                return `Skill levelling: avg skill ${v.avg_skill} is outside ${v.min_avg}–${v.max_avg}`;
-            }
-
-            return String(v.detail ?? 'Skill levelling violation');
-
-        case 'banned_pair':
-            if (Array.isArray(v.member_ids) && v.member_ids.length === 2) {
-                return `${mName(v.member_ids[0])} and ${mName(v.member_ids[1])} are a banned pair`;
-            }
-
-            return 'Banned pair';
-
-        case 'preferred_pair': {
-            const scope = v.scope === 'group' ? 'group' : 'team';
-            if (Array.isArray(v.member_ids) && v.member_ids.length === 2) {
-                return `${mName(v.member_ids[0])} and ${mName(v.member_ids[1])} should be in the same ${scope} but are separated`;
-            }
-
-            return `Preferred pair separated (${scope}-level)`;
-        }
-
-        case 'repeat_pair':
-            if (Array.isArray(v.member_ids) && v.member_ids.length === 2) {
-                return `${mName(v.member_ids[0])} and ${mName(v.member_ids[1])} were paired in a prior event`;
-            }
-
-            return 'Repeat pair from a prior event';
-
-        case 'team_size':
-            return `Team has ${v.actual} member(s) — rule requires ${v.expected} (unavoidable with current member count)`;
-
-        case 'group_size':
-            return `Group has ${v.actual} team(s) — rule requires ${v.expected} (unavoidable with current member count)`;
-
-        case 'member_attribute': {
-            const label = String(v.attribute_label ?? v.attribute ?? 'attribute');
-            const valueLabel = v.attribute_value_label ? ` "${v.attribute_value_label}"` : '';
-            if (Array.isArray(v.offending_member_ids) && v.offending_member_ids.length >= 2) {
-                return `${joinNames((v.offending_member_ids as unknown[]).map(mName))} share ${label}${valueLabel}`;
-            }
-            if (typeof v.distinct_count === 'number') {
-                return `Members have ${v.distinct_count} different ${label} values`;
-            }
-
-            return `Members share the same ${label}${valueLabel}`;
-        }
-
-        default:
-            return String(v.detail ?? v.type ?? 'Violation');
-    }
-};
-
-const showViolationPenalty = (v: Violation): boolean =>
-    v.type === 'skill_leveling' ||
-    (v.type === 'member_attribute' && Number(v.penalty) !== Number(v.weight));
+const violationText = (v: Violation): string =>
+    String(v.formatted ?? v.detail ?? v.type ?? 'Violation');
 </script>
 
 <template>
@@ -493,10 +426,7 @@ const showViolationPenalty = (v: Violation): boolean =>
             </p>
             <ul v-if="globalViolations.length" class="mt-2 list-inside list-disc space-y-1 text-sm">
                 <li v-for="(v, i) in globalViolations" :key="`gv${i}`">
-                    {{ formatViolation(v) }}
-                    <span v-if="showViolationPenalty(v)" class="ml-1 text-xs text-amber-700/70"
-                        >(score: {{ v.penalty }})</span
-                    >
+                    {{ violationText(v) }}
                 </li>
             </ul>
             <p
@@ -643,13 +573,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                         class="flex items-start gap-1.5 text-xs text-amber-700"
                     >
                         <span class="mt-0.5 shrink-0 select-none">⚠</span>
-                        <span>
-                            {{ formatViolation(v) }}<span
-                                v-if="showViolationPenalty(v)"
-                                class="ml-0.5 text-amber-600/70"
-                                > (score: {{ v.penalty }})</span
-                            >
-                        </span>
+                        <span>{{ violationText(v) }}</span>
                     </li>
                 </ul>
                 <div class="grid gap-4 lg:grid-cols-2">
@@ -724,13 +648,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                                     class="flex items-start gap-1.5 text-xs text-amber-700"
                                 >
                                     <span class="mt-0.5 shrink-0 select-none">⚠</span>
-                                    <span>
-                                        {{ formatViolation(v) }}<span
-                                            v-if="showViolationPenalty(v)"
-                                            class="ml-0.5 text-amber-600/70"
-                                            > (score: {{ v.penalty }})</span
-                                        >
-                                    </span>
+                                    <span>{{ violationText(v) }}</span>
                                 </li>
                             </ul>
                         </template>
@@ -812,13 +730,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                             class="flex items-start gap-1.5 text-xs text-amber-700"
                         >
                             <span class="mt-0.5 shrink-0 select-none">⚠</span>
-                            <span>
-                                {{ formatViolation(v) }}<span
-                                    v-if="showViolationPenalty(v)"
-                                    class="ml-0.5 text-amber-600/70"
-                                    > (score: {{ v.penalty }})</span
-                                >
-                            </span>
+                            <span>{{ violationText(v) }}</span>
                         </li>
                     </ul>
                 </template>

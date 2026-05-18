@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Refactor (Violations):** Introduced `ViolationFormatter` as the single server-side source for human-readable violation messages (`formatted` field on each violation). Removed duplicate formatters from `TeamDrafts/Show.vue` and `event-teams-print.blade.php`; the finalized draft card on `Events/Show.vue` now renders inline per-team and per-group violations identical to the draft detail page; CSV/XLSX exports honor the `Show violations` toggle via `Team violations` / `Group violations` columns; export string cells are sanitized against spreadsheet formula injection.
+
 - **Fix (TeamSolverService):** Four `count()` calls in `solve()` and `rescore()` lacked null guards on potentially-missing array keys — `count($team['member_ids'])` and `count($group['team_indices'])` both throw a `TypeError` in PHP 8+ when the key is absent; fixed all four with `?? []` coalescing, matching the existing guard in `computeAvgSkill()`.
 
 - **Feat (TeamDrafts/Violations):** Violations and penalty score are now re-evaluated automatically after any manual member edit. `TeamSolverService::rescore()` (new public method) runs the full rule-scoring logic against the current teams/groups without re-running the solver; `TeamDraftController::updateTeamMembers()` calls it after saving and writes fresh `violations` + `total_penalty` back to the draft state, so the frontend always reflects the up-to-date score with no extra action required.

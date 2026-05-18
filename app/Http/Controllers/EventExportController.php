@@ -8,6 +8,7 @@ use App\Models\Member;
 use App\Models\MemberEventTypeSkill;
 use App\Models\Organization;
 use App\Models\TeamDraft;
+use App\Services\ViolationFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -15,6 +16,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class EventExportController extends Controller
 {
+    public function __construct(
+        private ViolationFormatter $violationFormatter,
+    ) {}
+
     private const ALL_COLUMNS = [
         'team_index',
         'team_name',
@@ -54,6 +59,8 @@ class EventExportController extends Controller
         $teamNames = $state['team_names'] ?? [];
         $groupNames = $state['group_names'] ?? [];
         $violations = is_array($state['violations'] ?? null) ? $state['violations'] : [];
+        $memberNames = $this->violationFormatter->memberNamesForOrganization($event->organization_id);
+        $violations = $this->violationFormatter->enrich($violations, $memberNames);
 
         $memberIds = array_values(array_unique(
             array_merge([], ...array_map(fn ($t) => $t['member_ids'] ?? [], $teams))
@@ -74,16 +81,7 @@ class EventExportController extends Controller
                 ->all();
         }
 
-        // Index violations by team and group for easy lookup in the template
-        $teamViolations = [];
-        $groupViolations = [];
-        foreach ($violations as $v) {
-            if (isset($v['team_index']) && is_int($v['team_index'])) {
-                $teamViolations[$v['team_index']][] = $v;
-            } elseif (isset($v['group_index']) && is_int($v['group_index'])) {
-                $groupViolations[$v['group_index']][] = $v;
-            }
-        }
+        [$teamViolations, $groupViolations] = $this->indexViolationsByTeamAndGroup($violations);
 
         $avgSkill = in_array('skill', $columns, true)
             ? $this->computeAvgSkill($teams, $groups, $skillByMember)
@@ -114,7 +112,8 @@ class EventExportController extends Controller
 
         $draft = $this->resolveDraft($request, $event);
         $columns = $this->parseColumns($request);
-        $table = $this->buildTable($event, $draft, $columns);
+        $showViolations = $request->query('violations', '1') !== '0';
+        $table = $this->buildTable($event, $draft, $columns, $showViolations);
 
         $export = new EventTeamsExport($table['headings'], $table['rows']);
         $filename = 'event-'.$event->id.'-teams.csv';
@@ -128,7 +127,8 @@ class EventExportController extends Controller
 
         $draft = $this->resolveDraft($request, $event);
         $columns = $this->parseColumns($request);
-        $table = $this->buildTable($event, $draft, $columns);
+        $showViolations = $request->query('violations', '1') !== '0';
+        $table = $this->buildTable($event, $draft, $columns, $showViolations);
 
         $export = new EventTeamsExport($table['headings'], $table['rows']);
         $filename = 'event-'.$event->id.'-teams.xlsx';
@@ -228,16 +228,61 @@ class EventExportController extends Controller
     }
 
     /**
+     * @param  list<array<string, mixed>>  $violations
+     * @return array{0: array<int, list<array<string, mixed>>>, 1: array<int, list<array<string, mixed>>>}
+     */
+    private function indexViolationsByTeamAndGroup(array $violations): array
+    {
+        $teamViolations = [];
+        $groupViolations = [];
+        foreach ($violations as $v) {
+            if (isset($v['team_index']) && is_int($v['team_index'])) {
+                $teamViolations[$v['team_index']][] = $v;
+            } elseif (isset($v['group_index']) && is_int($v['group_index'])) {
+                $groupViolations[$v['group_index']][] = $v;
+            }
+        }
+
+        return [$teamViolations, $groupViolations];
+    }
+
+    /**
+     * @param  array<int, list<array<string, mixed>>>  $indexed
+     * @return array<int, string>
+     */
+    private function violationTextsByIndex(array $indexed): array
+    {
+        $out = [];
+        foreach ($indexed as $idx => $items) {
+            $texts = array_map(
+                fn (array $v) => (string) ($v['formatted'] ?? ''),
+                $items,
+            );
+            $out[$idx] = implode('; ', array_filter($texts, fn (string $t) => $t !== ''));
+        }
+
+        return $out;
+    }
+
+    /**
      * @param  list<string>  $columns
      * @return array{headings: list<string>, rows: list<list<string|int|float|null>>}
      */
-    private function buildTable(Event $event, TeamDraft $draft, array $columns): array
+    private function buildTable(Event $event, TeamDraft $draft, array $columns, bool $showViolations): array
     {
         $state = is_array($draft->state) ? $draft->state : [];
         $teams = $state['teams'] ?? [];
         $groups = $state['groups'] ?? [];
         $teamNames = $state['team_names'] ?? [];
         $groupNames = $state['group_names'] ?? [];
+        $hasGroups = ! empty($groups);
+
+        $memberNames = $this->violationFormatter->memberNamesForOrganization($event->organization_id);
+        $violations = is_array($state['violations'] ?? null) ? $state['violations'] : [];
+        $enrichedViolations = $this->violationFormatter->enrich($violations, $memberNames);
+        [$teamViolationsIndexed, $groupViolationsIndexed] = $this->indexViolationsByTeamAndGroup($enrichedViolations);
+        $teamViolationTexts = $this->violationTextsByIndex($teamViolationsIndexed);
+        $groupViolationTexts = $this->violationTextsByIndex($groupViolationsIndexed);
 
         $members = Member::query()
             ->where('organization_id', $event->organization_id)
@@ -294,8 +339,15 @@ class EventExportController extends Controller
 
         if ($includeAvgSkill) {
             $headings[] = 'Team avg skill';
-            if (! empty($groups)) {
+            if ($hasGroups) {
                 $headings[] = 'Group avg skill';
+            }
+        }
+
+        if ($showViolations) {
+            $headings[] = 'Team violations';
+            if ($hasGroups) {
+                $headings[] = 'Group violations';
             }
         }
 
@@ -329,13 +381,21 @@ class EventExportController extends Controller
                 }
                 if ($includeAvgSkill) {
                     $row[] = $avgSkill['team'][$ti] ?? null;
-                    if (! empty($groups)) {
+                    if ($hasGroups) {
                         $gi = $ginfo['group_index'];
                         $row[] = $gi !== null ? ($avgSkill['group'][$gi] ?? null) : null;
                     }
                 }
 
-                $rows[] = $row;
+                if ($showViolations) {
+                    $row[] = $teamViolationTexts[$ti] ?? '';
+                    if ($hasGroups) {
+                        $gi = $ginfo['group_index'];
+                        $row[] = $gi !== null ? ($groupViolationTexts[$gi] ?? '') : '';
+                    }
+                }
+
+                $rows[] = $this->violationFormatter->sanitizeSpreadsheetRow($row);
             }
         }
 

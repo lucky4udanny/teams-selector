@@ -855,6 +855,44 @@ const finalBlockingErrors = computed(() =>
     Array.isArray(finalState.value?.blocking_errors) ? finalState.value.blocking_errors : [],
 );
 
+const finalViolations = computed(() =>
+    Array.isArray(finalState.value?.violations) ? finalState.value.violations : [],
+);
+
+const finalTeamViolations = computed(() => {
+    const m = new Map();
+    finalViolations.value.forEach((v) => {
+        if (typeof v.team_index === 'number') {
+            const arr = m.get(v.team_index) ?? [];
+            arr.push(v);
+            m.set(v.team_index, arr);
+        }
+    });
+
+    return m;
+});
+
+const finalGroupViolations = computed(() => {
+    const m = new Map();
+    finalViolations.value.forEach((v) => {
+        if (typeof v.group_index === 'number') {
+            const arr = m.get(v.group_index) ?? [];
+            arr.push(v);
+            m.set(v.group_index, arr);
+        }
+    });
+
+    return m;
+});
+
+const finalGlobalViolations = computed(() =>
+    finalViolations.value.filter(
+        (v) => typeof v.team_index !== 'number' && typeof v.group_index !== 'number',
+    ),
+);
+
+const violationText = (v) => String(v.formatted ?? v.detail ?? v.type ?? 'Violation');
+
 const columnsOpen = ref(false);
 const showViolations = ref(true);
 
@@ -1404,8 +1442,29 @@ const groupDisplayLabel = (gi, names) => {
                     </template>
                 </div>
 
-                <Alert v-if="showViolations && finalBlockingErrors.length" variant="error" class="text-xs">
+                <Alert v-if="finalBlockingErrors.length" variant="error" class="text-xs">
                     {{ finalBlockingErrors.join('; ') }}
+                </Alert>
+
+                <Alert
+                    v-else-if="showViolations && finalViolations.length"
+                    variant="warning"
+                    class="text-xs"
+                >
+                    <p class="font-semibold">
+                        {{ finalViolations.length }} violation{{ finalViolations.length === 1 ? '' : 's' }}
+                    </p>
+                    <ul v-if="finalGlobalViolations.length" class="mt-2 list-inside list-disc space-y-1">
+                        <li v-for="(v, i) in finalGlobalViolations" :key="`fgv${i}`">
+                            {{ violationText(v) }}
+                        </li>
+                    </ul>
+                    <p
+                        v-if="finalViolations.length > finalGlobalViolations.length"
+                        class="mt-2 text-amber-700/70"
+                    >
+                        See individual team and group panels below for details.
+                    </p>
                 </Alert>
 
                 <!-- Column selection — collapsible accordion -->
@@ -1521,6 +1580,20 @@ const groupDisplayLabel = (gi, names) => {
                                 class="text-xs text-brand-blue/50"
                             >Avg skill: {{ finalGroupAvgSkill.get(gi) }}</span>
                         </div>
+
+                        <ul
+                            v-if="showViolations && finalGroupViolations.get(gi)?.length"
+                            class="mb-4 space-y-1"
+                        >
+                            <li
+                                v-for="(v, i) in finalGroupViolations.get(gi)"
+                                :key="`fgv${gi}_${i}`"
+                                class="flex items-start gap-1.5 text-xs text-amber-700"
+                            >
+                                <span class="mt-0.5 shrink-0 select-none">⚠</span>
+                                <span>{{ violationText(v) }}</span>
+                            </li>
+                        </ul>
                         <div class="grid gap-4 lg:grid-cols-2">
                             <div
                                 v-for="ti in group.team_indices || []"
@@ -1549,6 +1622,20 @@ const groupDisplayLabel = (gi, names) => {
                                         </template>
                                     </li>
                                 </ul>
+                            <ul
+                                v-if="showViolations && finalTeamViolations.get(ti)?.length"
+                                class="mt-3 space-y-1 border-t border-amber-100 pt-3"
+                            >
+                                <li
+                                    v-for="(v, i) in finalTeamViolations.get(ti)"
+                                    :key="`ftv${ti}_${i}`"
+                                    class="flex items-start gap-1.5 text-xs text-amber-700"
+                                >
+                                    <span class="mt-0.5 shrink-0 select-none">⚠</span>
+                                    <span>{{ violationText(v) }}</span>
+                                </li>
+                            </ul>
+
                             </div>
                         </div>
                     </section>
@@ -1583,6 +1670,20 @@ const groupDisplayLabel = (gi, names) => {
                                 </template>
                             </li>
                         </ul>
+                            <ul
+                                v-if="showViolations && finalTeamViolations.get(ti)?.length"
+                                class="mt-3 space-y-1 border-t border-amber-100 pt-3"
+                            >
+                                <li
+                                    v-for="(v, i) in finalTeamViolations.get(ti)"
+                                    :key="`ftv${ti}_${i}`"
+                                    class="flex items-start gap-1.5 text-xs text-amber-700"
+                                >
+                                    <span class="mt-0.5 shrink-0 select-none">⚠</span>
+                                    <span>{{ violationText(v) }}</span>
+                                </li>
+                            </ul>
+
                     </section>
                 </div>
             </div>

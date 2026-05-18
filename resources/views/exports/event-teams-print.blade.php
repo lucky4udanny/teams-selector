@@ -105,39 +105,6 @@
         return max(1, min(4, (int) ceil(sqrt($count))));
     }
 
-    function formatViolationText(array $v, $members): string {
-        $type = $v['type'] ?? '';
-        if ($type === 'skill_leveling') {
-            $avg    = isset($v['avg_skill']) ? round((float) $v['avg_skill'], 1) : '?';
-            $min    = $v['min_avg'] ?? '?';
-            $max    = $v['max_avg'] ?? '?';
-            return "Skill levelling: avg {$avg} is outside {$min}–{$max}.";
-        }
-        if ($type === 'member_attribute') {
-            $attr  = $v['attribute_label'] ?? ($v['attribute'] ?? 'attribute');
-            $match = $v['attribute'] === null ? 'same' : ($v['attribute_value_label'] ?? '');
-            $offIds = $v['offending_member_ids'] ?? [];
-            $names = array_map(fn ($id) => $members[(int)$id]?->displayName() ?? "#$id", array_slice((array)$offIds, 0, 3));
-            $nameStr = implode(' and ', $names);
-            $val = $v['attribute_value_label'] ?? '';
-            if ($nameStr && $val) return "{$nameStr} share {$attr}: {$val}.";
-            if ($nameStr) return "{$nameStr} share the same {$attr}.";
-            $distinct = $v['distinct_count'] ?? '';
-            return $distinct ? "{$distinct} different {$attr} values on this team." : ($v['detail'] ?? '');
-        }
-        if ($type === 'team_size') {
-            $actual   = $v['actual'] ?? '?';
-            $expected = $v['expected'] ?? '?';
-            return "Team has {$actual} member(s) — rule requires {$expected} (unavoidable with current member count).";
-        }
-        if ($type === 'group_size') {
-            $actual   = $v['actual'] ?? '?';
-            $expected = $v['expected'] ?? '?';
-            return "Group has {$actual} team(s) — rule requires {$expected} (unavoidable with current member count).";
-        }
-        return $v['detail'] ?? '';
-    }
-
     /**
      * Build a label showing only the parts whose columns are selected, in column order.
      * Returns an empty string when neither index nor name column is selected.
@@ -212,7 +179,7 @@
                     @foreach($gvs as $v)
                         <div class="group-violation">
                             <span class="violation-icon">⚠</span>
-                            <span>{{ formatViolationText($v, $members) }}</span>
+                            <span>{{ $v['formatted'] ?? ($v['detail'] ?? '') }}</span>
                         </div>
                     @endforeach
                 </div>
@@ -276,7 +243,7 @@
                                 @foreach($tvs as $v)
                                     <div class="violation">
                                         <span class="violation-icon">⚠</span>
-                                        <span>{{ formatViolationText($v, $members) }}</span>
+                                        <span>{{ $v['formatted'] ?? ($v['detail'] ?? '') }}</span>
                                     </div>
                                 @endforeach
                             </div>
@@ -346,7 +313,7 @@
                         @foreach($tvs as $v)
                             <div class="violation">
                                 <span class="violation-icon">⚠</span>
-                                <span>{{ formatViolationText($v, $members) }}</span>
+                                <span>{{ $v['formatted'] ?? ($v['detail'] ?? '') }}</span>
                             </div>
                         @endforeach
                     </div>

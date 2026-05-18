@@ -12,6 +12,7 @@ use App\Models\Member;
 use App\Models\MemberEventTypeSkill;
 use App\Models\Organization;
 use App\Models\Rule;
+use App\Services\ViolationFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,10 @@ use Inertia\Response;
 class EventController extends Controller
 {
     use ProvidesOrganizationProps;
+
+    public function __construct(
+        private ViolationFormatter $violationFormatter,
+    ) {}
 
     public function index(Request $request, Organization $organization): Response
     {
@@ -206,12 +211,16 @@ class EventController extends Controller
 
             if ($event->finalTeamDraft) {
                 $event->finalTeamDraft->load('createdBy:id,name');
+                $memberNames = $this->violationFormatter->memberNamesForOrganization($organization->id);
+                $finalState = is_array($event->finalTeamDraft->state)
+                    ? $event->finalTeamDraft->state
+                    : [];
                 $payload['final_draft'] = [
                     'id'           => $event->finalTeamDraft->id,
                     'name'         => $event->finalTeamDraft->name,
                     'creator_name' => $event->finalTeamDraft->createdBy?->name,
                     'created_at'   => $event->finalTeamDraft->created_at?->toIso8601String(),
-                    'state'        => $event->finalTeamDraft->state,
+                    'state'        => $this->violationFormatter->enrichDraftState($finalState, $memberNames),
                 ];
             }
         }

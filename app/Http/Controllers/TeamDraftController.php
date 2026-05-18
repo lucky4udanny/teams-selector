@@ -11,6 +11,7 @@ use App\Models\Organization;
 use App\Models\TeamDraft;
 use App\Services\EventPlanningConflictService;
 use App\Services\TeamSolverService;
+use App\Services\ViolationFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class TeamDraftController extends Controller
     public function __construct(
         private TeamSolverService $solver,
         private EventPlanningConflictService $conflicts,
+        private ViolationFormatter $violationFormatter,
     ) {}
 
     public function conflicts(Request $request, Organization $organization, Event $event): JsonResponse
@@ -103,6 +105,9 @@ class TeamDraftController extends Controller
     {
         $this->authorize('view', $event);
 
+        $memberNames = $this->violationFormatter->memberNamesForOrganization($organization->id);
+        $draftState = is_array($teamDraft->state) ? $teamDraft->state : [];
+
         return Inertia::render('TeamDrafts/Show', [
             'organization' => $this->organizationProps($request, $organization),
             'canUpdate' => $request->user()->can('update', $event) && ! $teamDraft->is_final,
@@ -115,7 +120,7 @@ class TeamDraftController extends Controller
             'teamDraft' => [
                 'id' => $teamDraft->id,
                 'name' => $teamDraft->name,
-                'state' => $teamDraft->state,
+                'state' => $this->violationFormatter->enrichDraftState($draftState, $memberNames),
                 'is_final' => $teamDraft->is_final,
                 'created_at' => $teamDraft->created_at?->toIso8601String(),
             ],
@@ -284,7 +289,16 @@ class TeamDraftController extends Controller
         $teamDraft->update(['state' => $state]);
 
         if ($request->wantsJson()) {
-            return response()->json(['teamDraft' => ['id' => $teamDraft->id, 'state' => $teamDraft->fresh()->state]]);
+            $freshState = $teamDraft->fresh()->state;
+            $freshState = is_array($freshState) ? $freshState : [];
+            $memberNames = $this->violationFormatter->memberNamesForOrganization($organization->id);
+
+            return response()->json([
+                'teamDraft' => [
+                    'id' => $teamDraft->id,
+                    'state' => $this->violationFormatter->enrichDraftState($freshState, $memberNames),
+                ],
+            ]);
         }
 
         return redirect()->back()->with('status', 'Team members updated.');
