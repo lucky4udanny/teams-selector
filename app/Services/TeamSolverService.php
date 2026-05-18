@@ -67,23 +67,14 @@ class TeamSolverService
             ];
         }
 
-        if ($n % $teamSize !== 0) {
-            return [
-                'teams' => [],
-                'groups' => [],
-                'violations' => [],
-                'total_penalty' => 0,
-                'blocking_errors' => ['Member count must divide evenly by team size ('.$teamSize.'). Current: '.$n.'.'],
-            ];
-        }
-
         $groupRule = $rules->first(fn (Rule $r) => $r->type === RuleType::Size && $r->scope === RuleScope::Group);
         $teamsPerGroup = $groupRule ? (int) ($groupRule->config['size'] ?? 1) : 1;
         if ($teamsPerGroup < 1) {
             $teamsPerGroup = 1;
         }
 
-        $teamCount = (int) ($n / $teamSize);
+        // Use ceil so a remainder produces one extra (smaller) team rather than blocking.
+        $teamCount = (int) ceil($n / $teamSize);
 
         $historyCache = [];
         $skillByMember = $this->skillLevelsForEvent($event, $memberIds);
@@ -137,6 +128,49 @@ class TeamSolverService
 
             if ($best['penalty'] === 0) {
                 break;
+            }
+        }
+
+        // Flag any team that couldn't be filled to the required size.
+        // This is structural (penalty 0) — unavoidable when n % teamSize !== 0.
+        if ($n % $teamSize !== 0) {
+            foreach ($best['teams'] as $tidx => $team) {
+                $actual = count($team['member_ids']);
+                if ($actual !== $teamSize) {
+                    $best['violations'][] = [
+                        'rule_id'    => $teamSizeRule->id,
+                        'type'       => 'team_size',
+                        'scope'      => 'team',
+                        'team_index' => $tidx,
+                        'expected'   => $teamSize,
+                        'actual'     => $actual,
+                        'weight'     => $teamSizeRule->weight,
+                        'detail'     => "Team ".($tidx + 1)." has {$actual} member(s) instead of the required {$teamSize}.",
+                        'penalty'    => 0,
+                    ];
+                }
+            }
+        }
+
+        // Flag any group that couldn't be filled to the required size.
+        // This is a structural note (penalty 0) — mathematically unavoidable when
+        // teamCount % teamsPerGroup !== 0.
+        if ($groupRule && $teamsPerGroup > 1) {
+            foreach ($best['groups'] as $gidx => $group) {
+                $actual = count($group['team_indices']);
+                if ($actual < $teamsPerGroup) {
+                    $best['violations'][] = [
+                        'rule_id'     => $groupRule->id,
+                        'type'        => 'group_size',
+                        'scope'       => 'group',
+                        'group_index' => $gidx,
+                        'expected'    => $teamsPerGroup,
+                        'actual'      => $actual,
+                        'weight'      => $groupRule->weight,
+                        'detail'      => "Group ".($gidx + 1)." has {$actual} team(s) instead of the required {$teamsPerGroup}.",
+                        'penalty'     => 0,
+                    ];
+                }
             }
         }
 

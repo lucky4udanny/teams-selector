@@ -80,6 +80,16 @@ const handlePrint = () => window.print();
 const columnsOpen = ref(false);
 const showViolations = ref(true);
 
+const exportQuery = computed(() => {
+    const params = new URLSearchParams();
+    params.set('draft_id', String(props.teamDraft?.id ?? ''));
+    if (selectedExportColumns.value.length) {
+        params.set('columns', selectedExportColumns.value.join(','));
+    }
+    params.set('violations', showViolations.value ? '1' : '0');
+    return `?${params.toString()}`;
+});
+
 const showSkillColumn = computed(() => selectedExportColumns.value.includes('skill'));
 
 const teamAvgSkill = computed(() => {
@@ -360,6 +370,12 @@ const formatViolation = (v: Violation): string => {
 
             return 'Repeat pair from a prior event';
 
+        case 'team_size':
+            return `Team has ${v.actual} member(s) — rule requires ${v.expected} (unavoidable with current member count)`;
+
+        case 'group_size':
+            return `Group has ${v.actual} team(s) — rule requires ${v.expected} (unavoidable with current member count)`;
+
         case 'member_attribute': {
             const label = String(v.attribute_label ?? v.attribute ?? 'attribute');
             const valueLabel = v.attribute_value_label ? ` "${v.attribute_value_label}"` : '';
@@ -546,6 +562,26 @@ const showViolationPenalty = (v: Violation): boolean =>
                     <PrinterIcon class="h-4 w-4" />
                     Print
                 </button>
+
+                <a
+                    :href="route('organizations.events.export.csv', [props.organization.slug, props.event.id]) + exportQuery"
+                    title="Download CSV"
+                    aria-label="Download CSV"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-brand-mist bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-brand-mist/30"
+                >
+                    <ArrowDownTrayIcon class="h-4 w-4" />
+                    CSV
+                </a>
+
+                <a
+                    :href="route('organizations.events.export.xlsx', [props.organization.slug, props.event.id]) + exportQuery"
+                    title="Download Excel"
+                    aria-label="Download Excel"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-brand-mist bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-brand-mist/30"
+                >
+                    <ArrowDownTrayIcon class="h-4 w-4" />
+                    Excel
+                </a>
 
                 <Toggle v-model="showViolations" label="Show violations" class="ml-2" />
             </div>

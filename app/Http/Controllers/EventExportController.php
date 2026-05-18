@@ -44,7 +44,7 @@ class EventExportController extends Controller
     {
         $this->authorize('view', $event);
 
-        $draft = $this->finalDraftOrAbort($event);
+        $draft = $this->resolveDraft($request, $event);
         $columns = $this->parseColumns($request);
         $showViolations = $request->query('violations', '1') !== '0';
 
@@ -112,7 +112,7 @@ class EventExportController extends Controller
     {
         $this->authorize('view', $event);
 
-        $draft = $this->finalDraftOrAbort($event);
+        $draft = $this->resolveDraft($request, $event);
         $columns = $this->parseColumns($request);
         $table = $this->buildTable($event, $draft, $columns);
 
@@ -126,7 +126,7 @@ class EventExportController extends Controller
     {
         $this->authorize('view', $event);
 
-        $draft = $this->finalDraftOrAbort($event);
+        $draft = $this->resolveDraft($request, $event);
         $columns = $this->parseColumns($request);
         $table = $this->buildTable($event, $draft, $columns);
 
@@ -171,6 +171,25 @@ class EventExportController extends Controller
         }
 
         return ['team' => $teamAvg, 'group' => $groupAvg];
+    }
+
+    private function resolveDraft(Request $request, Event $event): TeamDraft
+    {
+        $draftId = $request->query('draft_id');
+
+        if ($draftId !== null) {
+            $draft = TeamDraft::query()
+                ->where('event_id', $event->id)
+                ->find((int) $draftId);
+
+            if (! $draft instanceof TeamDraft) {
+                abort(404, 'Draft not found.');
+            }
+
+            return $draft;
+        }
+
+        return $this->finalDraftOrAbort($event);
     }
 
     private function finalDraftOrAbort(Event $event): TeamDraft

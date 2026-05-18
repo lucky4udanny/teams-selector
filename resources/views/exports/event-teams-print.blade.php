@@ -125,6 +125,11 @@
             $distinct = $v['distinct_count'] ?? '';
             return $distinct ? "{$distinct} different {$attr} values on this team." : ($v['detail'] ?? '');
         }
+        if ($type === 'team_size') {
+            $actual   = $v['actual'] ?? '?';
+            $expected = $v['expected'] ?? '?';
+            return "Team has {$actual} member(s) — rule requires {$expected} (unavoidable with current member count).";
+        }
         if ($type === 'group_size') {
             $actual   = $v['actual'] ?? '?';
             $expected = $v['expected'] ?? '?';
