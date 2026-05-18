@@ -160,7 +160,7 @@ class EventExportController extends Controller
         $groupAvg = [];
         foreach ($groups as $gi => $group) {
             $allIds = array_merge([], ...array_map(
-                fn ($ti) => $teams[$ti]['member_ids'] ?? [],
+                fn ($ti) => ($teams[$ti] ?? [])['member_ids'] ?? [],
                 $group['team_indices'] ?? [],
             ));
             if ($allIds === []) {
