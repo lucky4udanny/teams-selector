@@ -3,7 +3,6 @@ import Alert from '@/Components/Alert.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import ProgressRing from '@/Components/ProgressRing.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TeamMemberEditor from '@/Components/TeamMemberEditor.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -456,20 +455,12 @@ const showViolationPenalty = (v: Violation): boolean =>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
                     <div
-                        class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+                        class="rounded-lg border px-3 py-2 text-sm font-medium text-brand-navy"
                         :class="penaltyHue"
                     >
-                        <ProgressRing
-                            v-if="totalPenalty !== null"
-                            :value="Math.min(totalPenalty, 100)"
-                            :max="100"
-                            :size="36"
-                        />
-                        <span class="font-medium text-brand-navy">
-                            Penalty:
-                            <span v-if="totalPenalty !== null">{{ totalPenalty }}</span>
-                            <span v-else>—</span>
-                        </span>
+                        Penalty:
+                        <span v-if="totalPenalty !== null">{{ totalPenalty }}</span>
+                        <span v-else>—</span>
                     </div>
                     <span
                         v-if="teamDraft.is_final"

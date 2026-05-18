@@ -9,7 +9,6 @@ import FormField from '@/Components/FormField.vue';
 import ListboxInput from '@/Components/ListboxInput.vue';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import ProgressRing from '@/Components/ProgressRing.vue';
 import RosterMemberPicker from '@/Components/RosterMemberPicker.vue';
 import RangeSlider from '@/Components/RangeSlider.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
@@ -1387,11 +1386,6 @@ const groupDisplayLabel = (gi, names) => {
                             </template>
                         </p>
                     </div>
-                    <ProgressRing
-                        :value="Math.min(finalViolationCount, 20)"
-                        :max="20"
-                        :size="44"
-                    />
                 </div>
 
                 <!-- Penalty / violations summary -->
@@ -1646,7 +1640,7 @@ const groupDisplayLabel = (gi, names) => {
                 <div
                     v-for="d in nonFinalDrafts"
                     :key="d.id"
-                    class="rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
+                    class="flex gap-4 rounded-xl border border-brand-mist bg-white p-4 shadow-sm"
                     :class="
                         d.total_penalty != null && d.total_penalty > 40
                             ? 'border-red-200 bg-red-50/40'
@@ -1655,34 +1649,30 @@ const groupDisplayLabel = (gi, names) => {
                               : ''
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <Link
-                                class="font-semibold text-brand-navy hover:underline"
-                                :href="route('organizations.events.team-drafts.show', [organization.slug, event.id, d.id])"
-                            >
-                                {{ d.name || `Draft #${d.id}` }}
-                            </Link>
-                            <p class="text-xs text-brand-blue/60">
-                                {{ d.creator_name || 'Unknown' }} ·
-                                {{ d.created_at ? new Date(d.created_at).toLocaleString() : '' }}
-                            </p>
-                        </div>
-                        <ProgressRing
-                            :value="Math.min(d.violation_count ?? 0, 20)"
-                            :max="20"
-                            :size="44"
-                        />
-                    </div>
-                    <p class="mt-3 text-sm text-brand-blue/80">
-                        Penalty: {{ d.total_penalty ?? '—' }} · Violations: {{ d.violation_count ?? 0 }}
-                    </p>
-                    <Alert v-if="d.blocking_errors?.length" variant="error" class="mt-3 text-xs">
-                        {{ d.blocking_errors.join('; ') }}
-                    </Alert>
-                    <div class="mt-4 flex flex-wrap items-center gap-2">
+                    <!-- Col 1: info -->
+                    <div class="min-w-0 flex-1">
                         <Link
-                            class="ts-btn-secondary"
+                            class="font-semibold text-brand-navy hover:underline"
+                            :href="route('organizations.events.team-drafts.show', [organization.slug, event.id, d.id])"
+                        >
+                            {{ d.name || `Draft #${d.id}` }}
+                        </Link>
+                        <p class="text-xs text-brand-blue/60">
+                            {{ d.creator_name || 'Unknown' }} ·
+                            {{ d.created_at ? new Date(d.created_at).toLocaleString() : '' }}
+                        </p>
+                        <p class="mt-3 text-sm text-brand-blue/80">
+                            Penalty: {{ d.total_penalty ?? '—' }} · Violations: {{ d.violation_count ?? 0 }}
+                        </p>
+                        <Alert v-if="d.blocking_errors?.length" variant="error" class="mt-3 text-xs">
+                            {{ d.blocking_errors.join('; ') }}
+                        </Alert>
+                    </div>
+
+                    <!-- Col 2: actions -->
+                    <div class="flex shrink-0 flex-col items-stretch justify-between gap-2">
+                        <Link
+                            class="ts-btn-secondary w-full"
                             :href="route('organizations.events.team-drafts.show', [organization.slug, event.id, d.id])"
                         >
                             Open
@@ -1690,6 +1680,7 @@ const groupDisplayLabel = (gi, names) => {
                         <SecondaryButton
                             v-if="canFinalize && !event.is_finalized"
                             type="button"
+                            class="w-full"
                             @click="requestFinalizeDraft(d)"
                         >
                             Set as final
@@ -1697,6 +1688,7 @@ const groupDisplayLabel = (gi, names) => {
                         <DangerButton
                             v-if="canManage"
                             type="button"
+                            class="w-full"
                             @click="showDeleteDraft = d.id"
                         >
                             Delete
