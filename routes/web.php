@@ -37,7 +37,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/organizations/{organization}/settings', [OrganizationSettingsController::class, 'update'])->name('organizations.settings.update');
 
     Route::get('/organizations/{organization}/users', [OrganizationUserController::class, 'index'])->name('organizations.users.index');
+    Route::post('/organizations/{organization}/users', [OrganizationUserController::class, 'store'])->name('organizations.users.store');
     Route::patch('/organizations/{organization}/users/{user}', [OrganizationUserController::class, 'update'])->name('organizations.users.update');
+    Route::patch('/organizations/{organization}/users/{user}/password', [OrganizationUserController::class, 'updatePassword'])->name('organizations.users.password.update');
     Route::delete('/organizations/{organization}/users/{user}', [OrganizationUserController::class, 'destroy'])->name('organizations.users.destroy');
 
     // Invitations (org-scoped, admin only)

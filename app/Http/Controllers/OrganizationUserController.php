@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OrganizationRole;
-use App\Models\Invitation;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,27 +27,55 @@ class OrganizationUserController extends Controller
                 'role' => $u->pivot->role,
             ]);
 
-        $pendingInvitations = Invitation::query()
-            ->with('invitedBy')
-            ->where('organization_id', $organization->id)
-            ->whereNull('accepted_at')
-            ->where('expires_at', '>', now())
-            ->orderBy('created_at')
-            ->get()
-            ->map(fn (Invitation $i) => [
-                'id' => $i->id,
-                'email' => $i->email,
-                'role' => $i->role,
-                'invited_by_name' => $i->invitedBy->name,
-                'expires_at' => $i->expires_at->format('M j, Y'),
-            ]);
-
         return Inertia::render('OrganizationUsers/Index', [
             'organization' => $this->orgProps($request, $organization),
             'users' => $users,
             'roles' => array_map(fn (OrganizationRole $r) => $r->value, OrganizationRole::cases()),
-            'pendingInvitations' => $pendingInvitations,
+            // Empty array keeps older cached JS chunks from crashing on pendingInvitations.length
+            'pendingInvitations' => [],
         ]);
+    }
+
+    public function store(Request $request, Organization $organization): RedirectResponse
+    {
+        $this->authorize('manageSettings', $organization);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'in:'.implode(',', array_column(OrganizationRole::cases(), 'value'))],
+        ]);
+
+        $email = strtolower($validated['email']);
+        $user = User::query()->where('email', $email)->first();
+
+        if ($user && $organization->users()->where('user_id', $user->id)->exists()) {
+            return redirect()->back()->withErrors([
+                'email' => 'This person is already a member of the organization.',
+            ]);
+        }
+
+        if ($user) {
+            $user->update([
+                'name' => $validated['name'],
+                'password' => $validated['password'],
+                'email_verified_at' => $user->email_verified_at ?? now(),
+            ]);
+        } else {
+            $user = User::query()->create([
+                'name' => $validated['name'],
+                'email' => $email,
+                'password' => $validated['password'],
+                'email_verified_at' => now(),
+            ]);
+        }
+
+        if (! $organization->users()->where('user_id', $user->id)->exists()) {
+            $organization->users()->attach($user->id, ['role' => $validated['role']]);
+        }
+
+        return redirect()->back()->with('status', 'User '.$user->name.' was added.');
     }
 
     public function update(Request $request, Organization $organization, User $user): RedirectResponse
@@ -69,6 +97,29 @@ class OrganizationUserController extends Controller
         $organization->users()->updateExistingPivot($user->id, ['role' => $validated['role']]);
 
         return redirect()->back();
+    }
+
+    public function updatePassword(Request $request, Organization $organization, User $user): RedirectResponse
+    {
+        $this->authorize('manageSettings', $organization);
+
+        if ($user->id === $request->user()->id) {
+            return redirect()->back()->withErrors([
+                'password' => 'Change your own password from your profile settings.',
+            ]);
+        }
+
+        if (! $organization->users()->where('user_id', $user->id)->exists()) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $user->update(['password' => $validated['password']]);
+
+        return redirect()->back()->with('status', 'Password updated for '.$user->name.'.');
     }
 
     public function destroy(Request $request, Organization $organization, User $user): RedirectResponse

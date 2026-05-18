@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Feat (Organization users):** Replaced email invitation UI with direct “Add user” (name, email, password, role). `OrganizationUserController@store` creates or updates the account, verifies email, and attaches to the org; org admins only. Admins can reset another member’s password via `PATCH organizations.users.password.update` (modal on the users table).
+- **Fix (Organization users):** Users index no longer crashes when the browser loads a stale JS chunk that still expects `pendingInvitations` — server sends an empty array; Vue defaults `users`/`roles` to `[]`.
+
 - **Fix (Generate Draft/Modal):** Closing the generate-draft modal (backdrop, Escape, or Cancel) now calls `genForm.reset()` so validation errors and field values do not persist when the modal is reopened.
 
 - **Fix (Vite):** `AppServiceProvider` preload-tag callback now also accepts `?array $chunk` (in addition to the earlier `?string $src` change); Laravel passes `null` for `$chunk` when `Collection::where('file', $css)->first()` returns no match for a CSS-only asset, which caused a follow-up production `TypeError` on every page load. The `isEntry` check is now guarded with `is_array($chunk)`.
