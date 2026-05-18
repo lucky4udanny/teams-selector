@@ -35,7 +35,7 @@ const isAdmin = computed(() => props.organization.role === 'admin');
 <template>
     <div :style="brandStyle" class="ts-page ts-org-branded">
         <nav
-            class="border-b border-brand-mist bg-white/90 shadow-sm shadow-brand-navy/5 backdrop-blur-md"
+            class="border-b border-brand-mist bg-white/90 shadow-sm shadow-brand-navy/5 backdrop-blur-md md:sticky md:top-0 md:z-50"
         >
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 justify-between">
@@ -217,6 +217,16 @@ const isAdmin = computed(() => props.organization.role === 'admin');
         </nav>
 
         <FlashToasts />
+
+        <!-- Optional sticky sub-nav bar (e.g. draft context bar). Sits just below the sticky main nav. -->
+        <div
+            v-if="$slots.subnav"
+            class="border-b border-brand-mist bg-white/95 shadow-sm backdrop-blur-sm md:sticky md:top-16 md:z-40"
+        >
+            <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+                <slot name="subnav" />
+            </div>
+        </div>
 
         <header
             v-if="$slots.header"

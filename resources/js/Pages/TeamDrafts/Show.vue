@@ -15,7 +15,7 @@ import {
     useExportColumns,
 } from '@/composables/useExportColumns';
 import { applyFormErrors, validateDraftNames } from '@/utils/formValidation';
-import { ArrowDownTrayIcon, Bars3Icon, ChevronDownIcon, PlusIcon, PrinterIcon, XMarkIcon } from '@heroicons/vue/20/solid';
+import { ArrowDownTrayIcon, ArrowLeftIcon, Bars3Icon, ChevronDownIcon, PlusIcon, PrinterIcon, XMarkIcon } from '@heroicons/vue/20/solid';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
@@ -76,6 +76,8 @@ const memberScreenDetails = (mid: number) =>
     buildMemberDetails(mid, memberFullById.value.get(mid), selectedExportColumns.value, memberName(mid));
 
 const handlePrint = () => window.print();
+
+const goBack = () => window.history.back();
 
 const columnsOpen = ref(false);
 const showViolations = ref(true);
@@ -430,45 +432,51 @@ const showViolationPenalty = (v: Violation): boolean =>
     <Head :title="`Draft — ${event.name}`" />
 
     <OrganizationLayout :organization="organization">
-        <template #header>
-            <div class="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <p class="text-sm text-brand-blue/70">
-                        <Link
-                            class="font-medium hover:text-brand-navy"
-                            :href="
-                                `${route('organizations.events.show', {
-                                    organization: organization.slug,
-                                    event: event.id,
-                                })}?tab=drafts`
-                            "
+        <!-- ── Sticky draft context bar ── -->
+        <template #subnav>
+            <div class="flex items-center gap-3">
+                <button
+                    type="button"
+                    class="cursor-pointer rounded-lg p-1.5 text-brand-blue/60 hover:bg-brand-mist/60 hover:text-brand-navy active:bg-brand-mist"
+                    :title="`Back to ${event.name}`"
+                    @click="goBack"
+                >
+                    <ArrowLeftIcon class="h-5 w-5" />
+                </button>
+
+                <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h1 class="truncate text-base font-semibold text-brand-navy">
+                            {{ teamDraft.name || `Draft #${teamDraft.id}` }}
+                        </h1>
+                        <span
+                            v-if="teamDraft.is_final"
+                            class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800"
                         >
-                            ← {{ event.name }}
-                        </Link>
-                    </p>
-                    <h1 class="ts-heading-page mt-1">
-                        {{ teamDraft.name || `Draft #${teamDraft.id}` }}
-                    </h1>
-                    <p class="mt-1 text-sm text-brand-blue/70">
+                            Final
+                        </span>
+                    </div>
+                    <p class="text-xs text-brand-blue/50">
+                        {{ event.name }} ·
                         Created {{ teamDraft.created_at ? new Date(teamDraft.created_at).toLocaleString() : '—' }}
                     </p>
                 </div>
-                <div class="flex flex-wrap items-center gap-3">
-                    <div
-                        class="rounded-lg border px-3 py-2 text-sm font-medium text-brand-navy"
-                        :class="penaltyHue"
-                    >
-                        Penalty:
-                        <span v-if="totalPenalty !== null">{{ totalPenalty }}</span>
-                        <span v-else>—</span>
-                    </div>
-                    <span
-                        v-if="teamDraft.is_final"
-                        class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800"
-                    >
-                        Final
-                    </span>
+
+                <div
+                    class="shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium text-brand-navy"
+                    :class="penaltyHue"
+                >
+                    Penalty: <span>{{ totalPenalty ?? '—' }}</span>
                 </div>
+
+                <button
+                    type="button"
+                    class="cursor-pointer rounded-lg p-1.5 text-brand-blue/60 hover:bg-brand-mist/60 hover:text-brand-navy active:bg-brand-mist"
+                    title="Close"
+                    @click="goBack"
+                >
+                    <XMarkIcon class="h-5 w-5" />
+                </button>
             </div>
         </template>
 
