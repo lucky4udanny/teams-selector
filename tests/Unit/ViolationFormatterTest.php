@@ -22,7 +22,24 @@ class ViolationFormatterTest extends TestCase
         $this->formatter = new ViolationFormatter;
     }
 
-    public function test_formats_member_attribute_with_names_and_score_when_penalty_differs_from_weight(): void
+    public function test_formats_member_attribute_with_score_even_when_penalty_equals_weight(): void
+    {
+        $text = $this->formatter->format([
+            'type' => 'member_attribute',
+            'attribute_label' => 'sector',
+            'attribute_value_label' => 'Grower',
+            'offending_member_ids' => [1, 2],
+            'penalty' => 50,
+            'weight' => 50,
+        ], $this->memberNames);
+
+        $this->assertSame(
+            'Ivan Dyck and Jim Froese share sector "Grower" (score: 50)',
+            $text,
+        );
+    }
+
+    public function test_formats_member_attribute_with_variable_penalty_score(): void
     {
         $text = $this->formatter->format([
             'type' => 'member_attribute',
@@ -56,7 +73,7 @@ class ViolationFormatterTest extends TestCase
         );
     }
 
-    public function test_formats_banned_pair_without_score_suffix(): void
+    public function test_formats_banned_pair_with_score_when_penalty_positive(): void
     {
         $text = $this->formatter->format([
             'type' => 'banned_pair',
@@ -65,7 +82,7 @@ class ViolationFormatterTest extends TestCase
             'weight' => 50,
         ], $this->memberNames);
 
-        $this->assertSame('Ivan Dyck and Jim Froese are a banned pair', $text);
+        $this->assertSame('Ivan Dyck and Jim Froese are a banned pair (score: 50)', $text);
     }
 
     public function test_formats_preferred_pair_separated_at_team_level(): void
@@ -78,7 +95,7 @@ class ViolationFormatterTest extends TestCase
         ], $this->memberNames);
 
         $this->assertSame(
-            'Ivan Dyck and Jim Froese should be in the same team but are separated',
+            'Ivan Dyck and Jim Froese should be in the same team but are separated (score: 40)',
             $text,
         );
     }
@@ -91,7 +108,7 @@ class ViolationFormatterTest extends TestCase
             'penalty' => 30,
         ], $this->memberNames);
 
-        $this->assertSame('Jim Froese and Alice Smith were paired in a prior event', $text);
+        $this->assertSame('Jim Froese and Alice Smith were paired in a prior event (score: 30)', $text);
     }
 
     public function test_formats_team_size(): void
@@ -136,7 +153,7 @@ class ViolationFormatterTest extends TestCase
         ], $this->memberNames);
 
         $this->assertCount(1, $enriched);
-        $this->assertSame('Ivan Dyck and Jim Froese are a banned pair', $enriched[0]['formatted']);
+        $this->assertSame('Ivan Dyck and Jim Froese are a banned pair (score: 50)', $enriched[0]['formatted']);
     }
 
     public function test_sanitize_spreadsheet_cell_prefixes_formula_like_values(): void

@@ -10,7 +10,7 @@
 - Domain migrations use **unique sequential timestamps** per file so table order is explicit (see [teams-selector](features/teams-selector.md)); avoid reusing the same `Y_m_d_His` prefix for multiple files.
 - **Members import:** `Members/Index` accepts `.csv` or `.xlsx`; `MemberCsvImportParser` auto-detects encoding and delimiter. Route `organizations.members.import`, `forceFormData`, `PrimaryButton type="submit"`.
 - **Inertia event UI:** Event **Show** tabs are driven by `?tab=` (`details`, `roster`, `rules`, `drafts`, `final`); roster/members and rules mutations use the scoped `organizations.events.*` web routes (patch/bulk/post), and the final tab builds export URLs with a `columns=` query matching `EventExportController`’s allowed column keys.
-- **Violation messages:** `ViolationFormatter` enriches `state.violations` with a `formatted` field for screen, print, and CSV/XLSX (`violations=1|0` query param). See [teams-selector](features/teams-selector.md).
+- **Violation messages:** `ViolationFormatter` enriches `state.violations` with a `formatted` field for screen, print, and CSV/XLSX (`violations=1|0` query param); `(score: N)` when `penalty > 0` except structural size notes. Draft and final **Print** both use the `export.print` iframe flow, not `window.print()` on the draft page. See [teams-selector](features/teams-selector.md).
 - **Pair history:** `PairHistoryService::pairsForPriorEvent` tolerates corrupt `team_indices` in stored draft JSON when building group-scope repeat pairs.
 - **Rule ordering:** `Event::recalculateRuleSortOrders()` runs after duplicate and rule mutations so UI/solver order matches weight.
 - **DateInput:** With `model-type="yyyy-MM-dd"`, bind string dates only—see [teams-selector](features/teams-selector.md).

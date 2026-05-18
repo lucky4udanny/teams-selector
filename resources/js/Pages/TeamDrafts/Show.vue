@@ -75,7 +75,37 @@ const {
 const memberScreenDetails = (mid: number) =>
     buildMemberDetails(mid, memberFullById.value.get(mid), selectedExportColumns.value, memberName(mid));
 
-const handlePrint = () => window.print();
+const handlePrint = async () => {
+    let html: string;
+    try {
+        const res = await fetch(printExportUrl.value, { credentials: 'same-origin' });
+        if (!res.ok) return;
+        html = await res.text();
+    } catch {
+        return;
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:0;';
+    document.body.appendChild(iframe);
+
+    iframe.contentDocument?.open();
+    iframe.contentDocument?.write(html);
+    iframe.contentDocument?.close();
+
+    setTimeout(() => {
+        iframe.contentWindow?.print();
+        setTimeout(() => {
+            if (document.body.contains(iframe)) document.body.removeChild(iframe);
+        }, 500);
+    }, 100);
+};
+
+const printExportUrl = computed(
+    () =>
+        `${route('organizations.events.export.print', [props.organization.slug, props.event.id])}${exportQuery.value}`,
+);
 
 const goBack = () => window.history.back();
 

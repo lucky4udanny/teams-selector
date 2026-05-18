@@ -243,15 +243,14 @@ class ViolationFormatter
      */
     private function shouldShowScoreSuffix(array $violation): bool
     {
+        $penalty = (int) ($violation['penalty'] ?? 0);
+        if ($penalty <= 0) {
+            return false;
+        }
+
         $type = $violation['type'] ?? '';
-        if ($type === 'skill_leveling') {
-            return true;
-        }
 
-        if ($type === 'member_attribute') {
-            return (int) ($violation['penalty'] ?? 0) !== (int) ($violation['weight'] ?? 0);
-        }
-
-        return false;
+        // Structural notes — informational only, never part of the penalty total.
+        return ! in_array($type, ['team_size', 'group_size'], true);
     }
 }

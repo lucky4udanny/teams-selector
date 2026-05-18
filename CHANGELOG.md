@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Fix (Violations):** `ViolationFormatter` now appends `(score: N)` to every violation with `penalty > 0` (not only when penalty differs from weight), so fixed-weight attribute rules match variable-penalty ones on screen and export; structural `team_size` / `group_size` notes stay unsuffixed.
+
+- **Fix (TeamDrafts/Print):** Draft detail Print now loads the same `event-teams-print` Blade export via a hidden iframe (matching the finalized teams card) instead of `window.print()` on the Inertia page — avoids two-column layout and printing UI chrome such as "Edit members".
+
 - **Fix (Auth/Login):** `PrimaryButton` default `type` reverted to `submit` (was briefly `button`, mirroring `SecondaryButton`), which prevented form submission on Login, Register, Forgot password, and other pages that rely on the default without an explicit `type="submit"`.
 
 - **Refactor (Violations):** Introduced `ViolationFormatter` as the single server-side source for human-readable violation messages (`formatted` field on each violation). Removed duplicate formatters from `TeamDrafts/Show.vue` and `event-teams-print.blade.php`; the finalized draft card on `Events/Show.vue` now renders inline per-team and per-group violations identical to the draft detail page; CSV/XLSX exports honor the `Show violations` toggle via `Team violations` / `Group violations` columns; export string cells are sanitized against spreadsheet formula injection.
