@@ -642,7 +642,7 @@ const submitGenerate = () => {
     genForm.post(route('organizations.events.team-drafts.generate', [slug.value, eventId.value]), {
         onSuccess: () => {
             generateModalOpen.value = false;
-            genForm.reset('name');
+            genForm.reset();
         },
     });
 };
@@ -1864,7 +1864,7 @@ const groupDisplayLabel = (gi, names) => {
         <ConfirmDialog
             :show="draftToFinalize !== null"
             title="Finalize with this draft?"
-            message="This locks the final team assignment for the event. You can revert later (admin)."
+            message="This locks the final team assignment for the event. Only an administrator can revert to draft."
             confirm-label="Finalize"
             @close="draftToFinalize = null"
             @confirm="confirmFinalizeDraft"

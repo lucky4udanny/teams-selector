@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Alert from '@/Components/Alert.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import DangerButton from '@/Components/DangerButton.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import ProgressRing from '@/Components/ProgressRing.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
@@ -464,7 +465,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                         </span>
                     </div>
                     <span
-                        v-if="teamDraft.is_final || event.is_finalized"
+                        v-if="teamDraft.is_final"
                         class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800"
                     >
                         Final
@@ -817,7 +818,7 @@ const showViolationPenalty = (v: Violation): boolean =>
         </div>
 
         <div v-if="canUpdate && teams.length" class="mt-8 border-t border-brand-mist pt-6">
-            <Alert v-if="namesFormHasErrors" variant="error" class="mb-4" role="alert">
+            <Alert v-if="namesFormHasErrors" variant="error" class="mb-3" role="alert">
                 Please fix name errors before saving.
             </Alert>
             <p v-if="teamNamesForm.errors.team_names" class="mb-2 text-sm text-red-600">
@@ -826,27 +827,33 @@ const showViolationPenalty = (v: Violation): boolean =>
             <p v-if="teamNamesForm.errors.group_names" class="mb-2 text-sm text-red-600">
                 {{ teamNamesForm.errors.group_names }}
             </p>
-            <PrimaryButton type="button" :disabled="teamNamesForm.processing" @click="saveNames">
-                {{ teamNamesForm.processing ? 'Saving…' : 'Save names' }}
-            </PrimaryButton>
-        </div>
+            <!-- All draft actions in one responsive row -->
+            <div class="flex flex-wrap items-center gap-3">
+                <PrimaryButton type="button" :disabled="teamNamesForm.processing" @click="saveNames">
+                    {{ teamNamesForm.processing ? 'Saving…' : 'Save names' }}
+                </PrimaryButton>
 
-        <div
-            v-if="canFinalize && !event.is_finalized"
-            class="mt-10 flex flex-wrap items-center gap-3 border-t border-brand-mist pt-8"
-        >
-            <PrimaryButton type="button" :disabled="blockingErrors.length > 0 || finalizeProcessing" @click="showFinalize = true">
-                Finalize event with this draft
-            </PrimaryButton>
-            <p v-if="blockingErrors.length" class="text-sm text-amber-800">
-                Resolve blocking errors before finalizing.
-            </p>
-        </div>
+                <template v-if="canFinalize && !event.is_finalized">
+                    <PrimaryButton
+                        type="button"
+                        :disabled="blockingErrors.length > 0 || finalizeProcessing"
+                        @click="showFinalize = true"
+                    >
+                        Make these teams final
+                    </PrimaryButton>
+                    <p v-if="blockingErrors.length" class="text-sm text-amber-800">
+                        Resolve blocking errors before finalizing.
+                    </p>
+                </template>
 
-        <div v-if="canUpdate && !teamDraft.is_final" class="mt-6 flex flex-wrap gap-3">
-            <SecondaryButton type="button" class="text-red-700 hover:bg-red-50" @click="showDelete = true">
-                Delete draft
-            </SecondaryButton>
+                <DangerButton
+                    v-if="canUpdate && !teamDraft.is_final"
+                    type="button"
+                    @click="showDelete = true"
+                >
+                    Delete draft
+                </DangerButton>
+            </div>
         </div>
 
         <ConfirmDialog
