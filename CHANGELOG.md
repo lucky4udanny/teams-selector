@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Fix (Generate Draft/Modal):** Closing the generate-draft modal (backdrop, Escape, or Cancel) now calls `genForm.reset()` so validation errors and field values do not persist when the modal is reopened.
+
+- **Fix (Vite):** `AppServiceProvider` preload-tag callback now accepts `?string $src` — Laravel passes `null` for `$src` when resolving prefetch/dynamic-import chunks (`$chunk['src'] ?? null`), which caused a production `TypeError` on every page load.
+
 - **Fix (Violations):** `ViolationFormatter` now appends `(score: N)` to every violation with `penalty > 0` (not only when penalty differs from weight), so fixed-weight attribute rules match variable-penalty ones on screen and export; structural `team_size` / `group_size` notes stay unsuffixed.
 
 - **Fix (TeamDrafts/Print):** Draft detail Print now loads the same `event-teams-print` Blade export via a hidden iframe (matching the finalized teams card) instead of `window.print()` on the Inertia page — avoids two-column layout and printing UI chrome such as "Edit members".

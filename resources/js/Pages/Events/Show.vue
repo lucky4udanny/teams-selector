@@ -635,14 +635,16 @@ const genFormHasErrors = computed(
     () => Object.keys(genForm.errors).length > 0 && !genForm.processing,
 );
 
+const closeGenerateModal = () => {
+    genForm.reset();
+    generateModalOpen.value = false;
+};
+
 const submitGenerate = () => {
     draftsNotice.value = null;
 
     genForm.post(route('organizations.events.team-drafts.generate', [slug.value, eventId.value]), {
-        onSuccess: () => {
-            generateModalOpen.value = false;
-            genForm.reset();
-        },
+        onSuccess: closeGenerateModal,
     });
 };
 
@@ -1696,7 +1698,7 @@ const groupDisplayLabel = (gi, names) => {
             </div>
 
             <!-- ── Generate draft modal ── -->
-            <Modal :show="generateModalOpen" @close="generateModalOpen = false">
+            <Modal :show="generateModalOpen" @close="closeGenerateModal">
                 <div class="p-6">
                     <h2 class="ts-heading-section mb-5">Generate draft</h2>
 
@@ -1727,7 +1729,7 @@ const groupDisplayLabel = (gi, names) => {
                             <SecondaryButton
                                 type="button"
                                 :disabled="genForm.processing"
-                                @click="generateModalOpen = false"
+                                @click="closeGenerateModal"
                             >
                                 Cancel
                             </SecondaryButton>

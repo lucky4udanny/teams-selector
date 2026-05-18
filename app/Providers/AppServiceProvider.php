@@ -33,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
         // Without this, Chrome fires a "preloaded but not used" warning because the waterfall
         // prefetch (triggered on window.load) creates network pressure that delays module
         // consumption past Chrome's preload timeout.
-        Vite::usePreloadTagAttributes(function (string $src, string $url, array $chunk, ?array $manifest): array|bool {
+        Vite::usePreloadTagAttributes(function (?string $src, string $url, array $chunk, ?array $manifest): array|bool {
             if (($chunk['isEntry'] ?? false) && ! str_ends_with($url, '.css')) {
                 return false;
             }
