@@ -4,6 +4,8 @@
 
 - **Fix (Generate Draft/Modal):** Closing the generate-draft modal (backdrop, Escape, or Cancel) now calls `genForm.reset()` so validation errors and field values do not persist when the modal is reopened.
 
+- **Fix (Vite):** `AppServiceProvider` preload-tag callback now also accepts `?array $chunk` (in addition to the earlier `?string $src` change); Laravel passes `null` for `$chunk` when `Collection::where('file', $css)->first()` returns no match for a CSS-only asset, which caused a follow-up production `TypeError` on every page load. The `isEntry` check is now guarded with `is_array($chunk)`.
+
 - **Fix (Vite):** `AppServiceProvider` preload-tag callback now accepts `?string $src` — Laravel passes `null` for `$src` when resolving prefetch/dynamic-import chunks (`$chunk['src'] ?? null`), which caused a production `TypeError` on every page load.
 
 - **Fix (Violations):** `ViolationFormatter` now appends `(score: N)` to every violation with `penalty > 0` (not only when penalty differs from weight), so fixed-weight attribute rules match variable-penalty ones on screen and export; structural `team_size` / `group_size` notes stay unsuffixed.
