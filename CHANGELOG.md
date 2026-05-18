@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix (TeamSolverService):** Four `count()` calls in `solve()` and `rescore()` lacked null guards on potentially-missing array keys — `count($team['member_ids'])` and `count($group['team_indices'])` both throw a `TypeError` in PHP 8+ when the key is absent; fixed all four with `?? []` coalescing, matching the existing guard in `computeAvgSkill()`.
+
 - **Feat (TeamDrafts/Violations):** Violations and penalty score are now re-evaluated automatically after any manual member edit. `TeamSolverService::rescore()` (new public method) runs the full rule-scoring logic against the current teams/groups without re-running the solver; `TeamDraftController::updateTeamMembers()` calls it after saving and writes fresh `violations` + `total_penalty` back to the draft state, so the frontend always reflects the up-to-date score with no extra action required.
 
 - **Fix (TeamDrafts/Export):** CSV and Excel export buttons were missing from the draft detail page (`TeamDrafts/Show.vue`); added both as icon buttons that pass `draft_id`, selected columns, and `violations` flag as query params. `EventExportController` now accepts an optional `draft_id` query parameter across `print()`, `exportCsv()`, and `exportXlsx()` — scoped to the event — so any draft (not just the final one) can be exported.

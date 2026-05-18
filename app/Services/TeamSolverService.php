@@ -135,7 +135,7 @@ class TeamSolverService
         // This is structural (penalty 0) — unavoidable when n % teamSize !== 0.
         if ($n % $teamSize !== 0) {
             foreach ($best['teams'] as $tidx => $team) {
-                $actual = count($team['member_ids']);
+                $actual = count($team['member_ids'] ?? []);
                 if ($actual !== $teamSize) {
                     $best['violations'][] = [
                         'rule_id'    => $teamSizeRule->id,
@@ -157,7 +157,7 @@ class TeamSolverService
         // teamCount % teamsPerGroup !== 0.
         if ($groupRule && $teamsPerGroup > 1) {
             foreach ($best['groups'] as $gidx => $group) {
-                $actual = count($group['team_indices']);
+                $actual = count($group['team_indices'] ?? []);
                 if ($actual < $teamsPerGroup) {
                     $best['violations'][] = [
                         'rule_id'     => $groupRule->id,
@@ -229,7 +229,7 @@ class TeamSolverService
                 $n = count($memberIds);
                 if ($n % $teamSize !== 0) {
                     foreach ($teams as $tidx => $team) {
-                        $actual = count($team['member_ids']);
+                        $actual = count($team['member_ids'] ?? []);
                         if ($actual !== $teamSize) {
                             $violations[] = [
                                 'rule_id'    => $teamSizeRule->id,
@@ -252,7 +252,7 @@ class TeamSolverService
         if ($groupRule) {
             $teamsPerGroup = max(1, (int) ($groupRule->config['size'] ?? 1));
             foreach ($groups as $gidx => $group) {
-                $actual = count($group['team_indices']);
+                $actual = count($group['team_indices'] ?? []);
                 if ($actual < $teamsPerGroup) {
                     $violations[] = [
                         'rule_id'     => $groupRule->id,
