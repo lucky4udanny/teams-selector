@@ -125,6 +125,11 @@
             $distinct = $v['distinct_count'] ?? '';
             return $distinct ? "{$distinct} different {$attr} values on this team." : ($v['detail'] ?? '');
         }
+        if ($type === 'group_size') {
+            $actual   = $v['actual'] ?? '?';
+            $expected = $v['expected'] ?? '?';
+            return "Group has {$actual} team(s) — rule requires {$expected} (unavoidable with current member count).";
+        }
         return $v['detail'] ?? '';
     }
 
@@ -194,7 +199,7 @@
         <div class="group">
             @if($groupLabel || $gAvg !== null)
                 <div class="group-label">
-                    {{ $groupLabel }}@if($gAvg !== null) · Avg skill: {{ $gAvg }}@endif
+                    {{ $groupLabel }}@if($gAvg !== null){{ $groupLabel ? ' · ' : '' }}Avg skill: {{ $gAvg }}@endif
                 </div>
             @endif
             @if($showViolations && count($gvs))
@@ -219,7 +224,7 @@
                     <div class="team-card">
                         @if($teamLabel || $tAvg !== null)
                             <div class="team-name">
-                                {{ $teamLabel }}@if($tAvg !== null) <span style="font-weight:400;font-size:7pt;color:#475569"> · Avg skill: {{ $tAvg }}</span>@endif
+                                {{ $teamLabel }}@if($tAvg !== null) <span style="font-weight:400;font-size:7pt;color:#475569">{{ $teamLabel ? ' · ' : '' }}Avg skill: {{ $tAvg }}</span>@endif
                             </div>
                         @endif
                         <div class="member-grid" style="grid-template-columns: repeat({{ $cols }}, 1fr);">
@@ -289,7 +294,7 @@
             <div class="team-card">
                 @if($teamLabel || $tAvg !== null)
                     <div class="team-name">
-                        {{ $teamLabel }}@if($tAvg !== null) <span style="font-weight:400;font-size:7pt;color:#475569"> · Avg skill: {{ $tAvg }}</span>@endif
+                        {{ $teamLabel }}@if($tAvg !== null) <span style="font-weight:400;font-size:7pt;color:#475569">{{ $teamLabel ? ' · ' : '' }}Avg skill: {{ $tAvg }}</span>@endif
                     </div>
                 @endif
                 <div class="member-grid" style="grid-template-columns: repeat({{ $cols }}, 1fr);">
