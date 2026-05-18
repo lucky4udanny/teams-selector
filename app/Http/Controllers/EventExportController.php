@@ -85,6 +85,10 @@ class EventExportController extends Controller
             }
         }
 
+        $avgSkill = in_array('skill', $columns, true)
+            ? $this->computeAvgSkill($teams, $groups, $skillByMember)
+            : ['team' => [], 'group' => []];
+
         return response()->view('exports.event-teams-print', [
             'event'           => $event->loadMissing('eventType'),
             'teams'           => $teams,
@@ -95,6 +99,8 @@ class EventExportController extends Controller
             'columns'         => $columns,
             'hasGroups'       => ! empty($groups),
             'skillByMember'   => $skillByMember,
+            'teamAvgSkill'    => $avgSkill['team'],
+            'groupAvgSkill'   => $avgSkill['group'],
             'genderLabels'    => self::GENDER_LABELS,
             'showViolations'  => $showViolations,
             'teamViolations'  => $teamViolations,
@@ -128,6 +134,43 @@ class EventExportController extends Controller
         $filename = 'event-'.$event->id.'-teams.xlsx';
 
         return Excel::download($export, $filename);
+    }
+
+    /**
+     * Compute rounded average skill per team and per group.
+     * Members without a recorded skill default to 50 (matching the solver).
+     *
+     * @param  array<int, array{member_ids: list<int>}>  $teams
+     * @param  array<int, array{team_indices: list<int>}>  $groups
+     * @param  array<int, int>  $skillByMember
+     * @return array{team: array<int, int>, group: array<int, int>}
+     */
+    private function computeAvgSkill(array $teams, array $groups, array $skillByMember): array
+    {
+        $teamAvg = [];
+        foreach ($teams as $ti => $team) {
+            $ids = $team['member_ids'] ?? [];
+            if ($ids === []) {
+                continue;
+            }
+            $sum = array_sum(array_map(fn ($mid) => $skillByMember[$mid] ?? 50, $ids));
+            $teamAvg[$ti] = (int) round($sum / count($ids));
+        }
+
+        $groupAvg = [];
+        foreach ($groups as $gi => $group) {
+            $allIds = array_merge(...array_map(
+                fn ($ti) => $teams[$ti]['member_ids'] ?? [],
+                $group['team_indices'] ?? [],
+            ));
+            if ($allIds === []) {
+                continue;
+            }
+            $sum = array_sum(array_map(fn ($mid) => $skillByMember[$mid] ?? 50, $allIds));
+            $groupAvg[$gi] = (int) round($sum / count($allIds));
+        }
+
+        return ['team' => $teamAvg, 'group' => $groupAvg];
     }
 
     private function finalDraftOrAbort(Event $event): TeamDraft
@@ -206,6 +249,11 @@ class EventExportController extends Controller
             }
         }
 
+        $includeAvgSkill = in_array('skill', $columns, true);
+        $avgSkill = $includeAvgSkill
+            ? $this->computeAvgSkill($teams, $groups, $skillByMember)
+            : ['team' => [], 'group' => []];
+
         $headings = array_map(fn (string $c) => match ($c) {
             'team_index' => 'Team #',
             'team_name' => 'Team',
@@ -224,6 +272,13 @@ class EventExportController extends Controller
             'notes' => 'Notes',
             default => $c,
         }, $columns);
+
+        if ($includeAvgSkill) {
+            $headings[] = 'Team avg skill';
+            if (! empty($groups)) {
+                $headings[] = 'Group avg skill';
+            }
+        }
 
         $rows = [];
         foreach ($teams as $ti => $team) {
@@ -253,6 +308,14 @@ class EventExportController extends Controller
                         default => null,
                     };
                 }
+                if ($includeAvgSkill) {
+                    $row[] = $avgSkill['team'][$ti] ?? null;
+                    if (! empty($groups)) {
+                        $gi = $ginfo['group_index'];
+                        $row[] = $gi !== null ? ($avgSkill['group'][$gi] ?? null) : null;
+                    }
+                }
+
                 $rows[] = $row;
             }
         }

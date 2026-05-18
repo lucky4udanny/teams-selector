@@ -473,20 +473,21 @@ const showViolationPenalty = (v: Violation): boolean =>
 
         <!-- Column selection and actions -->
         <div class="mb-6 rounded-xl border border-brand-mist bg-white p-4 shadow-sm">
-            <!-- Collapsible columns header -->
-            <button
-                type="button"
-                class="flex w-full items-center justify-between text-sm font-medium text-brand-navy"
-                @click="columnsOpen = !columnsOpen"
-            >
-                Columns
-                <ChevronDownIcon
-                    class="h-4 w-4 text-brand-blue/50 transition-transform duration-200"
-                    :class="{ 'rotate-180': columnsOpen }"
-                />
-            </button>
+            <!-- Collapsible columns accordion -->
+            <div class="mb-4 overflow-hidden rounded-lg border border-brand-mist">
+                <button
+                    type="button"
+                    class="flex w-full items-center justify-between bg-brand-mist/40 px-4 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-mist/70"
+                    @click="columnsOpen = !columnsOpen"
+                >
+                    <span>Columns</span>
+                    <ChevronDownIcon
+                        class="h-4 w-4 text-brand-blue/50 transition-transform duration-200"
+                        :class="{ 'rotate-180': columnsOpen }"
+                    />
+                </button>
 
-            <div v-show="columnsOpen" class="mt-3 mb-4 space-y-3">
+                <div v-show="columnsOpen" class="space-y-3 border-t border-brand-mist p-4">
                 <!-- Selected columns — drag to reorder -->
                 <div class="flex min-h-[48px] flex-wrap gap-2 rounded-lg border border-brand-mist bg-brand-mist/20 p-3">
                     <p v-if="!selectedExportColumns.length" class="text-sm italic text-brand-blue/50">
@@ -531,6 +532,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                     </div>
                 </div>
             </div>
+            </div><!-- end accordion wrapper -->
 
             <!-- Actions: print icon button + violations toggle -->
             <div class="flex flex-wrap items-center gap-3 border-t border-brand-mist pt-4">

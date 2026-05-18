@@ -189,9 +189,14 @@
         @php
             $groupLabel = resolveGroupLabel($gi, $groupNames, $columns);
             $gvs = $groupViolations[$gi] ?? [];
+            $gAvg = in_array('skill', $columns) && isset($groupAvgSkill[$gi]) ? $groupAvgSkill[$gi] : null;
         @endphp
         <div class="group">
-            @if($groupLabel)<div class="group-label">{{ $groupLabel }}</div>@endif
+            @if($groupLabel || $gAvg !== null)
+                <div class="group-label">
+                    {{ $groupLabel }}@if($gAvg !== null) · Avg skill: {{ $gAvg }}@endif
+                </div>
+            @endif
             @if($showViolations && count($gvs))
                 <div class="group-violations">
                     @foreach($gvs as $v)
@@ -209,9 +214,14 @@
                         $cols      = memberGridCols(count($memberIds));
                         $teamLabel = resolveTeamLabel($ti, $teamNames, $columns);
                         $tvs       = $teamViolations[$ti] ?? [];
+                        $tAvg      = in_array('skill', $columns) && isset($teamAvgSkill[$ti]) ? $teamAvgSkill[$ti] : null;
                     @endphp
                     <div class="team-card">
-                        @if($teamLabel)<div class="team-name">{{ $teamLabel }}</div>@endif
+                        @if($teamLabel || $tAvg !== null)
+                            <div class="team-name">
+                                {{ $teamLabel }}@if($tAvg !== null) <span style="font-weight:400;font-size:7pt;color:#475569"> · Avg skill: {{ $tAvg }}</span>@endif
+                            </div>
+                        @endif
                         <div class="member-grid" style="grid-template-columns: repeat({{ $cols }}, 1fr);">
                             @foreach($memberIds as $mid)
                                 @php
@@ -274,9 +284,14 @@
                 $cols      = memberGridCols(count($memberIds));
                 $teamLabel = resolveTeamLabel($ti, $teamNames, $columns);
                 $tvs       = $teamViolations[$ti] ?? [];
+                $tAvg      = in_array('skill', $columns) && isset($teamAvgSkill[$ti]) ? $teamAvgSkill[$ti] : null;
             @endphp
             <div class="team-card">
-                @if($teamLabel)<div class="team-name">{{ $teamLabel }}</div>@endif
+                @if($teamLabel || $tAvg !== null)
+                    <div class="team-name">
+                        {{ $teamLabel }}@if($tAvg !== null) <span style="font-weight:400;font-size:7pt;color:#475569"> · Avg skill: {{ $tAvg }}</span>@endif
+                    </div>
+                @endif
                 <div class="member-grid" style="grid-template-columns: repeat({{ $cols }}, 1fr);">
                     @foreach($memberIds as $mid)
                         @php

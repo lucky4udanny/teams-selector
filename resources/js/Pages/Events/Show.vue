@@ -1435,21 +1435,22 @@ const groupDisplayLabel = (gi, names) => {
                     {{ finalBlockingErrors.join('; ') }}
                 </Alert>
 
-                <!-- Column selection — collapsible -->
+                <!-- Column selection — collapsible accordion -->
                 <div class="border-t border-green-200 pt-5">
+                    <div class="overflow-hidden rounded-lg border border-green-300">
                     <button
                         type="button"
-                        class="flex w-full items-center justify-between text-sm font-medium text-brand-navy"
+                        class="flex w-full items-center justify-between bg-green-100/60 px-4 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-green-100"
                         @click="columnsOpen = !columnsOpen"
                     >
-                        Columns
+                        <span>Columns</span>
                         <ChevronDownIcon
                             class="h-4 w-4 text-brand-blue/50 transition-transform duration-200"
                             :class="{ 'rotate-180': columnsOpen }"
                         />
                     </button>
 
-                    <div v-show="columnsOpen" class="mt-3 space-y-3">
+                    <div v-show="columnsOpen" class="space-y-3 border-t border-green-200 bg-white p-4">
                         <!-- Selected columns — drag to reorder -->
                         <div class="flex min-h-[48px] flex-wrap gap-2 rounded-lg border border-green-200 bg-white p-3">
                             <p v-if="!selectedExportColumns.length" class="text-sm italic text-brand-blue/50">
@@ -1494,6 +1495,7 @@ const groupDisplayLabel = (gi, names) => {
                             </div>
                         </div>
                     </div>
+                    </div><!-- end accordion wrapper -->
                 </div>
 
                 <!-- Actions: export icon buttons + violations toggle + revert -->
