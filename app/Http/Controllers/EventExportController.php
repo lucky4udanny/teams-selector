@@ -56,7 +56,7 @@ class EventExportController extends Controller
         $violations = is_array($state['violations'] ?? null) ? $state['violations'] : [];
 
         $memberIds = array_values(array_unique(
-            array_merge(...array_map(fn ($t) => $t['member_ids'] ?? [], $teams))
+            array_merge([], ...array_map(fn ($t) => $t['member_ids'] ?? [], $teams))
         ));
 
         $members = Member::query()
@@ -159,7 +159,7 @@ class EventExportController extends Controller
 
         $groupAvg = [];
         foreach ($groups as $gi => $group) {
-            $allIds = array_merge(...array_map(
+            $allIds = array_merge([], ...array_map(
                 fn ($ti) => $teams[$ti]['member_ids'] ?? [],
                 $group['team_indices'] ?? [],
             ));
@@ -227,7 +227,7 @@ class EventExportController extends Controller
             ->keyBy('id');
 
         $allMemberIds = array_values(array_unique(
-            array_merge(...array_map(fn ($t) => $t['member_ids'] ?? [], $teams))
+            array_merge([], ...array_map(fn ($t) => $t['member_ids'] ?? [], $teams))
         ));
 
         $skillByMember = [];
