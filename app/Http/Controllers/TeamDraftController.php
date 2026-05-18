@@ -251,6 +251,20 @@ class TeamDraftController extends Controller
             abort(422, 'One or more members do not belong to this organisation.');
         }
 
+        // Reject if any of the new member IDs are already assigned to a different team.
+        $otherTeamIds = [];
+        foreach ($teams as $idx => $team) {
+            if ($idx !== $teamIndex) {
+                foreach ($team['member_ids'] ?? [] as $mid) {
+                    $otherTeamIds[] = (int) $mid;
+                }
+            }
+        }
+        $conflicts = array_intersect($memberIds, $otherTeamIds);
+        if ($conflicts !== []) {
+            abort(422, 'One or more members are already assigned to another team in this draft.');
+        }
+
         $state['teams'][$teamIndex]['member_ids'] = $memberIds;
 
         // Rebuild the global member_ids list from all teams

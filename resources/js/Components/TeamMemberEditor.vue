@@ -1,16 +1,34 @@
 <script setup>
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import { ref } from 'vue';
 
-defineProps({
+const props = defineProps({
     editMemberIds: { type: Array, required: true },
     editSearch: { type: String, required: true },
     editSearchResults: { type: Array, required: true },
+    availableCount: { type: Number, default: 0 },
     editSaving: { type: Boolean, default: false },
     memberName: { type: Function, required: true },
 });
 
 const emit = defineEmits(['update:editSearch', 'remove', 'add', 'save', 'cancel']);
+
+const inputFocused = ref(false);
+const showDropdown = ref(false);
+
+const onFocus = () => {
+    inputFocused.value = true;
+    showDropdown.value = true;
+};
+
+const onBlur = () => {
+    // Slight delay so mousedown on a list item fires before blur hides it.
+    setTimeout(() => {
+        inputFocused.value = false;
+        showDropdown.value = false;
+    }, 150);
+};
 </script>
 
 <template>
@@ -31,21 +49,29 @@ const emit = defineEmits(['update:editSearch', 'remove', 'add', 'save', 'cancel'
                 ✕
             </button>
         </li>
-        <li v-if="!editMemberIds.length" class="text-xs italic text-brand-blue/40">No members — type to add.</li>
+        <li v-if="!editMemberIds.length" class="text-xs italic text-brand-blue/40">No members yet.</li>
     </ul>
 
-    <!-- Search to add member -->
+    <!-- Add member -->
     <div class="relative mb-4">
+        <div class="mb-1 flex items-center justify-between">
+            <span class="text-xs text-brand-blue/50">
+                {{ availableCount === 0 ? 'No unassigned members' : `${availableCount} member${availableCount === 1 ? '' : 's'} available to add` }}
+            </span>
+        </div>
         <input
             type="text"
             :value="editSearch"
-            placeholder="Search to add a member…"
-            class="w-full rounded-lg border border-brand-mist px-3 py-1.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+            :placeholder="availableCount ? 'Click or type to select a member…' : 'All members are assigned'"
+            :disabled="availableCount === 0"
+            class="w-full rounded-lg border border-brand-mist px-3 py-1.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue disabled:cursor-not-allowed disabled:bg-brand-mist/30 disabled:text-brand-blue/40"
             @input="emit('update:editSearch', $event.target.value)"
+            @focus="onFocus"
+            @blur="onBlur"
         />
         <ul
-            v-if="editSearchResults.length"
-            class="absolute z-20 mt-1 w-full rounded-lg border border-brand-mist bg-white shadow-lg"
+            v-if="showDropdown && editSearchResults.length"
+            class="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-brand-mist bg-white shadow-lg"
         >
             <li
                 v-for="m in editSearchResults"
@@ -54,6 +80,12 @@ const emit = defineEmits(['update:editSearch', 'remove', 'add', 'save', 'cancel'
                 @mousedown.prevent="emit('add', m.id)"
             >
                 {{ m.display_name }}
+            </li>
+            <li
+                v-if="availableCount > editSearchResults.length"
+                class="px-3 py-1.5 text-xs italic text-brand-blue/40"
+            >
+                {{ availableCount - editSearchResults.length }} more — type to filter
             </li>
         </ul>
     </div>

@@ -254,12 +254,32 @@ const addMember = (id) => {
     editSearch.value = '';
 };
 
+// All member IDs that are currently placed on a team OTHER than the one being edited.
+const assignedToOtherTeams = computed<Set<number>>(() => {
+    const s = new Set<number>();
+    teams.value.forEach((team, idx) => {
+        if (idx !== editingTeamIndex.value) {
+            (team.member_ids ?? []).forEach((id: number) => s.add(id));
+        }
+    });
+    return s;
+});
+
+// Members available to be added to the team being edited:
+// not currently in this team and not placed on any other team.
+const availableToAdd = computed(() =>
+    (props.orgMembers ?? []).filter(
+        (m) => !editMemberIds.value.includes(m.id) && !assignedToOtherTeams.value.has(m.id),
+    ),
+);
+
 const editSearchResults = computed(() => {
     const q = editSearch.value.toLowerCase().trim();
-    if (!q) return [];
-    return (props.orgMembers ?? [])
-        .filter((m) => !editMemberIds.value.includes(m.id) && m.display_name.toLowerCase().includes(q))
-        .slice(0, 8);
+    // When there is no query, return the full available pool (cap at 20 for performance).
+    if (!q) return availableToAdd.value.slice(0, 20);
+    return availableToAdd.value
+        .filter((m) => m.display_name.toLowerCase().includes(q))
+        .slice(0, 12);
 });
 
 const saveTeamMembers = (ti) => {
@@ -663,6 +683,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                                 :edit-member-ids="editMemberIds"
                                 :edit-search="editSearch"
                                 :edit-search-results="editSearchResults"
+                                :available-count="availableToAdd.length"
                                 :edit-saving="editSaving"
                                 :member-name="memberName"
                                 @update:edit-search="editSearch = $event"
@@ -749,6 +770,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                         :edit-member-ids="editMemberIds"
                         :edit-search="editSearch"
                         :edit-search-results="editSearchResults"
+                        :available-count="availableToAdd.length"
                         :edit-saving="editSaving"
                         :member-name="memberName"
                         @update:edit-search="editSearch = $event"
