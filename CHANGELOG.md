@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix (Auth/Login):** `PrimaryButton` default `type` reverted to `submit` (was briefly `button`, mirroring `SecondaryButton`), which prevented form submission on Login, Register, Forgot password, and other pages that rely on the default without an explicit `type="submit"`.
+
 - **Refactor (Violations):** Introduced `ViolationFormatter` as the single server-side source for human-readable violation messages (`formatted` field on each violation). Removed duplicate formatters from `TeamDrafts/Show.vue` and `event-teams-print.blade.php`; the finalized draft card on `Events/Show.vue` now renders inline per-team and per-group violations identical to the draft detail page; CSV/XLSX exports honor the `Show violations` toggle via `Team violations` / `Group violations` columns; export string cells are sanitized against spreadsheet formula injection.
 
 - **Fix (TeamSolverService):** Four `count()` calls in `solve()` and `rescore()` lacked null guards on potentially-missing array keys — `count($team['member_ids'])` and `count($group['team_indices'])` both throw a `TypeError` in PHP 8+ when the key is absent; fixed all four with `?? []` coalescing, matching the existing guard in `computeAvgSkill()`.

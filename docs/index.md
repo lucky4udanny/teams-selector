@@ -14,4 +14,5 @@
 - **Pair history:** `PairHistoryService::pairsForPriorEvent` tolerates corrupt `team_indices` in stored draft JSON when building group-scope repeat pairs.
 - **Rule ordering:** `Event::recalculateRuleSortOrders()` runs after duplicate and rule mutations so UI/solver order matches weight.
 - **DateInput:** With `model-type="yyyy-MM-dd"`, bind string dates only—see [teams-selector](features/teams-selector.md).
+- **PrimaryButton:** defaults to `type="submit"` for Inertia/Laravel form posts; use `type="button"` when the control is outside a submit flow (modals, `@click` handlers).
 - **Form feedback:** Catalog and event flows flash success/errors; shared client validation in `resources/js/utils/formValidation.js` (details, rules, drafts, roster empty-selection alerts). Roster bulk add: `RosterMemberPicker.vue`; sort via `rosterSort.js` + localStorage per org.
