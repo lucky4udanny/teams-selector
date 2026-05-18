@@ -184,6 +184,98 @@ class TeamSolverService
     }
 
     /**
+     * Re-evaluate an existing draft state (teams + groups) against the event's
+     * current rules without re-running the solver.  Call this after any manual
+     * edit so that stored violations and penalty stay accurate.
+     *
+     * @param  list<array{member_ids: list<int>}>  $teams
+     * @param  list<array{team_indices: list<int>}>  $groups
+     * @return array{violations: list<array<string, mixed>>, total_penalty: int}
+     */
+    public function rescore(Event $event, array $teams, array $groups): array
+    {
+        $rules = Rule::query()
+            ->where('event_id', $event->id)
+            ->orderByDesc('weight')
+            ->get();
+
+        $memberIds = [];
+        foreach ($teams as $team) {
+            foreach ($team['member_ids'] ?? [] as $mid) {
+                $memberIds[] = (int) $mid;
+            }
+        }
+        $memberIds = array_values(array_unique($memberIds));
+
+        $skillByMember   = $this->skillLevelsForEvent($event, $memberIds);
+        $memberAttributes = $this->memberAttributesForIds($memberIds);
+        $historyCache    = [];
+
+        [$penalty, $violations] = $this->score(
+            $teams,
+            $groups,
+            $rules,
+            $event,
+            $historyCache,
+            $skillByMember,
+            $memberAttributes,
+        );
+
+        // Structural size violations (penalty 0 — unavoidable mismatches).
+        $teamSizeRule = $rules->first(fn (Rule $r) => $r->type === RuleType::Size && $r->scope === RuleScope::Team);
+        if ($teamSizeRule) {
+            $teamSize = (int) ($teamSizeRule->config['size'] ?? 0);
+            if ($teamSize > 0) {
+                $n = count($memberIds);
+                if ($n % $teamSize !== 0) {
+                    foreach ($teams as $tidx => $team) {
+                        $actual = count($team['member_ids']);
+                        if ($actual !== $teamSize) {
+                            $violations[] = [
+                                'rule_id'    => $teamSizeRule->id,
+                                'type'       => 'team_size',
+                                'scope'      => 'team',
+                                'team_index' => $tidx,
+                                'expected'   => $teamSize,
+                                'actual'     => $actual,
+                                'weight'     => $teamSizeRule->weight,
+                                'detail'     => 'Team '.($tidx + 1)." has {$actual} member(s) instead of the required {$teamSize}.",
+                                'penalty'    => 0,
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        $groupRule = $rules->first(fn (Rule $r) => $r->type === RuleType::Size && $r->scope === RuleScope::Group);
+        if ($groupRule) {
+            $teamsPerGroup = max(1, (int) ($groupRule->config['size'] ?? 1));
+            foreach ($groups as $gidx => $group) {
+                $actual = count($group['team_indices']);
+                if ($actual < $teamsPerGroup) {
+                    $violations[] = [
+                        'rule_id'     => $groupRule->id,
+                        'type'        => 'group_size',
+                        'scope'       => 'group',
+                        'group_index' => $gidx,
+                        'expected'    => $teamsPerGroup,
+                        'actual'      => $actual,
+                        'weight'      => $groupRule->weight,
+                        'detail'      => 'Group '.($gidx + 1)." has {$actual} team(s) instead of the required {$teamsPerGroup}.",
+                        'penalty'     => 0,
+                    ];
+                }
+            }
+        }
+
+        return [
+            'violations'    => $violations,
+            'total_penalty' => $penalty,
+        ];
+    }
+
+    /**
      * @param  list<int>  $memberIds
      * @return list<array{member_ids: list<int>}>
      */

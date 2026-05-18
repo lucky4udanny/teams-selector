@@ -267,7 +267,7 @@ class TeamDraftController extends Controller
 
         $state['teams'][$teamIndex]['member_ids'] = $memberIds;
 
-        // Rebuild the global member_ids list from all teams
+        // Rebuild the global member_ids list from all teams.
         $allMemberIds = [];
         foreach ($state['teams'] as $team) {
             foreach ($team['member_ids'] ?? [] as $mid) {
@@ -275,6 +275,11 @@ class TeamDraftController extends Controller
             }
         }
         $state['member_ids'] = array_values(array_unique($allMemberIds));
+
+        // Re-evaluate violations against the updated roster so the UI stays accurate.
+        $rescored = $this->solver->rescore($event, $state['teams'], $state['groups'] ?? []);
+        $state['violations']    = $rescored['violations'];
+        $state['total_penalty'] = $rescored['total_penalty'];
 
         $teamDraft->update(['state' => $state]);
 
