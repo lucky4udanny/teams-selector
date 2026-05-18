@@ -21,8 +21,9 @@ class TeamSolverService
      * @param  list<int>  $memberIds
      * @return array{teams: list<array{member_ids: list<int>}>, groups: list<array{team_indices: list<int>}>|array{}, violations: list<array<string, mixed>>, total_penalty: int, blocking_errors: list<string>}
      */
-    public function solve(Event $event, array $memberIds, int $iterations = 4000): array
+    public function solve(Event $event, array $memberIds): array
     {
+        $iterations = max(100, (int) env('APP_MAX_SOLVER_ITERATIONS', 5000));
         $memberIds = array_values(array_unique(array_map(fn (int|string $id): int => (int) $id, $memberIds)));
         sort($memberIds);
 
@@ -132,6 +133,10 @@ class TeamSolverService
             [$p, $v] = $scoreState($next, $groups);
             if ($p < $best['penalty'] || ($p === $best['penalty'] && random_int(0, 100) < 5)) {
                 $best = ['teams' => $next, 'groups' => $groups, 'penalty' => $p, 'violations' => $v];
+            }
+
+            if ($best['penalty'] === 0) {
+                break;
             }
         }
 

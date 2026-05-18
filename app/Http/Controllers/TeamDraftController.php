@@ -43,7 +43,6 @@ class TeamDraftController extends Controller
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
             'include_pending' => ['nullable', 'boolean'],
-            'iterations' => ['nullable', 'integer', 'min:100', 'max:20000'],
         ]);
 
         $includePending = (bool) ($validated['include_pending'] ?? false);
@@ -59,7 +58,7 @@ class TeamDraftController extends Controller
 
         $memberIds = $memberQuery->pluck('member_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
 
-        $result = $this->solver->solve($event, $memberIds, (int) ($validated['iterations'] ?? 4000));
+        $result = $this->solver->solve($event, $memberIds);
 
         $conflictList = $this->conflicts->analyze($event);
 

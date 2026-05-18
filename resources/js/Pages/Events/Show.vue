@@ -23,7 +23,6 @@ import { ArrowDownTrayIcon, Bars3Icon, ChevronDownIcon, PlusIcon, PrinterIcon, X
 import {
     applyFormErrors,
     validateEventDetails,
-    validateGenerateDraft,
     validateRuleForm,
 } from '@/utils/formValidation';
 import {
@@ -626,10 +625,11 @@ const deleteRule = (id) => {
 };
 
 /* ——— Drafts ——— */
+const generateModalOpen = ref(false);
+
 const genForm = useForm({
     name: '',
     include_pending: false,
-    iterations: 4000,
 });
 
 const genFormHasErrors = computed(
@@ -638,16 +638,12 @@ const genFormHasErrors = computed(
 
 const submitGenerate = () => {
     draftsNotice.value = null;
-    const result = validateGenerateDraft(genForm.data());
-    if (!result.valid) {
-        applyFormErrors(genForm, result.errors);
-
-        return;
-    }
 
     genForm.post(route('organizations.events.team-drafts.generate', [slug.value, eventId.value]), {
-        preserveScroll: true,
-        onSuccess: () => genForm.reset('name'),
+        onSuccess: () => {
+            generateModalOpen.value = false;
+            genForm.reset('name');
+        },
     });
 };
 
@@ -676,23 +672,6 @@ const confirmFinalizeDraft = () => {
     draftToFinalize.value = null;
 };
 
-const conflictsPreview = ref(null);
-const conflictsLoading = ref(false);
-
-const loadConflicts = async () => {
-    conflictsLoading.value = true;
-    conflictsPreview.value = null;
-    try {
-        const { data } = await window.axios.get(
-            route('organizations.events.team-drafts.conflicts', [slug.value, eventId.value]),
-        );
-        conflictsPreview.value = data.conflicts || [];
-    } catch {
-        conflictsPreview.value = [];
-    } finally {
-        conflictsLoading.value = false;
-    }
-};
 
 const showDeleteDraft = ref(null);
 const draftDeleteProcessing = ref(false);
@@ -1614,49 +1593,53 @@ const groupDisplayLabel = (gi, names) => {
                 </div>
             </div>
 
-            <!-- ── Generate form ── -->
-            <div class="ts-card-padded">
-                <h2 class="ts-heading-section mb-4">Generate draft</h2>
-                <div class="mb-4 flex flex-wrap gap-3">
-                    <SecondaryButton type="button" :disabled="conflictsLoading" @click="loadConflicts">
-                        {{ conflictsLoading ? 'Loading…' : 'Preview planning conflicts' }}
-                    </SecondaryButton>
-                </div>
-                <Alert v-if="conflictsPreview?.length" variant="warning" class="mb-4">
-                    <ul class="list-inside list-disc space-y-1 text-xs">
-                        <li v-for="(c, i) in conflictsPreview" :key="`cp${i}`">{{ typeof c === 'string' ? c : JSON.stringify(c) }}</li>
-                    </ul>
-                </Alert>
-                <form class="grid gap-4 md:grid-cols-2" @submit.prevent="submitGenerate">
-                    <Alert v-if="genFormHasErrors" variant="error" class="md:col-span-2" role="alert">
-                        Fix the errors below before generating.
-                    </Alert>
-                    <FormField label="Draft name (optional)" name="draft_name" :error="genForm.errors.name">
-                        <TextInput id="draft_name" v-model="genForm.name" :error="!!genForm.errors.name" />
-                    </FormField>
-                    <FormField
-                        label="Iterations"
-                        name="draft_iterations"
-                        :error="genForm.errors.iterations"
-                        hint="100–20,000 solver passes."
-                    >
-                        <TextInput
-                            id="draft_iterations"
-                            v-model.number="genForm.iterations"
-                            inputmode="numeric"
-                            :error="!!genForm.errors.iterations"
-                        />
-                    </FormField>
-                    <div class="flex items-end md:col-span-2">
-                        <Toggle v-model="genForm.include_pending" label="Include pending RSVPs" />
-                    </div>
-                    <div class="md:col-span-2">
-                        <PrimaryButton type="submit" :disabled="genForm.processing">
-                            {{ genForm.processing ? 'Generating…' : 'Generate draft' }}
-                        </PrimaryButton>
-                    </div>
-                </form>
+            <!-- ── Generate draft button ── -->
+            <div class="flex justify-start">
+                <PrimaryButton type="button" @click="generateModalOpen = true">
+                    Generate draft
+                </PrimaryButton>
             </div>
+
+            <!-- ── Generate draft modal ── -->
+            <Modal :show="generateModalOpen" @close="generateModalOpen = false">
+                <div class="p-6">
+                    <h2 class="ts-heading-section mb-5">Generate draft</h2>
+
+                    <form class="grid gap-4" @submit.prevent="submitGenerate">
+                        <Alert v-if="genFormHasErrors" variant="error" role="alert">
+                            Fix the errors below before generating.
+                        </Alert>
+
+                        <FormField label="Draft name (optional)" name="draft_name" :error="genForm.errors.name">
+                            <TextInput id="draft_name" v-model="genForm.name" :error="!!genForm.errors.name" />
+                        </FormField>
+
+                        <div>
+                            <Toggle v-model="genForm.include_pending" label="Include pending RSVPs" />
+                        </div>
+
+                        <div class="mt-2 flex items-center gap-3">
+                            <PrimaryButton type="submit" :disabled="genForm.processing">
+                                <span v-if="genForm.processing" class="flex items-center gap-2">
+                                    <svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                    </svg>
+                                    Generating…
+                                </span>
+                                <span v-else>Generate draft</span>
+                            </PrimaryButton>
+                            <SecondaryButton
+                                type="button"
+                                :disabled="genForm.processing"
+                                @click="generateModalOpen = false"
+                            >
+                                Cancel
+                            </SecondaryButton>
+                        </div>
+                    </form>
+                </div>
+            </Modal>
 
             <!-- ── Non-final draft cards ── -->
             <div v-if="nonFinalDrafts.length" class="grid gap-4 md:grid-cols-2">
