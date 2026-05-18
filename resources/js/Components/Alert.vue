@@ -54,7 +54,7 @@ const Icon = computed(() => {
         <button
             v-if="dismissible"
             type="button"
-            class="shrink-0 rounded p-0.5 opacity-70 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-brand-blue/30"
+            class="shrink-0 cursor-pointer rounded p-0.5 opacity-70 hover:opacity-100 active:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-blue/30"
             aria-label="Dismiss"
             @click="emit('dismiss')"
         >

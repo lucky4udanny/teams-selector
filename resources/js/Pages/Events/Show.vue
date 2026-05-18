@@ -1090,7 +1090,7 @@ const groupDisplayLabel = (gi, names) => {
                             <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
+                                    class="inline-flex cursor-pointer items-center gap-1 uppercase hover:text-brand-navy active:opacity-70"
                                     @click="setRosterSort('last_name')"
                                 >
                                     Member
@@ -1105,7 +1105,7 @@ const groupDisplayLabel = (gi, names) => {
                             <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
+                                    class="inline-flex cursor-pointer items-center gap-1 uppercase hover:text-brand-navy active:opacity-70"
                                     @click="setRosterSort('included')"
                                 >
                                     Included
@@ -1120,7 +1120,7 @@ const groupDisplayLabel = (gi, names) => {
                             <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
+                                    class="inline-flex cursor-pointer items-center gap-1 uppercase hover:text-brand-navy active:opacity-70"
                                     @click="setRosterSort('invited')"
                                 >
                                     Invited
@@ -1135,7 +1135,7 @@ const groupDisplayLabel = (gi, names) => {
                             <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-brand-blue/70">
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-1 uppercase hover:text-brand-navy"
+                                    class="inline-flex cursor-pointer items-center gap-1 uppercase hover:text-brand-navy active:opacity-70"
                                     @click="setRosterSort('status')"
                                 >
                                     Status
@@ -1419,7 +1419,7 @@ const groupDisplayLabel = (gi, names) => {
                     <div class="overflow-hidden rounded-lg border border-green-300">
                     <button
                         type="button"
-                        class="flex w-full items-center justify-between bg-green-100/60 px-4 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-green-100"
+                        class="flex w-full cursor-pointer items-center justify-between bg-green-100/60 px-4 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-green-100 active:bg-green-200"
                         @click="columnsOpen = !columnsOpen"
                     >
                         <span>Columns</span>
@@ -1449,7 +1449,7 @@ const groupDisplayLabel = (gi, names) => {
                                 {{ exportColumnLabel(col) }}
                                 <button
                                     type="button"
-                                    class="ml-1 text-brand-blue/50 hover:text-brand-navy"
+                                    class="ml-1 cursor-pointer text-brand-blue/50 hover:text-brand-navy active:opacity-60"
                                     @click.stop="removeExportColumn(col)"
                                 >
                                     <XMarkIcon class="h-3.5 w-3.5" />
@@ -1465,7 +1465,7 @@ const groupDisplayLabel = (gi, names) => {
                                     v-for="col in availableExportColumns"
                                     :key="col.value"
                                     type="button"
-                                    class="inline-flex items-center gap-1 rounded-md border border-brand-mist bg-white px-2 py-1 text-xs font-medium text-brand-blue/70 transition-colors hover:border-brand-blue/30 hover:text-brand-navy"
+                                    class="inline-flex cursor-pointer items-center gap-1 rounded-md border border-brand-mist bg-white px-2 py-1 text-xs font-medium text-brand-blue/70 transition-colors hover:border-brand-blue/30 hover:text-brand-navy active:bg-brand-mist/40"
                                     @click="addExportColumn(col.value)"
                                 >
                                     <PlusIcon class="h-3 w-3" />
@@ -1483,7 +1483,7 @@ const groupDisplayLabel = (gi, names) => {
                         type="button"
                         title="Print"
                         aria-label="Print"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-green-50"
+                        class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-green-50 active:bg-green-100"
                         @click="handlePrint"
                     >
                         <PrinterIcon class="h-4 w-4" />
@@ -1493,7 +1493,7 @@ const groupDisplayLabel = (gi, names) => {
                         :href="csvExportUrl"
                         title="Download CSV"
                         aria-label="Download CSV"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-green-50"
+                        class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-green-50 active:bg-green-100"
                     >
                         <ArrowDownTrayIcon class="h-4 w-4" />
                         CSV
@@ -1502,7 +1502,7 @@ const groupDisplayLabel = (gi, names) => {
                         :href="xlsxExportUrl"
                         title="Download Excel"
                         aria-label="Download Excel"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-green-50"
+                        class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-green-50 active:bg-green-100"
                     >
                         <ArrowDownTrayIcon class="h-4 w-4" />
                         XLS
@@ -1680,9 +1680,9 @@ const groupDisplayLabel = (gi, names) => {
                     <Alert v-if="d.blocking_errors?.length" variant="error" class="mt-3 text-xs">
                         {{ d.blocking_errors.join('; ') }}
                     </Alert>
-                    <div class="mt-4 flex flex-wrap gap-2">
+                    <div class="mt-4 flex flex-wrap items-center gap-2">
                         <Link
-                            class="text-sm font-medium text-brand-blue hover:underline"
+                            class="ts-btn-secondary"
                             :href="route('organizations.events.team-drafts.show', [organization.slug, event.id, d.id])"
                         >
                             Open
@@ -1690,7 +1690,6 @@ const groupDisplayLabel = (gi, names) => {
                         <SecondaryButton
                             v-if="canFinalize && !event.is_finalized"
                             type="button"
-                            class="text-sm"
                             @click="requestFinalizeDraft(d)"
                         >
                             Set as final
@@ -1698,7 +1697,6 @@ const groupDisplayLabel = (gi, names) => {
                         <DangerButton
                             v-if="canManage"
                             type="button"
-                            class="text-sm"
                             @click="showDeleteDraft = d.id"
                         >
                             Delete

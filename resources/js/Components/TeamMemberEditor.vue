@@ -8,6 +8,7 @@ const props = defineProps({
     editSearch: { type: String, required: true },
     editSearchResults: { type: Array, required: true },
     availableCount: { type: Number, default: 0 },
+    matchCount: { type: Number, default: null },
     editSaving: { type: Boolean, default: false },
     memberName: { type: Function, required: true },
 });
@@ -42,7 +43,7 @@ const onBlur = () => {
             <span class="text-brand-navy">{{ memberName(mid) }}</span>
             <button
                 type="button"
-                class="ml-2 text-brand-blue/40 hover:text-red-600"
+                class="ml-2 cursor-pointer text-brand-blue/40 hover:text-red-600 active:opacity-60"
                 :aria-label="`Remove ${memberName(mid)}`"
                 @click="emit('remove', mid)"
             >
@@ -82,10 +83,10 @@ const onBlur = () => {
                 {{ m.display_name }}
             </li>
             <li
-                v-if="availableCount > editSearchResults.length"
+                v-if="(matchCount ?? availableCount) > editSearchResults.length"
                 class="px-3 py-1.5 text-xs italic text-brand-blue/40"
             >
-                {{ availableCount - editSearchResults.length }} more — type to filter
+                {{ (matchCount ?? availableCount) - editSearchResults.length }} more — type to filter
             </li>
         </ul>
     </div>

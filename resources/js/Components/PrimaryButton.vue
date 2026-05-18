@@ -1,5 +1,14 @@
+<script setup>
+defineProps({
+    type: {
+        type: String,
+        default: 'button',
+    },
+});
+</script>
+
 <template>
-    <button class="ts-btn-primary">
+    <button :type="type" class="ts-btn-primary">
         <slot />
     </button>
 </template>

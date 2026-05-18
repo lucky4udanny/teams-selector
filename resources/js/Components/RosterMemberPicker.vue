@@ -110,7 +110,7 @@ const clearSelection = () => {
             <div class="flex flex-wrap gap-2">
                 <button
                     type="button"
-                    class="font-medium text-brand-blue hover:text-brand-navy"
+                    class="cursor-pointer font-medium text-brand-blue hover:text-brand-navy active:opacity-70"
                     @click="toggleSelectAllFiltered(true)"
                 >
                     Select all{{ search.trim() ? ' shown' : '' }}
@@ -118,7 +118,7 @@ const clearSelection = () => {
                 <span class="text-brand-mist" aria-hidden="true">|</span>
                 <button
                     type="button"
-                    class="font-medium text-brand-blue hover:text-brand-navy"
+                    class="cursor-pointer font-medium text-brand-blue hover:text-brand-navy active:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
                     :disabled="selectedIds.length === 0"
                     @click="clearSelection"
                 >

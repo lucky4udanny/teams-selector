@@ -283,6 +283,13 @@ const editSearchResults = computed(() => {
         .slice(0, 12);
 });
 
+// Total matches before the display cap — used by TeamMemberEditor to show an accurate overflow hint.
+const totalMatchCount = computed(() => {
+    const q = editSearch.value.toLowerCase().trim();
+    if (!q) return availableToAdd.value.length;
+    return availableToAdd.value.filter((m) => m.display_name.toLowerCase().includes(q)).length;
+});
+
 const saveTeamMembers = (ti) => {
     editSaving.value = true;
     router.patch(
@@ -514,7 +521,7 @@ const showViolationPenalty = (v: Violation): boolean =>
             <div class="mb-4 overflow-hidden rounded-lg border border-brand-mist">
                 <button
                     type="button"
-                    class="flex w-full items-center justify-between bg-brand-mist/40 px-4 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-mist/70"
+                    class="flex w-full cursor-pointer items-center justify-between bg-brand-mist/40 px-4 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-mist/70 active:bg-brand-mist"
                     @click="columnsOpen = !columnsOpen"
                 >
                     <span>Columns</span>
@@ -544,7 +551,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                         {{ exportColumnLabel(col) }}
                         <button
                             type="button"
-                            class="ml-1 text-brand-blue/50 hover:text-brand-navy"
+                            class="ml-1 cursor-pointer text-brand-blue/50 hover:text-brand-navy active:opacity-60"
                             @click.stop="removeExportColumn(col)"
                         >
                             <XMarkIcon class="h-3.5 w-3.5" />
@@ -560,7 +567,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                             v-for="col in availableExportColumns"
                             :key="col.value"
                             type="button"
-                            class="inline-flex items-center gap-1 rounded-md border border-brand-mist bg-white px-2 py-1 text-xs font-medium text-brand-blue/70 transition-colors hover:border-brand-blue/30 hover:text-brand-navy"
+                            class="inline-flex cursor-pointer items-center gap-1 rounded-md border border-brand-mist bg-white px-2 py-1 text-xs font-medium text-brand-blue/70 transition-colors hover:border-brand-blue/30 hover:text-brand-navy active:bg-brand-mist/40"
                             @click="addExportColumn(col.value)"
                         >
                             <PlusIcon class="h-3 w-3" />
@@ -577,7 +584,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                     type="button"
                     title="Print"
                     aria-label="Print"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-brand-mist bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-brand-mist/30"
+                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-brand-mist bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-brand-mist/30 active:bg-brand-mist/60"
                     @click="handlePrint"
                 >
                     <PrinterIcon class="h-4 w-4" />
@@ -588,7 +595,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                     :href="route('organizations.events.export.csv', [props.organization.slug, props.event.id]) + exportQuery"
                     title="Download CSV"
                     aria-label="Download CSV"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-brand-mist bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-brand-mist/30"
+                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-brand-mist bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-brand-mist/30 active:bg-brand-mist/60"
                 >
                     <ArrowDownTrayIcon class="h-4 w-4" />
                     CSV
@@ -598,7 +605,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                     :href="route('organizations.events.export.xlsx', [props.organization.slug, props.event.id]) + exportQuery"
                     title="Download Excel"
                     aria-label="Download Excel"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-brand-mist bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-brand-mist/30"
+                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-brand-mist bg-white px-3 py-1.5 text-xs font-medium text-brand-navy shadow-sm hover:bg-brand-mist/30 active:bg-brand-mist/60"
                 >
                     <ArrowDownTrayIcon class="h-4 w-4" />
                     Excel
@@ -673,7 +680,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                             <button
                                 v-if="canUpdate && editingTeamIndex !== ti"
                                 type="button"
-                                class="ml-auto shrink-0 text-xs text-brand-blue/50 hover:text-brand-blue"
+                                class="ml-auto shrink-0 cursor-pointer text-xs text-brand-blue/50 hover:text-brand-blue active:opacity-70"
                                 @click="startEdit(ti)"
                             >
                                 Edit members
@@ -685,6 +692,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                                 :edit-search="editSearch"
                                 :edit-search-results="editSearchResults"
                                 :available-count="availableToAdd.length"
+                                :match-count="totalMatchCount"
                                 :edit-saving="editSaving"
                                 :member-name="memberName"
                                 @update:edit-search="editSearch = $event"
@@ -760,7 +768,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                     <button
                         v-if="canUpdate && editingTeamIndex !== ti"
                         type="button"
-                        class="ml-auto shrink-0 text-xs text-brand-blue/50 hover:text-brand-blue"
+                        class="ml-auto shrink-0 cursor-pointer text-xs text-brand-blue/50 hover:text-brand-blue active:opacity-70"
                         @click="startEdit(ti)"
                     >
                         Edit members
@@ -772,6 +780,7 @@ const showViolationPenalty = (v: Violation): boolean =>
                         :edit-search="editSearch"
                         :edit-search-results="editSearchResults"
                         :available-count="availableToAdd.length"
+                        :match-count="totalMatchCount"
                         :edit-saving="editSaving"
                         :member-name="memberName"
                         @update:edit-search="editSearch = $event"
