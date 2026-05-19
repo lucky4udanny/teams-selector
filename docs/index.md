@@ -6,6 +6,7 @@
 - **Branding form:** `ColorInput.vue` (swatch + picker + hex) on `Organizations/Show.vue`; styling follows [Tailwind Plus](https://tailwindcss.com/plus) Application UI input patterns (ring inset, split control). Live org UI: `.ts-org-branded` maps primary → buttons/inputs/nav, accent → active tab underline.
 - **Branding:** TeamForge palette and SVG assets under `public/`; Tailwind tokens in `resources/css/app.css` (`brand-navy`, `brand-blue`, `brand-orange`, …). See [teams-selector](features/teams-selector.md).
 - **Home route:** `/` redirects unauthenticated visitors to `/login` (Inertia `Auth/Login`); there is no public Laravel Welcome landing page.
+- **Org picker:** After login, `organizations.index` auto-redirects to `organizations.show` when the user has exactly one membership (not for super admins).
 - **Org users:** Admins add accounts on `OrganizationUsers/Index` (`POST organizations.users.store`) with name, email, password, and role; **Reset password** opens a modal (`PATCH organizations.users.password.update`) for other members only.
 - [Forge deployment](DEPLOY_FORGE.md) — includes deploy script ordering (`storage/framework/views` before `view:clear` / `optimize`), `VIEW_COMPILED_PATH` pitfalls, and **Cloudflare**: use **Full (strict)** SSL (not Flexible) to prevent redirect loops; app trusts proxies for `X-Forwarded-Proto`.
 - Domain migrations use **unique sequential timestamps** per file so table order is explicit (see [teams-selector](features/teams-selector.md)); avoid reusing the same `Y_m_d_His` prefix for multiple files.

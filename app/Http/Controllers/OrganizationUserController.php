@@ -60,15 +60,15 @@ class OrganizationUserController extends Controller
             $user->update([
                 'name' => $validated['name'],
                 'password' => $validated['password'],
-                'email_verified_at' => $user->email_verified_at ?? now(),
             ]);
+            $this->markVerifiedForAdminProvision($user);
         } else {
             $user = User::query()->create([
                 'name' => $validated['name'],
                 'email' => $email,
                 'password' => $validated['password'],
-                'email_verified_at' => now(),
             ]);
+            $this->markVerifiedForAdminProvision($user);
         }
 
         if (! $organization->users()->where('user_id', $user->id)->exists()) {
@@ -133,6 +133,15 @@ class OrganizationUserController extends Controller
         $organization->users()->detach($user->id);
 
         return redirect()->back();
+    }
+
+    private function markVerifiedForAdminProvision(User $user): void
+    {
+        if ($user->email_verified_at !== null) {
+            return;
+        }
+
+        $user->forceFill(['email_verified_at' => now()])->save();
     }
 
     /**

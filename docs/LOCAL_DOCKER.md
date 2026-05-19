@@ -78,7 +78,7 @@ The web server difference is intentional: Sail’s dev container is lighter than
 | Start stack | `./vendor/bin/sail up -d` |
 | Stop stack | `./vendor/bin/sail down` |
 | Run Artisan | `./vendor/bin/sail artisan …` |
-| Run tests | `./vendor/bin/sail artisan test` |
+| Run tests | `./vendor/bin/sail artisan test --configuration=phpunit.sail.xml` (PostgreSQL `testing` DB; host `composer test` still uses SQLite via `phpunit.xml`) |
 | Vite dev server | `./vendor/bin/sail npm run dev` |
 | View mail | http://localhost:8025 (Mailpit; or `:8125` if you changed `FORWARD_MAILPIT_DASHBOARD_PORT`) |
 | PostgreSQL CLI | `./vendor/bin/sail psql` |

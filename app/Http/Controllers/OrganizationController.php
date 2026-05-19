@@ -13,7 +13,7 @@ use Inertia\Response;
 
 class OrganizationController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
 
@@ -21,7 +21,13 @@ class OrganizationController extends Controller
             ? Organization::query()->orderBy('name')
             : $user->organizations()->orderBy('name');
 
-        $orgs = $query->get()->map(fn (Organization $o) => [
+        $organizations = $query->get();
+
+        if (! $user->is_super_admin && $organizations->count() === 1) {
+            return redirect()->route('organizations.show', $organizations->first());
+        }
+
+        $orgs = $organizations->map(fn (Organization $o) => [
             'id' => $o->id,
             'name' => $o->name,
             'slug' => $o->slug,

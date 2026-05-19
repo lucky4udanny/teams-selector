@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Feat (Auth):** Users who belong to exactly one organization are redirected straight to that org on login (via `organizations.index`); super admins still see the full organization list.
+- **Test (Sail):** Added `phpunit.sail.xml` (PostgreSQL `testing` database) for `./vendor/bin/sail artisan test` — required because `phpunit.xml` uses SQLite and PostgreSQL-only migrations fail in memory.
+
+- **Fix (Organization users):** Admin-provisioned users are now marked verified via `forceFill` — `email_verified_at` is not mass-assignable on `User`, so `store()` previously left new accounts unverified despite intending to set the timestamp.
 - **Feat (Organization users):** Replaced email invitation UI with direct “Add user” (name, email, password, role). `OrganizationUserController@store` creates or updates the account, verifies email, and attaches to the org; org admins only. Admins can reset another member’s password via `PATCH organizations.users.password.update` (modal on the users table).
 - **Fix (Organization users):** Users index no longer crashes when the browser loads a stale JS chunk that still expects `pendingInvitations` — server sends an empty array; Vue defaults `users`/`roles` to `[]`.
 
