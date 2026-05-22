@@ -820,7 +820,9 @@ const teamLabelForDisplay = (ti) => {
 
 const eventNameById = computed(() => {
     const m = new Map();
-    (props.finalizedEvents || []).forEach((e) => m.set(e.id, e.name));
+    (props.finalizedEvents || []).forEach((e) => {
+        m.set(Number(e.id), e.label ?? e.name ?? `Event #${e.id}`);
+    });
     return m;
 });
 
@@ -859,7 +861,10 @@ const ruleConfigSummary = (rule) => {
             return `${a} & ${b}`;
         }
         case 'repeat_pair': {
-            const name = eventNameById.value.get(cfg.event_id) ?? `Event #${cfg.event_id}`;
+            const priorId = Number(cfg.event_id);
+            const name = Number.isFinite(priorId)
+                ? eventNameById.value.get(priorId) ?? `Event #${priorId}`
+                : 'Unknown prior event';
             return `Avoid repeating pairs from: ${name}`;
         }
         case 'skill_leveling':
