@@ -281,6 +281,8 @@ class TeamDraftController extends Controller
         }
         $state['member_ids'] = array_values(array_unique($allMemberIds));
 
+        $event->ensureMembersOnRoster($state['member_ids']);
+
         // Re-evaluate violations against the updated roster so the UI stays accurate.
         $rescored = $this->solver->rescore($event, $state['teams'], $state['groups'] ?? []);
         $state['violations']    = $rescored['violations'];

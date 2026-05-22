@@ -272,6 +272,8 @@ class EventController extends Controller
             'name' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $event->load(['eventMembers', 'previousEvents', 'rules', 'teamDrafts']);
+
         $duplicated = DB::transaction(function () use ($event, $validated): Event {
             $copy = $event->replicate([
                 'final_team_draft_id',
@@ -304,6 +306,8 @@ class EventController extends Controller
                     'notes' => $em->notes,
                 ]);
             }
+
+            $copy->syncRosterFromLatestTeamDraft($event);
 
             $copy->recalculateRuleSortOrders();
 

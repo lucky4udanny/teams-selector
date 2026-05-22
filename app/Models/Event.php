@@ -143,6 +143,87 @@ class Event extends Model
         ];
     }
 
+    /**
+     * Member IDs assigned on teams in a draft state payload.
+     *
+     * @param  array<string, mixed>|null  $state
+     * @return list<int>
+     */
+    public static function memberIdsFromDraftState(?array $state): array
+    {
+        if (! is_array($state)) {
+            return [];
+        }
+
+        $ids = $state['member_ids'] ?? [];
+        foreach ($state['teams'] ?? [] as $team) {
+            if (! is_array($team)) {
+                continue;
+            }
+            foreach ($team['member_ids'] ?? [] as $mid) {
+                $ids[] = $mid;
+            }
+        }
+
+        return array_values(array_unique(array_filter(
+            array_map(static fn ($id) => (int) $id, is_array($ids) ? $ids : []),
+            static fn (int $id) => $id > 0,
+        )));
+    }
+
+    /**
+     * Ensure roster rows exist for the given members (e.g. after draft team edits).
+     *
+     * @param  list<int>  $memberIds
+     */
+    public function ensureMembersOnRoster(array $memberIds, bool $included = true): void
+    {
+        foreach ($memberIds as $memberId) {
+            if ($memberId < 1) {
+                continue;
+            }
+
+            $row = $this->eventMembers()->firstOrCreate(
+                ['member_id' => $memberId],
+                [
+                    'included' => $included,
+                    'invited' => false,
+                    'invited_at' => null,
+                    'status' => EventMemberStatus::Pending,
+                    'status_changed_at' => now(),
+                    'notes' => null,
+                ],
+            );
+
+            if ($included && ! $row->included) {
+                $row->update(['included' => true]);
+            }
+        }
+    }
+
+    /**
+     * Align copied roster with the source event's latest team draft assignments.
+     */
+    public function syncRosterFromLatestTeamDraft(Event $source): void
+    {
+        $latestDraft = $source->teamDrafts()->orderByDesc('updated_at')->first();
+        if (! $latestDraft) {
+            return;
+        }
+
+        $draftIds = self::memberIdsFromDraftState($latestDraft->state);
+        if ($draftIds === []) {
+            return;
+        }
+
+        $this->ensureMembersOnRoster($draftIds, true);
+
+        $this->eventMembers()
+            ->where('included', true)
+            ->whereNotIn('member_id', $draftIds)
+            ->update(['included' => false]);
+    }
+
     /** Re-number rule sort_order by descending weight (then id). */
     public function recalculateRuleSortOrders(): void
     {

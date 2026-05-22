@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fix (events):** Draft team member edits now add substitutes to the event roster (`TeamDraftController::updateTeamMembers` → `Event::ensureMembersOnRoster`). Event duplicate syncs the copy’s roster with the source’s latest team draft: assigned members are included, members only on the old roster are moved to the waiting list.
 - **Fix (rules):** `repeat_pair` ("Avoid same members") allows multiple rules per scope when each references a **different** linked prior event; duplicate `(scope, prior event_id)` pairs are rejected server- and client-side. Add-rule modal lists only unused priors for the selected scope and defaults to the first available.
 - **Fix (Events/Show):** Repeat-pair rule summary under the rules list now shows the prior event label (name + date) instead of `Event #<id>` — `eventNameById` was reading `e.name` but `finalizedEvents` only exposes `label`.
 - **Feat (Auth):** Users who belong to exactly one organization are redirected straight to that org on login (via `organizations.index`); super admins still see the full organization list.

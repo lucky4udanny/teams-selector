@@ -429,6 +429,91 @@ class EventCentricFlowTest extends TestCase
         $this->assertEquals(1, $sorted[1]->sort_order);
     }
 
+    public function test_update_team_members_adds_substitute_to_event_roster(): void
+    {
+        [$user, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+        $onRoster = Member::factory()->create(['organization_id' => $org->id]);
+        $substitute = Member::factory()->create(['organization_id' => $org->id]);
+
+        EventMember::query()->create([
+            'event_id' => $event->id,
+            'member_id' => $onRoster->id,
+            'included' => true,
+            'invited' => false,
+            'status' => EventMemberStatus::Pending,
+            'status_changed_at' => now(),
+        ]);
+
+        $draft = TeamDraft::query()->create([
+            'event_id' => $event->id,
+            'created_by' => $user->id,
+            'state' => [
+                'teams' => [
+                    ['member_ids' => [$onRoster->id]],
+                ],
+                'member_ids' => [$onRoster->id],
+            ],
+        ]);
+
+        $this->patch(route('organizations.events.team-drafts.update-team-members', [$org, $event, $draft]), [
+            'team_index' => 0,
+            'member_ids' => [$substitute->id],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('event_members', [
+            'event_id' => $event->id,
+            'member_id' => $substitute->id,
+            'included' => true,
+        ]);
+    }
+
+    public function test_duplicate_event_syncs_roster_with_latest_draft_assignments(): void
+    {
+        [$user, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+        $removed = Member::factory()->create(['organization_id' => $org->id]);
+        $substitute = Member::factory()->create(['organization_id' => $org->id]);
+
+        EventMember::query()->create([
+            'event_id' => $event->id,
+            'member_id' => $removed->id,
+            'included' => true,
+            'invited' => false,
+            'status' => EventMemberStatus::Pending,
+            'status_changed_at' => now(),
+        ]);
+
+        TeamDraft::query()->create([
+            'event_id' => $event->id,
+            'created_by' => $user->id,
+            'state' => [
+                'teams' => [
+                    ['member_ids' => [$substitute->id]],
+                ],
+                'member_ids' => [$substitute->id],
+            ],
+        ]);
+
+        $this->post(route('organizations.events.duplicate', [$org, $event]), [
+            'name' => 'Copy After Draft Swap',
+        ])->assertRedirect();
+
+        $copy = Event::query()->where('name', 'Copy After Draft Swap')->first();
+        $this->assertNotNull($copy);
+
+        $this->assertDatabaseHas('event_members', [
+            'event_id' => $copy->id,
+            'member_id' => $substitute->id,
+            'included' => true,
+        ]);
+        $this->assertDatabaseHas('event_members', [
+            'event_id' => $copy->id,
+            'member_id' => $removed->id,
+            'included' => false,
+        ]);
+    }
+
     public function test_solver_penalizes_preferred_pair_not_together(): void
     {
         [, $org] = $this->actingAsOrganizer();
