@@ -504,23 +504,32 @@ const typeOptions = computed(() =>
 const ruleModalOpen = ref(false);
 const editingRuleId = ref(null);
 
-const usedRepeatPairPriorIds = (scope) =>
-    new Set(
-        (props.rules || [])
-            .filter((r) => r.type === 'repeat_pair' && r.scope === scope)
-            .map((r) => r.config?.event_id)
-            .filter((id) => id != null),
-    );
-
-const defaultRepeatPairEventId = (scope) => {
-    const used = usedRepeatPairPriorIds(scope);
+const repeatPairPriorPool = () => {
     const linked = (props.finalizedEvents || []).filter((e) =>
         (props.event?.previous_event_ids || []).includes(e.id),
     );
-    const pool = linked.length > 0 ? linked : props.finalizedEvents || [];
-    const unused = pool.find((e) => !used.has(e.id));
 
-    return unused?.id ?? pool[0]?.id ?? null;
+    return linked.length > 0 ? linked : props.finalizedEvents || [];
+};
+
+const usedRepeatPairPriorIds = (scope, exceptRuleId = null) =>
+    new Set(
+        (props.rules || [])
+            .filter(
+                (r) =>
+                    r.type === 'repeat_pair' &&
+                    r.scope === scope &&
+                    r.id !== exceptRuleId,
+            )
+            .map((r) => Number(r.config?.event_id))
+            .filter((id) => Number.isFinite(id) && id > 0),
+    );
+
+const defaultRepeatPairEventId = (scope, exceptRuleId = null) => {
+    const used = usedRepeatPairPriorIds(scope, exceptRuleId);
+    const unused = repeatPairPriorPool().find((e) => !used.has(Number(e.id)));
+
+    return unused?.id ?? null;
 };
 
 const defaultConfigForType = (type, scope = 'team') => {
@@ -555,12 +564,16 @@ const memberPairOptions = computed(() =>
     })),
 );
 
-const repeatPriorOptions = computed(() =>
-    (props.finalizedEvents || []).map((e) => ({
-        value: e.id,
-        label: e.label,
-    })),
-);
+const repeatPriorOptions = computed(() => {
+    const used = usedRepeatPairPriorIds(ruleForm.scope, editingRuleId.value);
+
+    return repeatPairPriorPool()
+        .filter((e) => !used.has(Number(e.id)))
+        .map((e) => ({
+            value: e.id,
+            label: e.label,
+        }));
+});
 
 const openAddRule = () => {
     editingRuleId.value = null;
@@ -598,8 +611,10 @@ watch(
         if (editingRuleId.value || ruleForm.type !== 'repeat_pair') {
             return;
         }
-        const nextId = defaultRepeatPairEventId(scope);
-        if (nextId != null) {
+        const used = usedRepeatPairPriorIds(scope, editingRuleId.value);
+        const current = Number(ruleForm.config?.event_id);
+        if (Number.isFinite(current) && used.has(current)) {
+            const nextId = defaultRepeatPairEventId(scope, editingRuleId.value);
             ruleForm.config = { ...ruleForm.config, event_id: nextId };
         }
     },
@@ -610,12 +625,20 @@ const ruleFormHasErrors = computed(
 );
 
 const submitRule = () => {
-    const result = validateRuleForm({
-        type: ruleForm.type,
-        scope: ruleForm.scope,
-        weight: ruleForm.weight,
-        config: ruleForm.config,
-    });
+    const result = validateRuleForm(
+        {
+            type: ruleForm.type,
+            scope: ruleForm.scope,
+            weight: ruleForm.weight,
+            config: ruleForm.config,
+        },
+        {
+            usedRepeatPairPriorIds: usedRepeatPairPriorIds(
+                ruleForm.scope,
+                editingRuleId.value,
+            ),
+        },
+    );
     if (!result.valid) {
         applyFormErrors(ruleForm, result.errors);
 

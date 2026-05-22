@@ -140,9 +140,10 @@ export function requirePositiveInt(value, label, { min = 1, max = 999 } = {}) {
 
 /**
  * @param {{ type: string, scope: string, weight: number, config: Record<string, unknown> }} rule
+ * @param {{ usedRepeatPairPriorIds?: Set<number> }} [context]
  * @returns {{ valid: boolean, errors: Record<string, string> }}
  */
-export function validateRuleForm(rule) {
+export function validateRuleForm(rule, context = {}) {
     const errors = {};
 
     if (!rule.type) {
@@ -183,6 +184,9 @@ export function validateRuleForm(rule) {
             const prior = Number(cfg.event_id);
             if (!prior || prior < 1) {
                 errors.config = 'Choose a prior event for repeat-pair history.';
+            } else if (context.usedRepeatPairPriorIds?.has(prior)) {
+                errors.config =
+                    'This prior event already has an avoid-same-members rule for the selected scope.';
             }
             break;
         }

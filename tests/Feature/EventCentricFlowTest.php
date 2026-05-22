@@ -243,6 +243,35 @@ class EventCentricFlowTest extends TestCase
             ->count());
     }
 
+    public function test_repeat_pair_rule_rejects_duplicate_prior_event_and_scope(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $prior = Event::factory()->create([
+            'organization_id' => $org->id,
+            'finalized_at' => now(),
+        ]);
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+        $event->previousEvents()->attach($prior->id);
+
+        $payload = [
+            'type' => RuleType::RepeatPair->value,
+            'scope' => RuleScope::Team->value,
+            'weight' => 50,
+            'config' => ['event_id' => $prior->id],
+        ];
+
+        $this->post(route('organizations.events.rules.store', [$org, $event]), $payload)
+            ->assertRedirect();
+
+        $this->post(route('organizations.events.rules.store', [$org, $event]), $payload)
+            ->assertSessionHasErrors('config');
+
+        $this->assertEquals(1, Rule::query()
+            ->where('event_id', $event->id)
+            ->where('type', RuleType::RepeatPair)
+            ->count());
+    }
+
     public function test_generate_always_creates_new_team_draft_row(): void
     {
         [, $org] = $this->actingAsOrganizer();

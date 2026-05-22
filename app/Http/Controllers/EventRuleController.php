@@ -31,6 +31,7 @@ class EventRuleController extends Controller
         $this->assertGroupScopeAllowed($event, $scope);
         $this->assertConfigValid($type, $validated['config'], $event);
         $this->assertSingletonNotDuplicated($event, $type, $scope);
+        $this->assertRepeatPairUnique($event, $type, $scope, $validated['config']);
 
         $rule = $event->rules()->create([
             'type' => $type,
@@ -63,6 +64,7 @@ class EventRuleController extends Controller
         $this->assertGroupScopeAllowed($event, $scope);
         $this->assertConfigValid($type, $validated['config'], $event);
         $this->assertSingletonNotDuplicated($event, $type, $scope, $rule->id);
+        $this->assertRepeatPairUnique($event, $type, $scope, $validated['config'], $rule->id);
 
         $rule->update([
             'type' => $type,
@@ -113,6 +115,39 @@ class EventRuleController extends Controller
         if ($q->exists()) {
             throw ValidationException::withMessages([
                 'type' => 'Only one size rule per scope ('.$scope->value.') is allowed per event.',
+            ]);
+        }
+    }
+
+    /**
+     * One repeat_pair rule per (scope, prior event_id); different priors may share the same scope.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function assertRepeatPairUnique(Event $event, RuleType $type, RuleScope $scope, array $config, ?int $exceptRuleId = null): void
+    {
+        if ($type !== RuleType::RepeatPair) {
+            return;
+        }
+
+        $priorId = (int) ($config['event_id'] ?? 0);
+        if ($priorId < 1) {
+            return;
+        }
+
+        $q = Rule::query()
+            ->where('event_id', $event->id)
+            ->where('type', RuleType::RepeatPair)
+            ->where('scope', $scope)
+            ->where('config->event_id', $priorId);
+
+        if ($exceptRuleId) {
+            $q->where('id', '!=', $exceptRuleId);
+        }
+
+        if ($q->exists()) {
+            throw ValidationException::withMessages([
+                'config' => 'An "avoid same members" rule for this prior event and scope already exists.',
             ]);
         }
     }

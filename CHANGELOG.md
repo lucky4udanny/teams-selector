@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Fix (rules):** Removed per–prior-event uniqueness for `repeat_pair` ("Avoid same members") rules — multiple team- (or group-) scoped rules can reference different prior events; size rules remain one per scope. Add-rule modal defaults the prior event to the first linked prior not already used for the selected scope.
+- **Fix (rules):** `repeat_pair` ("Avoid same members") allows multiple rules per scope when each references a **different** linked prior event; duplicate `(scope, prior event_id)` pairs are rejected server- and client-side. Add-rule modal lists only unused priors for the selected scope and defaults to the first available.
 - **Fix (Events/Show):** Repeat-pair rule summary under the rules list now shows the prior event label (name + date) instead of `Event #<id>` — `eventNameById` was reading `e.name` but `finalizedEvents` only exposes `label`.
 - **Feat (Auth):** Users who belong to exactly one organization are redirected straight to that org on login (via `organizations.index`); super admins still see the full organization list.
 - **Test (Sail):** Added `phpunit.sail.xml` (PostgreSQL `testing` database) for `./vendor/bin/sail artisan test` — required because `phpunit.xml` uses SQLite and PostgreSQL-only migrations fail in memory.
