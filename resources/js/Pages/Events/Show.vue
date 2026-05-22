@@ -504,7 +504,26 @@ const typeOptions = computed(() =>
 const ruleModalOpen = ref(false);
 const editingRuleId = ref(null);
 
-const defaultConfigForType = (type) => {
+const usedRepeatPairPriorIds = (scope) =>
+    new Set(
+        (props.rules || [])
+            .filter((r) => r.type === 'repeat_pair' && r.scope === scope)
+            .map((r) => r.config?.event_id)
+            .filter((id) => id != null),
+    );
+
+const defaultRepeatPairEventId = (scope) => {
+    const used = usedRepeatPairPriorIds(scope);
+    const linked = (props.finalizedEvents || []).filter((e) =>
+        (props.event?.previous_event_ids || []).includes(e.id),
+    );
+    const pool = linked.length > 0 ? linked : props.finalizedEvents || [];
+    const unused = pool.find((e) => !used.has(e.id));
+
+    return unused?.id ?? pool[0]?.id ?? null;
+};
+
+const defaultConfigForType = (type, scope = 'team') => {
     switch (type) {
         case 'size':
             return { size: 4 };
@@ -512,7 +531,7 @@ const defaultConfigForType = (type) => {
         case 'preferred_pair':
             return { member_a_id: null, member_b_id: null };
         case 'repeat_pair':
-            return { event_id: (props.finalizedEvents || [])[0]?.id ?? null };
+            return { event_id: defaultRepeatPairEventId(scope) };
         case 'skill_leveling':
             return { min_avg: 35, max_avg: 65 };
         case 'member_attribute':
@@ -549,7 +568,7 @@ const openAddRule = () => {
     ruleForm.type = 'size';
     ruleForm.scope = 'team';
     ruleForm.weight = 50;
-    ruleForm.config = defaultConfigForType('size');
+    ruleForm.config = defaultConfigForType('size', ruleForm.scope);
     ruleModalOpen.value = true;
 };
 
@@ -569,7 +588,20 @@ watch(
         if (editingRuleId.value) {
             return;
         }
-        ruleForm.config = defaultConfigForType(t);
+        ruleForm.config = defaultConfigForType(t, ruleForm.scope);
+    },
+);
+
+watch(
+    () => ruleForm.scope,
+    (scope) => {
+        if (editingRuleId.value || ruleForm.type !== 'repeat_pair') {
+            return;
+        }
+        const nextId = defaultRepeatPairEventId(scope);
+        if (nextId != null) {
+            ruleForm.config = { ...ruleForm.config, event_id: nextId };
+        }
     },
 );
 

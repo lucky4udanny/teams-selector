@@ -15,6 +15,7 @@
 - **Violation messages:** `ViolationFormatter` enriches `state.violations` with a `formatted` field for screen, print, and CSV/XLSX (`violations=1|0` query param); `(score: N)` when `penalty > 0` except structural size notes. Draft and final **Print** both use the `export.print` iframe flow, not `window.print()` on the draft page. See [teams-selector](features/teams-selector.md).
 - **Pair history:** `PairHistoryService::pairsForPriorEvent` tolerates corrupt `team_indices` in stored draft JSON when building group-scope repeat pairs.
 - **Rule ordering:** `Event::recalculateRuleSortOrders()` runs after duplicate and rule mutations so UI/solver order matches weight.
+- **Repeat-pair rules:** Multiple `repeat_pair` rules per scope are allowed (different prior events); only `size` is singleton per scope.
 - **DateInput:** With `model-type="yyyy-MM-dd"`, bind string dates only—see [teams-selector](features/teams-selector.md).
 - **PrimaryButton:** defaults to `type="submit"` for Inertia/Laravel form posts; use `type="button"` when the control is outside a submit flow (modals, `@click` handlers).
 - **Vite preload callback:** `Vite::usePreloadTagAttributes()` resolvers receive `?string $src` **and** `?array $chunk` — Laravel passes `null` for `$src` on prefetch/dynamic-import chunks without a manifest `src` key, and `null` for `$chunk` when the CSS-asset lookup (`Collection::where('file', $css)->first()`) returns no match. Type both as nullable and guard the body with `is_array($chunk)` to avoid production `TypeError`s.

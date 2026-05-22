@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fix (rules):** Removed per–prior-event uniqueness for `repeat_pair` ("Avoid same members") rules — multiple team- (or group-) scoped rules can reference different prior events; size rules remain one per scope. Add-rule modal defaults the prior event to the first linked prior not already used for the selected scope.
 - **Feat (Auth):** Users who belong to exactly one organization are redirected straight to that org on login (via `organizations.index`); super admins still see the full organization list.
 - **Test (Sail):** Added `phpunit.sail.xml` (PostgreSQL `testing` database) for `./vendor/bin/sail artisan test` — required because `phpunit.xml` uses SQLite and PostgreSQL-only migrations fail in memory.
 

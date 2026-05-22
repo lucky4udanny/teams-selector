@@ -186,26 +186,61 @@ class EventCentricFlowTest extends TestCase
         $this->assertEquals(0, Rule::query()->where('event_id', $event->id)->count());
     }
 
-    public function test_only_one_team_size_rule_per_event(): void
+    public function test_only_one_size_rule_per_scope(): void
     {
         [, $org] = $this->actingAsOrganizer();
         $event = Event::factory()->create(['organization_id' => $org->id]);
 
         $this->post(route('organizations.events.rules.store', [$org, $event]), [
-            'type' => RuleType::TeamSize->value,
+            'type' => RuleType::Size->value,
             'scope' => RuleScope::Team->value,
             'weight' => 100,
             'config' => ['size' => 4],
         ])->assertRedirect();
 
         $this->post(route('organizations.events.rules.store', [$org, $event]), [
-            'type' => RuleType::TeamSize->value,
+            'type' => RuleType::Size->value,
             'scope' => RuleScope::Team->value,
             'weight' => 50,
             'config' => ['size' => 2],
         ])->assertSessionHasErrors('type');
 
-        $this->assertEquals(1, Rule::query()->where('event_id', $event->id)->where('type', RuleType::TeamSize)->count());
+        $this->assertEquals(1, Rule::query()->where('event_id', $event->id)->where('type', RuleType::Size)->count());
+    }
+
+    public function test_multiple_repeat_pair_rules_allowed_for_same_scope_and_different_prior_events(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $priorA = Event::factory()->create([
+            'organization_id' => $org->id,
+            'finalized_at' => now(),
+        ]);
+        $priorB = Event::factory()->create([
+            'organization_id' => $org->id,
+            'finalized_at' => now(),
+        ]);
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+        $event->previousEvents()->attach([$priorA->id, $priorB->id]);
+
+        $this->post(route('organizations.events.rules.store', [$org, $event]), [
+            'type' => RuleType::RepeatPair->value,
+            'scope' => RuleScope::Team->value,
+            'weight' => 50,
+            'config' => ['event_id' => $priorA->id],
+        ])->assertRedirect();
+
+        $this->post(route('organizations.events.rules.store', [$org, $event]), [
+            'type' => RuleType::RepeatPair->value,
+            'scope' => RuleScope::Team->value,
+            'weight' => 40,
+            'config' => ['event_id' => $priorB->id],
+        ])->assertRedirect();
+
+        $this->assertEquals(2, Rule::query()
+            ->where('event_id', $event->id)
+            ->where('type', RuleType::RepeatPair)
+            ->where('scope', RuleScope::Team)
+            ->count());
     }
 
     public function test_generate_always_creates_new_team_draft_row(): void
@@ -227,7 +262,7 @@ class EventCentricFlowTest extends TestCase
 
         Rule::query()->create([
             'event_id' => $event->id,
-            'type' => RuleType::TeamSize,
+            'type' => RuleType::Size,
             'scope' => RuleScope::Team,
             'weight' => 100,
             'config' => ['size' => 2],
@@ -304,7 +339,7 @@ class EventCentricFlowTest extends TestCase
 
         Rule::query()->create([
             'event_id' => $event->id,
-            'type' => RuleType::TeamSize,
+            'type' => RuleType::Size,
             'scope' => RuleScope::Team,
             'weight' => 100,
             'config' => ['size' => 2],
@@ -339,7 +374,7 @@ class EventCentricFlowTest extends TestCase
         ]);
         Rule::query()->create([
             'event_id' => $event->id,
-            'type' => RuleType::TeamSize,
+            'type' => RuleType::Size,
             'scope' => RuleScope::Team,
             'weight' => 100,
             'config' => ['size' => 2],
@@ -359,7 +394,7 @@ class EventCentricFlowTest extends TestCase
             ->get();
 
         $this->assertCount(2, $sorted);
-        $this->assertEquals(RuleType::TeamSize, $sorted[0]->type);
+        $this->assertEquals(RuleType::Size, $sorted[0]->type);
         $this->assertEquals(0, $sorted[0]->sort_order);
         $this->assertEquals(RuleType::PreferredPair, $sorted[1]->type);
         $this->assertEquals(1, $sorted[1]->sort_order);
@@ -374,7 +409,7 @@ class EventCentricFlowTest extends TestCase
 
         Rule::query()->create([
             'event_id' => $event->id,
-            'type' => RuleType::TeamSize,
+            'type' => RuleType::Size,
             'scope' => RuleScope::Team,
             'weight' => 100,
             'config' => ['size' => 2],

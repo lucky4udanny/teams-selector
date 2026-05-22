@@ -17,6 +17,7 @@
 - **Event roster tab:** `EventController@show` with `?tab=roster` passes `roster` as a list of event-member rows; `rsvp_counts` lives on `event` only (`rosterPayloadPublic()` is split when building Inertia props).
 - **Repeat-pair history:** `PairHistoryService` and `TeamSolverService::membersByGroup` merge group members via `team_indices` and ignore missing team slots (`($teams[$ti] ?? [])['member_ids']`).
 - **Event rules sort_order:** `Event::recalculateRuleSortOrders()` sets `0..n` by descending `weight` (then `id`); called after rule CRUD and event duplicate.
+- **Event rules uniqueness:** Only `size` is limited to one rule per scope (`team` / `group`). `repeat_pair` ("Avoid same members") may be added multiple times per scope (one row per prior event); the add-rule modal picks the first linked prior not already used for the current scope.
 - Frontend toolchain: **Vite 8**, **Tailwind CSS v4** (`@tailwindcss/vite`), **Vue 3.5+**; Node **≥ 22.12** per `package.json` / `.nvmrc`.
 - **Forge:** If `view:clear` fails with `View path not found.`, ensure `storage/framework/views` exists before optimize/clear commands, avoid empty `VIEW_COMPILED_PATH`, and use published `config/view.php` (fallback path without `realpath()`).
 - **Vue SFC + Tailwind v4:** Avoid `@apply` inside `<style>` blocks in `.vue` files unless you add a Tailwind `@reference` to the main stylesheet—otherwise utilities like `rounded-lg` are “unknown” to the per-file CSS pipeline. Prefer `@reference` or plain CSS for third-party slots (e.g. date picker input classes).
