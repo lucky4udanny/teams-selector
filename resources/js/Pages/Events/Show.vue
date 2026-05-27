@@ -1586,7 +1586,7 @@ const groupDisplayLabel = (gi, names) => {
                             </td>
                             <td class="px-3 py-2">
                                 <StatusBadge
-                                    v-model="row.status"
+                                    :model-value="row.status"
                                     :included="row.included"
                                     :disabled="!canEditRosterStatus"
                                     @update:model-value="(v) => patchMember(row, { status: v })"
