@@ -30,6 +30,16 @@ import {
     sortRosterRows,
 } from '@/utils/rosterSort';
 import {
+    DEFAULT_ROSTER_FILTERS,
+    FILTER_ANY,
+    FILTER_INVITED_NO,
+    FILTER_INVITED_YES,
+    FILTER_UNSPECIFIED,
+    loadRosterFilterPreference,
+    rosterMatchesFilters,
+    saveRosterFilterPreference,
+} from '@/utils/rosterFilters';
+import {
     avgSkill,
     buildMemberDetails,
     exportColumnOptions,
@@ -276,7 +286,142 @@ watch(
     { deep: true },
 );
 
-const sortedRosterRows = computed(() => sortRosterRows(rosterRows.value, rosterSort.value));
+const initialRosterFilters = loadRosterFilterPreference(props.organization.slug);
+const rosterFiltersPanelOpen = ref(initialRosterFilters.panelOpen);
+const rosterFilterSearch = ref(initialRosterFilters.search);
+const rosterFilterSectorId = ref(initialRosterFilters.sectorId);
+const rosterFilterGender = ref(initialRosterFilters.gender);
+const rosterFilterInvited = ref(initialRosterFilters.invited);
+const rosterFilterStatus = ref(initialRosterFilters.status);
+
+watch(
+    () => props.organization.slug,
+    (orgSlug) => {
+        const loaded = loadRosterFilterPreference(orgSlug);
+        rosterFiltersPanelOpen.value = loaded.panelOpen;
+        rosterFilterSearch.value = loaded.search;
+        rosterFilterSectorId.value = loaded.sectorId;
+        rosterFilterGender.value = loaded.gender;
+        rosterFilterInvited.value = loaded.invited;
+        rosterFilterStatus.value = loaded.status;
+    },
+);
+
+const persistRosterFilters = () => {
+    saveRosterFilterPreference(slug.value, {
+        search: rosterFilterSearch.value,
+        sectorId: rosterFilterSectorId.value,
+        gender: rosterFilterGender.value,
+        invited: rosterFilterInvited.value,
+        status: rosterFilterStatus.value,
+        panelOpen: rosterFiltersPanelOpen.value,
+    });
+};
+
+watch(
+    [
+        rosterFilterSearch,
+        rosterFilterSectorId,
+        rosterFilterGender,
+        rosterFilterInvited,
+        rosterFilterStatus,
+        rosterFiltersPanelOpen,
+    ],
+    persistRosterFilters,
+);
+
+const rosterFilterGenderOptions = [
+    { value: FILTER_ANY, label: 'Any gender' },
+    { value: FILTER_UNSPECIFIED, label: 'Not specified' },
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+    { value: 'non_binary', label: 'Non-binary' },
+    { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
+
+const rosterFilterInvitedOptions = [
+    { value: FILTER_ANY, label: 'Any' },
+    { value: FILTER_INVITED_YES, label: 'Invited' },
+    { value: FILTER_INVITED_NO, label: 'Not invited' },
+];
+
+const rosterFilterStatusOptions = [
+    { value: FILTER_ANY, label: 'Any status' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'accepted', label: 'Accepted' },
+    { value: 'declined', label: 'Declined' },
+];
+
+const orgMemberById = computed(() => {
+    const map = new Map();
+    for (const member of props.orgMembers || []) {
+        map.set(member.id, member);
+    }
+
+    return map;
+});
+
+const rosterSectorFilterOptions = computed(() => {
+    const sectors = new Map();
+    for (const member of props.orgMembers || []) {
+        if (member.sector?.id != null) {
+            sectors.set(member.sector.id, member.sector.name);
+        }
+    }
+
+    return [
+        { value: FILTER_ANY, label: 'Any sector' },
+        { value: FILTER_UNSPECIFIED, label: 'Not specified' },
+        ...[...sectors.entries()]
+            .sort((a, b) => String(a[1]).localeCompare(String(b[1])))
+            .map(([id, name]) => ({ value: id, label: name })),
+    ];
+});
+
+const activeRosterFilterCount = computed(() => {
+    let count = 0;
+    if (rosterFilterSearch.value.trim()) {
+        count += 1;
+    }
+    if (rosterFilterSectorId.value !== FILTER_ANY) {
+        count += 1;
+    }
+    if (rosterFilterGender.value !== FILTER_ANY) {
+        count += 1;
+    }
+    if (rosterFilterInvited.value !== FILTER_ANY) {
+        count += 1;
+    }
+    if (rosterFilterStatus.value !== FILTER_ANY) {
+        count += 1;
+    }
+
+    return count;
+});
+
+const clearRosterFilters = () => {
+    rosterFilterSearch.value = DEFAULT_ROSTER_FILTERS.search;
+    rosterFilterSectorId.value = DEFAULT_ROSTER_FILTERS.sectorId;
+    rosterFilterGender.value = DEFAULT_ROSTER_FILTERS.gender;
+    rosterFilterInvited.value = DEFAULT_ROSTER_FILTERS.invited;
+    rosterFilterStatus.value = DEFAULT_ROSTER_FILTERS.status;
+};
+
+const rosterFilterCriteria = computed(() => ({
+    search: rosterFilterSearch.value,
+    sectorId: rosterFilterSectorId.value,
+    gender: rosterFilterGender.value,
+    invited: rosterFilterInvited.value,
+    status: rosterFilterStatus.value,
+}));
+
+const filteredRosterRows = computed(() =>
+    rosterRows.value.filter((row) =>
+        rosterMatchesFilters(row, orgMemberById.value.get(row.member_id), rosterFilterCriteria.value),
+    ),
+);
+
+const sortedRosterRows = computed(() => sortRosterRows(filteredRosterRows.value, rosterSort.value));
 
 const rosterIncluded = computed(() => sortedRosterRows.value.filter((r) => r.included));
 const rosterWaiting = computed(() => sortedRosterRows.value.filter((r) => !r.included));
@@ -1114,6 +1259,94 @@ const groupDisplayLabel = (gi, names) => {
                 {{ rosterNotice.message }}
             </Alert>
 
+            <div
+                v-if="rosterRows.length"
+                class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm"
+            >
+                <button
+                    type="button"
+                    class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-cream/60 active:bg-brand-cream"
+                    :aria-expanded="rosterFiltersPanelOpen"
+                    @click="rosterFiltersPanelOpen = !rosterFiltersPanelOpen"
+                >
+                    <span class="inline-flex flex-wrap items-center gap-2">
+                        <span>Filters</span>
+                        <span
+                            v-if="activeRosterFilterCount"
+                            class="rounded-full bg-brand-blue/10 px-2 py-0.5 text-xs font-medium text-brand-blue"
+                        >
+                            {{ activeRosterFilterCount }} active
+                        </span>
+                        <span class="text-xs font-normal text-brand-blue/60">
+                            {{ filteredRosterRows.length }} of {{ rosterRows.length }} shown
+                        </span>
+                    </span>
+                    <ChevronDownIcon
+                        class="h-4 w-4 shrink-0 text-brand-blue/50 transition-transform duration-200"
+                        :class="{ 'rotate-180': rosterFiltersPanelOpen }"
+                    />
+                </button>
+
+                <div
+                    v-show="rosterFiltersPanelOpen"
+                    class="space-y-4 border-t border-brand-mist bg-brand-cream/30 p-4"
+                >
+                    <FormField label="Search" name="roster_filter_search">
+                        <TextInput
+                            id="roster_filter_search"
+                            v-model="rosterFilterSearch"
+                            type="search"
+                            placeholder="Name, email, sector, notes…"
+                        />
+                    </FormField>
+
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <FormField label="Sector" name="roster_filter_sector">
+                            <ListboxInput
+                                v-model="rosterFilterSectorId"
+                                :options="rosterSectorFilterOptions"
+                                placeholder="Any sector"
+                                portal
+                            />
+                        </FormField>
+                        <FormField label="Gender" name="roster_filter_gender">
+                            <ListboxInput
+                                v-model="rosterFilterGender"
+                                :options="rosterFilterGenderOptions"
+                                placeholder="Any gender"
+                                portal
+                            />
+                        </FormField>
+                        <FormField label="Invited" name="roster_filter_invited">
+                            <ListboxInput
+                                v-model="rosterFilterInvited"
+                                :options="rosterFilterInvitedOptions"
+                                placeholder="Any"
+                                portal
+                            />
+                        </FormField>
+                        <FormField label="Status" name="roster_filter_status">
+                            <ListboxInput
+                                v-model="rosterFilterStatus"
+                                :options="rosterFilterStatusOptions"
+                                placeholder="Any status"
+                                portal
+                            />
+                        </FormField>
+                    </div>
+
+                    <div v-if="activeRosterFilterCount" class="flex justify-end">
+                        <button
+                            type="button"
+                            class="cursor-pointer text-sm font-medium text-brand-blue hover:text-brand-navy hover:underline active:opacity-70"
+                            @click="clearRosterFilters"
+                        >
+                            Clear filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Inline panels when roster is empty; buttons → modals once members exist -->
             <template v-if="canManage">
                 <div v-if="rosterRows.length === 0" class="grid gap-6 lg:grid-cols-2">
@@ -1172,7 +1405,23 @@ const groupDisplayLabel = (gi, names) => {
                 <SecondaryButton type="button" @click="bulkPatch({ status: 'declined' })">Set declined</SecondaryButton>
             </div>
 
-            <div class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm">
+            <div
+                v-if="rosterRows.length && !filteredRosterRows.length"
+                class="rounded-xl border border-dashed border-brand-mist bg-brand-cream/50 px-6 py-10 text-center"
+            >
+                <p class="text-sm font-medium text-brand-navy">No roster rows match your filters</p>
+                <p class="mt-1 text-sm text-brand-blue/70">Try adjusting search or filters.</p>
+                <button
+                    v-if="activeRosterFilterCount"
+                    type="button"
+                    class="mt-4 cursor-pointer text-sm font-medium text-brand-blue hover:text-brand-navy hover:underline active:opacity-70"
+                    @click="clearRosterFilters"
+                >
+                    Clear filters
+                </button>
+            </div>
+
+            <div v-else-if="filteredRosterRows.length" class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm">
                 <table class="min-w-full divide-y divide-brand-mist text-sm">
                     <thead class="bg-brand-cream">
                         <tr>
@@ -1307,7 +1556,12 @@ const groupDisplayLabel = (gi, names) => {
             </div>
 
             <div v-if="rosterWaiting.length">
-                <h3 class="ts-heading-section mb-3">Waiting list</h3>
+                <h3 class="ts-heading-section mb-3">
+                    Waiting list
+                    <span v-if="activeRosterFilterCount" class="text-sm font-normal text-brand-blue/60">
+                        ({{ rosterWaiting.length }} shown)
+                    </span>
+                </h3>
                 <div class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm">
                     <table class="min-w-full divide-y divide-brand-mist text-sm">
                         <thead class="bg-brand-cream">

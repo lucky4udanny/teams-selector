@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Feat (roster):** Event roster tab has a collapsible filter panel (search, sector, gender, invited, status); preferences persist in `localStorage` per org (`teams-selector:roster-filters:{slug}`). Gender is resolved from `orgMembers`; filter → sort pipeline matches the members catalog.
 - **Feat (Members):** Members catalog has a collapsible filter panel (search, sector, gender, show removed); preferences persist in `localStorage` per org (`teams-selector:member-filters:{slug}`). Removed (soft-deleted) members are hidden by default.
 - **Fix (Members):** Filter sector/gender dropdowns use `ListboxInput` `portal` so options are not clipped by the filter panel’s `overflow-hidden` wrapper.
 - **Feat (Members):** Sector and gender filters include **Not specified** for members with null sector or gender (`FILTER_UNSPECIFIED` in `memberFilters.js`; `FILTER_ANY` = `__any__`).
