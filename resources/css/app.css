@@ -136,6 +136,26 @@
         @apply bg-brand-mist text-brand-navy;
     }
 
+    .ts-roster-row-info {
+        @apply bg-brand-blue/10;
+    }
+
+    .ts-roster-row-success {
+        @apply bg-emerald-100;
+    }
+
+    .ts-roster-row-warning {
+        @apply bg-amber-100;
+    }
+
+    .ts-roster-row-danger {
+        @apply bg-red-100;
+    }
+
+    .ts-roster-row-neutral {
+        @apply bg-brand-mist;
+    }
+
     .ts-range-track {
         @apply h-2 w-full cursor-pointer appearance-none rounded-full bg-brand-mist;
     }

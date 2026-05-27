@@ -39,6 +39,7 @@ import {
     rosterMatchesFilters,
     saveRosterFilterPreference,
 } from '@/utils/rosterFilters';
+import { rosterRowClass } from '@/utils/rosterStatus';
 import {
     avgSkill,
     buildMemberDetails,
@@ -1503,7 +1504,7 @@ const groupDisplayLabel = (gi, names) => {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-brand-mist">
-                        <tr v-for="row in rosterIncluded" :key="row.id" class="align-top">
+                        <tr v-for="row in rosterIncluded" :key="row.id" :class="['align-top', rosterRowClass(row)]">
                             <td v-if="canManage" class="px-2 py-2">
                                 <input
                                     type="checkbox"
@@ -1586,7 +1587,7 @@ const groupDisplayLabel = (gi, names) => {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="row in rosterWaiting" :key="row.id" class="align-top">
+                            <tr v-for="row in rosterWaiting" :key="row.id" :class="['align-top', rosterRowClass(row)]">
                                 <td v-if="canManage" class="px-2 py-2">
                                     <input
                                         type="checkbox"

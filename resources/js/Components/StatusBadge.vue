@@ -1,6 +1,7 @@
 <script setup>
 import ListboxInput from '@/Components/ListboxInput.vue';
 import Badge from '@/Components/Badge.vue';
+import { rosterStatusVariant } from '@/utils/rosterStatus';
 import { computed } from 'vue';
 
 const model = defineModel({
@@ -27,19 +28,9 @@ const statusOptions = [
     { label: 'Declined', value: 'declined' },
 ];
 
-const variant = computed(() => {
-    if (!props.included) {
-        return 'neutral';
-    }
-
-    const map = {
-        pending: 'warning',
-        accepted: 'success',
-        declined: 'danger',
-    };
-
-    return map[model.value] ?? 'neutral';
-});
+const variant = computed(() =>
+    rosterStatusVariant({ included: props.included, status: model.value }),
+);
 
 const label = computed(() => {
     if (!props.included) {
