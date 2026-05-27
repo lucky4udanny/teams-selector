@@ -126,7 +126,9 @@ class EventMemberController extends Controller
             return response()->json($this->rosterPayload($event));
         }
 
-        return redirect()->back()->with('status', 'Roster updated.');
+        return redirect()
+            ->route('organizations.events.show', [$organization, $event, 'tab' => 'roster'])
+            ->with('status', 'Roster updated.');
     }
 
     public function bulkUpdate(Request $request, Organization $organization, Event $event): RedirectResponse|JsonResponse
@@ -160,7 +162,7 @@ class EventMemberController extends Controller
         $count = count($validated['items']);
 
         return redirect()
-            ->back()
+            ->route('organizations.events.show', [$organization, $event, 'tab' => 'roster'])
             ->with('status', $count === 1 ? '1 roster row updated.' : "{$count} roster rows updated.");
     }
 

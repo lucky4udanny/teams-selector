@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fix (roster):** Status dropdown now persists changes — `StatusBadge` uses explicit `modelValue`/`update:modelValue` (nested `defineModel` was not reaching the page), roster rows use `v-model` like toggles, and member PATCH redirects to `?tab=roster` so Inertia partial reloads include fresh roster data.
 - **Fix (roster):** Status dropdown works again after setting Accepted — `StatusBadge` uses `v-model` on `ListboxInput`; status edits are blocked once teams are finalized and re-enabled after revert final (server + UI).
 - **Style (roster):** Roster table rows use status-colored backgrounds matching the summary badges (pending/accepted/declined/waiting list); shared mapping in `rosterStatus.js` also powers `StatusBadge`.
 - **Fix (auth):** Unauthenticated Inertia PATCH/PUT/DELETE requests (e.g. roster toggles after session expiry) no longer 405 on `/login` — `AuthenticationException` for Inertia requests returns `409` with `X-Inertia-Location` so the client performs a full-page redirect to login.

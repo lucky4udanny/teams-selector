@@ -541,6 +541,10 @@ const patchMember = (em, data) => {
         return;
     }
 
+    if (Object.prototype.hasOwnProperty.call(data, 'status') && data.status === em.status) {
+        return;
+    }
+
     const row = rosterState.value?.find((r) => r.id === em.id);
     const snapshot = row ? { ...row } : null;
 
@@ -1582,7 +1586,7 @@ const groupDisplayLabel = (gi, names) => {
                             </td>
                             <td class="px-3 py-2">
                                 <StatusBadge
-                                    :model-value="row.status"
+                                    v-model="row.status"
                                     :included="row.included"
                                     :disabled="!canEditRosterStatus"
                                     @update:model-value="(v) => patchMember(row, { status: v })"

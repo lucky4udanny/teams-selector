@@ -4,12 +4,11 @@ import Badge from '@/Components/Badge.vue';
 import { rosterStatusVariant } from '@/utils/rosterStatus';
 import { computed } from 'vue';
 
-const model = defineModel({
-    type: String,
-    required: true,
-});
-
 const props = defineProps({
+    modelValue: {
+        type: String,
+        required: true,
+    },
     included: {
         type: Boolean,
         default: true,
@@ -20,6 +19,8 @@ const props = defineProps({
     },
 });
 
+const emit = defineEmits(['update:modelValue']);
+
 const statusOptions = [
     { label: 'Pending', value: 'pending' },
     { label: 'Accepted', value: 'accepted' },
@@ -27,7 +28,7 @@ const statusOptions = [
 ];
 
 const variant = computed(() =>
-    rosterStatusVariant({ included: props.included, status: model.value }),
+    rosterStatusVariant({ included: props.included, status: props.modelValue }),
 );
 
 const label = computed(() => {
@@ -35,8 +36,12 @@ const label = computed(() => {
         return 'Waiting list';
     }
 
-    return statusOptions.find((o) => o.value === model.value)?.label ?? model.value;
+    return statusOptions.find((o) => o.value === props.modelValue)?.label ?? props.modelValue;
 });
+
+const onStatusChange = (value) => {
+    emit('update:modelValue', value);
+};
 </script>
 
 <template>
@@ -44,6 +49,11 @@ const label = computed(() => {
         <Badge :variant="variant">{{ label }}</Badge>
     </div>
     <div v-else class="w-36">
-        <ListboxInput v-model="model" :options="statusOptions" portal />
+        <ListboxInput
+            :model-value="modelValue"
+            :options="statusOptions"
+            portal
+            @update:model-value="onStatusChange"
+        />
     </div>
 </template>
