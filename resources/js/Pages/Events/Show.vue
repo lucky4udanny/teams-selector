@@ -526,6 +526,10 @@ const postCopy = () => {
 };
 
 const patchMember = (em, data) => {
+    if (!props.canManage) {
+        return;
+    }
+
     const row = rosterState.value?.find((r) => r.id === em.id);
     const snapshot = row ? { ...row } : null;
 

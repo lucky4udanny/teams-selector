@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fix (auth):** Unauthenticated Inertia PATCH/PUT/DELETE requests (e.g. roster toggles after session expiry) no longer 405 on `/login` — `AuthenticationException` for Inertia requests returns `409` with `X-Inertia-Location` so the client performs a full-page redirect to login.
 - **Feat (roster):** Event roster tab has a collapsible filter panel (search, sector, gender, invited, status); preferences persist in `localStorage` per org (`teams-selector:roster-filters:{slug}`). Gender is resolved from `orgMembers`; filter → sort pipeline matches the members catalog.
 - **Feat (Members):** Members catalog has a collapsible filter panel (search, sector, gender, show removed); preferences persist in `localStorage` per org (`teams-selector:member-filters:{slug}`). Removed (soft-deleted) members are hidden by default.
 - **Fix (Members):** Filter sector/gender dropdowns use `ListboxInput` `portal` so options are not clipped by the filter panel’s `overflow-hidden` wrapper.
