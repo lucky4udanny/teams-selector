@@ -60,6 +60,18 @@ const selected = computed({
 const buttonRef = ref(null);
 const portalStyle = ref({});
 
+const optionKey = (option, index) => {
+    const raw = option[props.valueKey];
+    if (raw === null || raw === undefined) {
+        return `opt-null-${index}`;
+    }
+    if (raw === '') {
+        return `opt-empty-${index}`;
+    }
+
+    return `opt-${String(raw)}-${index}`;
+};
+
 const recalcPortalPosition = () => {
     if (!props.portal) return;
     const el = buttonRef.value?.$el ?? buttonRef.value;
@@ -91,7 +103,7 @@ const recalcPortalPosition = () => {
 </script>
 
 <template>
-    <Listbox v-model="selected" :disabled="disabled" by="value">
+    <Listbox v-model="selected" :disabled="disabled" :by="labelKey">
         <div class="relative">
             <ListboxButton
                 ref="buttonRef"
@@ -120,8 +132,8 @@ const recalcPortalPosition = () => {
                         class="max-h-60 overflow-auto rounded-lg bg-white py-1 text-sm shadow-lg ring-1 ring-black/5 focus:outline-none"
                     >
                         <ListboxOption
-                            v-for="option in options"
-                            :key="option[valueKey]"
+                            v-for="(option, index) in options"
+                            :key="optionKey(option, index)"
                             v-slot="{ active, selected: isSelected }"
                             :value="option"
                             as="template"
@@ -150,8 +162,8 @@ const recalcPortalPosition = () => {
                     class="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white py-1 text-sm shadow-lg ring-1 ring-black/5 focus:outline-none"
                 >
                     <ListboxOption
-                        v-for="option in options"
-                        :key="option[valueKey]"
+                        v-for="(option, index) in options"
+                        :key="optionKey(option, index)"
                         v-slot="{ active, selected: isSelected }"
                         :value="option"
                         as="template"

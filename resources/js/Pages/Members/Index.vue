@@ -10,7 +10,16 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 import SkillSlider from '@/Components/SkillSlider.vue';
 import TextInput from '@/Components/TextInput.vue';
 import OrganizationLayout from '@/Layouts/OrganizationLayout.vue';
+import {
+    DEFAULT_MEMBER_FILTERS,
+    FILTER_ANY,
+    FILTER_UNSPECIFIED,
+    loadMemberFilterPreference,
+    memberMatchesFilters,
+    saveMemberFilterPreference,
+} from '@/utils/memberFilters';
 import { loadMemberSortPreference, saveMemberSortPreference } from '@/utils/memberSort';
+import { ChevronDownIcon } from '@heroicons/vue/20/solid';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
@@ -36,6 +45,21 @@ const genderOptions = [
     { value: 'non_binary', label: 'Non-binary' },
     { value: 'prefer_not_to_say', label: 'Prefer not to say' },
 ];
+
+const filterGenderOptions = [
+    { value: FILTER_ANY, label: 'Any gender' },
+    { value: FILTER_UNSPECIFIED, label: 'Not specified' },
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+    { value: 'non_binary', label: 'Non-binary' },
+    { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
+
+const sectorFilterOptions = computed(() => [
+    { value: FILTER_ANY, label: 'Any sector' },
+    { value: FILTER_UNSPECIFIED, label: 'Not specified' },
+    ...sectorOptions.value,
+]);
 
 // ── Add modal ──────────────────────────────────────────────────────────────
 const showAdd = ref(false);
@@ -261,6 +285,65 @@ const restore = (id) => {
     router.post(route('organizations.members.restore', [props.organization.slug, id]), {}, { preserveScroll: true });
 };
 
+// ── Filters ────────────────────────────────────────────────────────────────
+const initialFilters = loadMemberFilterPreference(props.organization.slug);
+const filtersPanelOpen = ref(initialFilters.panelOpen);
+const filterSearch = ref(initialFilters.search);
+const filterSectorId = ref(initialFilters.sectorId);
+const filterGender = ref(initialFilters.gender);
+const filterShowRemoved = ref(initialFilters.showRemoved);
+
+const persistFilters = () => {
+    saveMemberFilterPreference(props.organization.slug, {
+        search: filterSearch.value,
+        sectorId: filterSectorId.value,
+        gender: filterGender.value,
+        showRemoved: filterShowRemoved.value,
+        panelOpen: filtersPanelOpen.value,
+    });
+};
+
+watch(
+    [filterSearch, filterSectorId, filterGender, filterShowRemoved, filtersPanelOpen],
+    persistFilters,
+);
+
+const activeFilterCount = computed(() => {
+    let count = 0;
+    if (filterSearch.value.trim()) {
+        count += 1;
+    }
+    if (filterSectorId.value !== FILTER_ANY) {
+        count += 1;
+    }
+    if (filterGender.value !== FILTER_ANY) {
+        count += 1;
+    }
+    if (filterShowRemoved.value) {
+        count += 1;
+    }
+
+    return count;
+});
+
+const clearFilters = () => {
+    filterSearch.value = DEFAULT_MEMBER_FILTERS.search;
+    filterSectorId.value = DEFAULT_MEMBER_FILTERS.sectorId;
+    filterGender.value = DEFAULT_MEMBER_FILTERS.gender;
+    filterShowRemoved.value = DEFAULT_MEMBER_FILTERS.showRemoved;
+};
+
+const filteredMembers = computed(() =>
+    (props.members || []).filter((m) =>
+        memberMatchesFilters(m, {
+            search: filterSearch.value,
+            sectorId: filterSectorId.value,
+            gender: filterGender.value,
+            showRemoved: filterShowRemoved.value,
+        }),
+    ),
+);
+
 // ── Table sorting ──────────────────────────────────────────────────────────
 const { key: initialKey, dir: initialDir } = loadMemberSortPreference(props.organization.slug);
 const sortKey = ref(initialKey);
@@ -292,7 +375,7 @@ const getSortValue = (m, key) => {
 };
 
 const sortedMembers = computed(() => {
-    const list = [...(props.members || [])];
+    const list = [...filteredMembers.value];
     const dir = sortDir.value === 'asc' ? 1 : -1;
 
     return list.sort((a, b) => {
@@ -343,7 +426,104 @@ const sortedMembers = computed(() => {
             </span>
         </EmptyState>
 
-        <div v-else class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm">
+        <div v-else class="space-y-4">
+            <div class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm">
+                <button
+                    type="button"
+                    class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-cream/60 active:bg-brand-cream"
+                    :aria-expanded="filtersPanelOpen"
+                    @click="filtersPanelOpen = !filtersPanelOpen"
+                >
+                    <span class="inline-flex flex-wrap items-center gap-2">
+                        <span>Filters</span>
+                        <span
+                            v-if="activeFilterCount"
+                            class="rounded-full bg-brand-blue/10 px-2 py-0.5 text-xs font-medium text-brand-blue"
+                        >
+                            {{ activeFilterCount }} active
+                        </span>
+                        <span class="text-xs font-normal text-brand-blue/60">
+                            {{ filteredMembers.length }} of {{ members.length }} shown
+                        </span>
+                    </span>
+                    <ChevronDownIcon
+                        class="h-4 w-4 shrink-0 text-brand-blue/50 transition-transform duration-200"
+                        :class="{ 'rotate-180': filtersPanelOpen }"
+                    />
+                </button>
+
+                <div
+                    v-show="filtersPanelOpen"
+                    class="space-y-4 border-t border-brand-mist bg-brand-cream/30 p-4"
+                >
+                    <FormField label="Search" name="member_filter_search">
+                        <TextInput
+                            id="member_filter_search"
+                            v-model="filterSearch"
+                            type="search"
+                            placeholder="Name, email, phone, company, sector…"
+                        />
+                    </FormField>
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <FormField label="Sector" name="member_filter_sector">
+                            <ListboxInput
+                                v-model="filterSectorId"
+                                :options="sectorFilterOptions"
+                                placeholder="Any sector"
+                                portal
+                            />
+                        </FormField>
+                        <FormField label="Gender" name="member_filter_gender">
+                            <ListboxInput
+                                v-model="filterGender"
+                                :options="filterGenderOptions"
+                                placeholder="Any gender"
+                                portal
+                            />
+                        </FormField>
+                    </div>
+
+                    <label class="flex cursor-pointer items-center gap-2 text-sm text-brand-navy">
+                        <input
+                            v-model="filterShowRemoved"
+                            type="checkbox"
+                            class="rounded border-brand-mist text-brand-blue focus:ring-brand-blue/30"
+                        />
+                        Show removed members
+                    </label>
+
+                    <div v-if="activeFilterCount" class="flex justify-end">
+                        <button
+                            type="button"
+                            class="cursor-pointer text-sm font-medium text-brand-blue hover:text-brand-navy hover:underline active:opacity-70"
+                            @click="clearFilters"
+                        >
+                            Clear filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                v-if="!filteredMembers.length"
+                class="rounded-xl border border-dashed border-brand-mist bg-brand-cream/50 px-6 py-10 text-center"
+            >
+                <p class="text-sm font-medium text-brand-navy">No members match your filters</p>
+                <p class="mt-1 text-sm text-brand-blue/70">
+                    Try adjusting search or filters, or show removed members.
+                </p>
+                <button
+                    v-if="activeFilterCount"
+                    type="button"
+                    class="mt-4 cursor-pointer text-sm font-medium text-brand-blue hover:text-brand-navy hover:underline active:opacity-70"
+                    @click="clearFilters"
+                >
+                    Clear filters
+                </button>
+            </div>
+
+            <div v-else class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm">
             <table class="min-w-full divide-y divide-brand-mist">
                 <thead class="bg-brand-cream">
                     <tr>
@@ -469,6 +649,7 @@ const sortedMembers = computed(() => {
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <!-- Add member modal -->

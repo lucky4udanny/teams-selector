@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Feat (Members):** Members catalog has a collapsible filter panel (search, sector, gender, show removed); preferences persist in `localStorage` per org (`teams-selector:member-filters:{slug}`). Removed (soft-deleted) members are hidden by default.
+- **Fix (Members):** Filter sector/gender dropdowns use `ListboxInput` `portal` so options are not clipped by the filter panel’s `overflow-hidden` wrapper.
+- **Feat (Members):** Sector and gender filters include **Not specified** for members with null sector or gender (`FILTER_UNSPECIFIED` in `memberFilters.js`; `FILTER_ANY` = `__any__`).
+- **Fix (ListboxInput):** Option list keys use index-safe values so empty-string or duplicate `value` keys do not drop options (e.g. member filter “Not specified”).
 - **Fix (roster):** Removing an org member no longer 500s the event roster tab — soft-deleted members left orphaned `event_members` rows; deleting a member now removes their roster rows, roster load cleans legacy orphans, and RSVP counts ignore rows without a live member.
 - **Fix (events):** Draft team member edits now add substitutes to the event roster (`TeamDraftController::updateTeamMembers` → `Event::ensureMembersOnRoster`). Event duplicate syncs the copy’s roster with the source’s latest team draft: assigned members are included, members only on the old roster are moved to the waiting list.
 - **Fix (rules):** `repeat_pair` ("Avoid same members") allows multiple rules per scope when each references a **different** linked prior event; duplicate `(scope, prior event_id)` pairs are rejected server- and client-side. Add-rule modal lists only unused priors for the selected scope and defaults to the first available.
