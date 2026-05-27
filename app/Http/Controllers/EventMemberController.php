@@ -226,7 +226,10 @@ class EventMemberController extends Controller
 
     private function rosterPayload(Event $event): array
     {
+        $event->eventMembers()->whereDoesntHave('member')->delete();
+
         $event->load([
+            'eventMembers' => fn ($q) => $q->whereHas('member'),
             'eventMembers.member.sector',
             'eventMembers.member.memberEventTypeSkills' => fn ($q) => $q->where('event_type_id', $event->event_type_id),
         ]);
@@ -234,6 +237,9 @@ class EventMemberController extends Controller
         $roster = $event->eventMembers
             ->map(function (EventMember $em) {
             $m = $em->member;
+            if ($m === null) {
+                return null;
+            }
             $skill = $m->memberEventTypeSkills->first();
 
             return [
@@ -252,7 +258,7 @@ class EventMemberController extends Controller
                 'status_changed_at' => $em->status_changed_at?->toIso8601String(),
                 'notes' => $em->notes,
             ];
-        })->values()->all();
+        })->filter()->values()->all();
 
         return [
             'roster' => $roster,

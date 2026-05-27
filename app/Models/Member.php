@@ -15,6 +15,13 @@ class Member extends Model
     /** @use HasFactory<MemberFactory> */
     use HasFactory, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Member $member): void {
+            $member->eventMembers()->delete();
+        });
+    }
+
     protected $fillable = [
         'organization_id',
         'first_name',

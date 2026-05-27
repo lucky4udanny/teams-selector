@@ -108,6 +108,43 @@ class EventCentricFlowTest extends TestCase
                 ->missing('roster.roster'));
     }
 
+    public function test_roster_tab_succeeds_after_member_removed_from_organization(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+        $kept = Member::factory()->create(['organization_id' => $org->id]);
+        $removed = Member::factory()->create(['organization_id' => $org->id]);
+
+        foreach ([$kept, $removed] as $member) {
+            EventMember::query()->create([
+                'event_id' => $event->id,
+                'member_id' => $member->id,
+                'included' => true,
+                'invited' => false,
+                'status' => EventMemberStatus::Pending,
+                'status_changed_at' => now(),
+            ]);
+        }
+
+        $this->assertDatabaseCount('event_members', 2);
+
+        $removed->delete();
+
+        $this->get(route('organizations.events.show', [$org, $event]).'?tab=roster')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Events/Show')
+                ->where('tab', 'roster')
+                ->has('roster', 1)
+                ->where('roster.0.member_id', $kept->id));
+
+        $this->assertDatabaseCount('event_members', 1);
+        $this->assertDatabaseMissing('event_members', [
+            'event_id' => $event->id,
+            'member_id' => $removed->id,
+        ]);
+    }
+
     public function test_roster_bulk_add_members_from_organization(): void
     {
         [, $org] = $this->actingAsOrganizer();

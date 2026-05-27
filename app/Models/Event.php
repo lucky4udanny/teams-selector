@@ -123,15 +123,17 @@ class Event extends Model
      */
     public function rsvpCounts(): array
     {
-        $includedRows = $this->eventMembers()
+        $rosterQuery = $this->eventMembers()->whereHas('member');
+
+        $includedRows = (clone $rosterQuery)
             ->where('included', true)
             ->selectRaw('status, count(*) as c')
             ->groupBy('status')
             ->pluck('c', 'status');
 
-        $included = (int) $this->eventMembers()->where('included', true)->count();
-        $waiting  = (int) $this->eventMembers()->where('included', false)->count();
-        $invited  = (int) $this->eventMembers()->where('included', true)->where('invited', true)->count();
+        $included = (int) (clone $rosterQuery)->where('included', true)->count();
+        $waiting  = (int) (clone $rosterQuery)->where('included', false)->count();
+        $invited  = (int) (clone $rosterQuery)->where('included', true)->where('invited', true)->count();
 
         return [
             'included' => $included,
