@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class EventMemberController extends Controller
 {
@@ -183,6 +184,15 @@ class EventMemberController extends Controller
     {
         $user = $request->user();
         $oldStatus = $eventMember->status;
+
+        if (array_key_exists('status', $validated)) {
+            $eventMember->loadMissing('event');
+            if ($eventMember->event?->finalized_at !== null) {
+                throw ValidationException::withMessages([
+                    'status' => 'Roster status cannot be changed after teams are finalized.',
+                ]);
+            }
+        }
 
         $updates = [];
         if (array_key_exists('included', $validated)) {

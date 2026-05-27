@@ -70,6 +70,7 @@ const props = defineProps({
 
 const slug = computed(() => props.organization.slug);
 const eventId = computed(() => props.event.id);
+const canEditRosterStatus = computed(() => props.canManage && !props.event.is_finalized);
 
 const eventHref = (t) =>
     `${route('organizations.events.show', { organization: slug.value, event: eventId.value })}?tab=${t}`;
@@ -531,6 +532,15 @@ const patchMember = (em, data) => {
         return;
     }
 
+    if (Object.prototype.hasOwnProperty.call(data, 'status') && !canEditRosterStatus.value) {
+        rosterNotice.value = {
+            variant: 'warning',
+            message: 'Roster status cannot be changed after teams are finalized.',
+        };
+
+        return;
+    }
+
     const row = rosterState.value?.find((r) => r.id === em.id);
     const snapshot = row ? { ...row } : null;
 
@@ -545,12 +555,18 @@ const patchMember = (em, data) => {
     router.patch(route('organizations.events.members.update', [slug.value, eventId.value, em.id]), data, {
         preserveScroll: true,
         only: ['roster', 'event'],
-        onError: () => {
+        onError: (errors) => {
             if (snapshot && rosterState.value) {
                 const target = rosterState.value.find((r) => r.id === em.id);
                 if (target) {
                     Object.assign(target, snapshot);
                 }
+            }
+            if (errors?.status) {
+                rosterNotice.value = {
+                    variant: 'error',
+                    message: errors.status,
+                };
             }
         },
     });
@@ -606,14 +622,31 @@ const bulkPatch = (payload) => {
 
         return;
     }
+    if (Object.prototype.hasOwnProperty.call(payload, 'status') && !canEditRosterStatus.value) {
+        rosterNotice.value = {
+            variant: 'warning',
+            message: 'Roster status cannot be changed after teams are finalized.',
+        };
+
+        return;
+    }
     const items = ids.map((id) => ({ id, ...payload }));
     router.patch(
         route('organizations.events.members.bulk-update', [slug.value, eventId.value]),
         { items },
         {
             preserveScroll: true,
+            only: ['roster', 'event'],
             onSuccess: () => {
                 selectedEmIds.value = new Set();
+            },
+            onError: (errors) => {
+                if (errors?.status) {
+                    rosterNotice.value = {
+                        variant: 'error',
+                        message: errors.status,
+                    };
+                }
             },
         },
     );
@@ -1264,6 +1297,10 @@ const groupDisplayLabel = (gi, names) => {
                 {{ rosterNotice.message }}
             </Alert>
 
+            <Alert v-if="event.is_finalized" variant="info" role="status">
+                Roster status is locked while teams are finalized. Revert final teams on the Drafts tab to edit status again.
+            </Alert>
+
             <div
                 v-if="rosterRows.length"
                 class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm"
@@ -1406,8 +1443,20 @@ const groupDisplayLabel = (gi, names) => {
                 <SecondaryButton type="button" @click="bulkPatch({ included: false })">Move to waiting list</SecondaryButton>
                 <SecondaryButton type="button" @click="bulkPatch({ invited: true })">Set invited</SecondaryButton>
                 <SecondaryButton type="button" @click="bulkPatch({ invited: false })">Set not invited</SecondaryButton>
-                <SecondaryButton type="button" @click="bulkPatch({ status: 'accepted' })">Set accepted</SecondaryButton>
-                <SecondaryButton type="button" @click="bulkPatch({ status: 'declined' })">Set declined</SecondaryButton>
+                <SecondaryButton
+                    type="button"
+                    :disabled="!canEditRosterStatus"
+                    @click="bulkPatch({ status: 'accepted' })"
+                >
+                    Set accepted
+                </SecondaryButton>
+                <SecondaryButton
+                    type="button"
+                    :disabled="!canEditRosterStatus"
+                    @click="bulkPatch({ status: 'declined' })"
+                >
+                    Set declined
+                </SecondaryButton>
             </div>
 
             <div
@@ -1535,7 +1584,7 @@ const groupDisplayLabel = (gi, names) => {
                                 <StatusBadge
                                     :model-value="row.status"
                                     :included="row.included"
-                                    :disabled="!canManage"
+                                    :disabled="!canEditRosterStatus"
                                     @update:model-value="(v) => patchMember(row, { status: v })"
                                 />
                             </td>

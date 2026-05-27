@@ -20,8 +20,6 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['change']);
-
 const statusOptions = [
     { label: 'Pending', value: 'pending' },
     { label: 'Accepted', value: 'accepted' },
@@ -39,11 +37,6 @@ const label = computed(() => {
 
     return statusOptions.find((o) => o.value === model.value)?.label ?? model.value;
 });
-
-const onUpdate = (value) => {
-    model.value = value;
-    emit('change', value);
-};
 </script>
 
 <template>
@@ -51,11 +44,6 @@ const onUpdate = (value) => {
         <Badge :variant="variant">{{ label }}</Badge>
     </div>
     <div v-else class="w-36">
-        <ListboxInput
-            :model-value="model"
-            :options="statusOptions"
-            portal
-            @update:model-value="onUpdate"
-        />
+        <ListboxInput v-model="model" :options="statusOptions" portal />
     </div>
 </template>

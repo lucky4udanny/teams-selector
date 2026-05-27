@@ -585,4 +585,81 @@ class EventCentricFlowTest extends TestCase
         );
         $this->assertTrue($hasPreferredViolation || $result['total_penalty'] === 0);
     }
+
+    public function test_roster_status_can_change_from_accepted_to_pending(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+        $member = Member::factory()->create(['organization_id' => $org->id]);
+        $eventMember = EventMember::query()->create([
+            'event_id' => $event->id,
+            'member_id' => $member->id,
+            'included' => true,
+            'invited' => true,
+            'status' => EventMemberStatus::Accepted,
+            'status_changed_at' => now(),
+        ]);
+
+        $this->patch(route('organizations.events.members.update', [$org, $event, $eventMember]), [
+            'status' => EventMemberStatus::Pending->value,
+        ])->assertRedirect();
+
+        $this->assertEquals(EventMemberStatus::Pending, $eventMember->fresh()->status);
+    }
+
+    public function test_roster_status_cannot_change_when_event_finalized(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create([
+            'organization_id' => $org->id,
+            'finalized_at' => now(),
+        ]);
+        $member = Member::factory()->create(['organization_id' => $org->id]);
+        $eventMember = EventMember::query()->create([
+            'event_id' => $event->id,
+            'member_id' => $member->id,
+            'included' => true,
+            'invited' => true,
+            'status' => EventMemberStatus::Accepted,
+            'status_changed_at' => now(),
+        ]);
+
+        $this->patch(route('organizations.events.members.update', [$org, $event, $eventMember]), [
+            'status' => EventMemberStatus::Pending->value,
+        ])->assertSessionHasErrors('status');
+
+        $this->assertEquals(EventMemberStatus::Accepted, $eventMember->fresh()->status);
+    }
+
+    public function test_roster_status_can_change_after_revert_final(): void
+    {
+        [, $org] = $this->actingAsOrganizer();
+        $event = Event::factory()->create(['organization_id' => $org->id]);
+        $draft = TeamDraft::factory()->create([
+            'event_id' => $event->id,
+            'state' => ['teams' => [], 'groups' => [], 'blocking_errors' => []],
+        ]);
+        $event->update([
+            'final_team_draft_id' => $draft->id,
+            'finalized_at' => now(),
+        ]);
+        $member = Member::factory()->create(['organization_id' => $org->id]);
+        $eventMember = EventMember::query()->create([
+            'event_id' => $event->id,
+            'member_id' => $member->id,
+            'included' => true,
+            'invited' => true,
+            'status' => EventMemberStatus::Accepted,
+            'status_changed_at' => now(),
+        ]);
+
+        $this->post(route('organizations.events.revert-final', [$org, $event]))
+            ->assertRedirect();
+
+        $this->patch(route('organizations.events.members.update', [$org, $event, $eventMember]), [
+            'status' => EventMemberStatus::Declined->value,
+        ])->assertRedirect();
+
+        $this->assertEquals(EventMemberStatus::Declined, $eventMember->fresh()->status);
+    }
 }

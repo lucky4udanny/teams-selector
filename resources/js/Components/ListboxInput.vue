@@ -103,7 +103,7 @@ const recalcPortalPosition = () => {
 </script>
 
 <template>
-    <Listbox v-model="selected" :disabled="disabled" :by="labelKey">
+    <Listbox v-model="selected" :disabled="disabled" :by="valueKey">
         <div class="relative">
             <ListboxButton
                 ref="buttonRef"
