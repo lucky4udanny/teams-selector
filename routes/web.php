@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventExportController;
+use App\Http\Controllers\EventRosterExportController;
 use App\Http\Controllers\EventMemberController;
 use App\Http\Controllers\EventRuleController;
 use App\Http\Controllers\EventTypeController;
@@ -73,6 +74,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/organizations/{organization}/events/{event}/export/print', [EventExportController::class, 'print'])->name('organizations.events.export.print');
         Route::get('/organizations/{organization}/events/{event}/export.csv', [EventExportController::class, 'exportCsv'])->name('organizations.events.export.csv');
         Route::get('/organizations/{organization}/events/{event}/export.xlsx', [EventExportController::class, 'exportXlsx'])->name('organizations.events.export.xlsx');
+        Route::get('/organizations/{organization}/events/{event}/roster/export.csv', [EventRosterExportController::class, 'exportCsv'])->name('organizations.events.roster.export.csv');
 
         Route::get('/organizations/{organization}/events/{event}/members', [EventMemberController::class, 'index'])->name('organizations.events.members.index');
         Route::post('/organizations/{organization}/events/{event}/members', [EventMemberController::class, 'store'])->name('organizations.events.members.store');

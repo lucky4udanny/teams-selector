@@ -417,6 +417,37 @@ const rosterFilterCriteria = computed(() => ({
     status: rosterFilterStatus.value,
 }));
 
+const rosterExportQuery = computed(() => {
+    const params = new URLSearchParams();
+    const criteria = rosterFilterCriteria.value;
+    const search = (criteria.search || '').trim();
+    if (search) {
+        params.set('search', search);
+    }
+    if (criteria.sectorId !== FILTER_ANY) {
+        params.set('sector_id', String(criteria.sectorId));
+    }
+    if (criteria.gender !== FILTER_ANY) {
+        params.set('gender', String(criteria.gender));
+    }
+    if (criteria.invited !== FILTER_ANY) {
+        params.set('invited', String(criteria.invited));
+    }
+    if (criteria.status !== FILTER_ANY) {
+        params.set('status', String(criteria.status));
+    }
+    params.set('sort_column', rosterSort.value.column);
+    params.set('sort_direction', rosterSort.value.direction);
+    const qs = params.toString();
+
+    return qs ? `?${qs}` : '';
+});
+
+const rosterCsvExportUrl = computed(
+    () =>
+        `${route('organizations.events.roster.export.csv', [slug.value, eventId.value])}${rosterExportQuery.value}`,
+);
+
 const filteredRosterRows = computed(() =>
     rosterRows.value.filter((row) =>
         rosterMatchesFilters(row, orgMemberById.value.get(row.member_id), rosterFilterCriteria.value),
@@ -1309,29 +1340,41 @@ const groupDisplayLabel = (gi, names) => {
                 v-if="rosterRows.length"
                 class="overflow-hidden rounded-xl border border-brand-mist bg-white shadow-sm"
             >
-                <button
-                    type="button"
-                    class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-cream/60 active:bg-brand-cream"
-                    :aria-expanded="rosterFiltersPanelOpen"
-                    @click="rosterFiltersPanelOpen = !rosterFiltersPanelOpen"
-                >
-                    <span class="inline-flex flex-wrap items-center gap-2">
-                        <span>Filters</span>
-                        <span
-                            v-if="activeRosterFilterCount"
-                            class="rounded-full bg-brand-blue/10 px-2 py-0.5 text-xs font-medium text-brand-blue"
-                        >
-                            {{ activeRosterFilterCount }} active
+                <div class="flex items-stretch gap-px border-b border-brand-mist">
+                    <button
+                        type="button"
+                        class="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-cream/60 active:bg-brand-cream"
+                        :aria-expanded="rosterFiltersPanelOpen"
+                        @click="rosterFiltersPanelOpen = !rosterFiltersPanelOpen"
+                    >
+                        <span class="inline-flex flex-wrap items-center gap-2">
+                            <span>Filters</span>
+                            <span
+                                v-if="activeRosterFilterCount"
+                                class="rounded-full bg-brand-blue/10 px-2 py-0.5 text-xs font-medium text-brand-blue"
+                            >
+                                {{ activeRosterFilterCount }} active
+                            </span>
+                            <span class="text-xs font-normal text-brand-blue/60">
+                                {{ filteredRosterRows.length }} of {{ rosterRows.length }} shown
+                            </span>
                         </span>
-                        <span class="text-xs font-normal text-brand-blue/60">
-                            {{ filteredRosterRows.length }} of {{ rosterRows.length }} shown
-                        </span>
-                    </span>
-                    <ChevronDownIcon
-                        class="h-4 w-4 shrink-0 text-brand-blue/50 transition-transform duration-200"
-                        :class="{ 'rotate-180': rosterFiltersPanelOpen }"
-                    />
-                </button>
+                        <ChevronDownIcon
+                            class="h-4 w-4 shrink-0 text-brand-blue/50 transition-transform duration-200"
+                            :class="{ 'rotate-180': rosterFiltersPanelOpen }"
+                        />
+                    </button>
+                    <a
+                        :href="rosterCsvExportUrl"
+                        title="Download filtered roster as CSV"
+                        :aria-label="`Download CSV (${filteredRosterRows.length} members)`"
+                        class="inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-l border-brand-mist px-4 py-3 text-xs font-medium text-brand-navy transition-colors hover:bg-green-50 active:bg-green-100"
+                        @click.stop
+                    >
+                        <ArrowDownTrayIcon class="h-4 w-4 text-green-700" />
+                        <span class="hidden sm:inline">CSV</span>
+                    </a>
+                </div>
 
                 <div
                     v-show="rosterFiltersPanelOpen"

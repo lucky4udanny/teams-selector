@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Feat (roster):** Event roster tab exports the current filtered and sorted member list to CSV (`GET organizations.events.roster.export.csv`); server-side `RosterFilter` / `RosterSorter` mirror `rosterFilters.js` and `rosterSort.js`; CSV button on the filter bar passes active filter query params.
 - **Fix (roster):** Status dropdown persists again — roster rows bind `:model-value` (not `v-model`) so `patchMember` runs before local state updates; the status no-op guard no longer skips the PATCH after the dropdown already changed the row.
 - **Fix (roster):** Status dropdown now persists changes — `StatusBadge` uses explicit `modelValue`/`update:modelValue` (nested `defineModel` was not reaching the page), roster rows use `v-model` like toggles, and member PATCH redirects to `?tab=roster` so Inertia partial reloads include fresh roster data.
 - **Fix (roster):** Status dropdown works again after setting Accepted — `StatusBadge` uses `v-model` on `ListboxInput`; status edits are blocked once teams are finalized and re-enabled after revert final (server + UI).
